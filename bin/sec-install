@@ -1,0 +1,142 @@
+#!/usr/bin/env node
+// sec-install — install skills/agents/commands from this repo into a Claude config directory.
+//
+// Usage:
+//   sec-install --list                      List all items in the manifest.
+//   sec-install --list-profiles             List available profile presets.
+//   sec-install --profile <name>            Install every item in the given profile.
+//   sec-install <id> [<id> ...]             Install one or more items by id.
+//   sec-install --dest <path>               Target directory (default: ~/.claude)
+//   sec-install --dry-run                   Print what would be copied, don't copy.
+//   sec-install --force                     Overwrite existing files at the destination.
+//
+// The default destination is ~/.claude (Claude Code). For a repo-scoped install pass
+//   --dest .claude
+// For Cowork project scope pass the appropriate .claude directory.
+
+import fs from "node:fs";
+import path from "node:path";
+import os from "node:os";
+import url from "node:url";
+
+const here = path.dirname(url.fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(here, "..");
+const manifestPath = path.join(repoRoot, "manifest.json");
+
+if (!fs.existsSync(manifestPath)) {
+  console.error("manifest.json not found. Run: node scripts/build-manifest.mjs");
+  process.exit(1);
+}
+const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+
+const args = process.argv.slice(2);
+const opts = { dest: path.join(os.homedir(), ".claude"), dryRun: false, force: false, profile: null, list: false, listProfiles: false };
+const ids = [];
+for (let i = 0; i < args.length; i++) {
+  const a = args[i];
+  if (a === "--list") opts.list = true;
+  else if (a === "--list-profiles") opts.listProfiles = true;
+  else if (a === "--profile") opts.profile = args[++i];
+  else if (a === "--dest") opts.dest = args[++i];
+  else if (a === "--dry-run") opts.dryRun = true;
+  else if (a === "--force") opts.force = true;
+  else if (a === "-h" || a === "--help") { printHelp(); process.exit(0); }
+  else if (a.startsWith("--")) { console.error(`Unknown flag: ${a}`); process.exit(2); }
+  else ids.push(a);
+}
+
+function printHelp() {
+  console.log(`sec-install — Accans Sec Skills installer
+
+Usage:
+  sec-install --list
+  sec-install --list-profiles
+  sec-install --profile <name>
+  sec-install <id> [<id> ...]
+
+Options:
+  --dest <path>   Target directory (default: ~/.claude)
+  --dry-run       Show what would be copied, don't copy
+  --force         Overwrite existing files
+  -h, --help      Show this help`);
+}
+
+// ---------- listings ----------
+if (opts.list) {
+  for (const it of manifest.items) {
+    console.log(`  ${it.type.padEnd(8)} ${it.id.padEnd(26)} ${it.name}`);
+  }
+  process.exit(0);
+}
+if (opts.listProfiles) {
+  for (const [k, p] of Object.entries(manifest.profiles)) {
+    const n = manifest.items.filter(it => it.profiles.includes(k)).length;
+    console.log(`  ${k.padEnd(10)} ${String(n).padStart(3)} items  — ${p.desc}`);
+  }
+  process.exit(0);
+}
+
+// ---------- resolve target set ----------
+let targets;
+if (opts.profile) {
+  if (!manifest.profiles[opts.profile]) {
+    console.error(`Unknown profile: ${opts.profile}`);
+    console.error(`Known: ${Object.keys(manifest.profiles).join(", ")}`);
+    process.exit(2);
+  }
+  targets = manifest.items.filter(it => it.profiles.includes(opts.profile));
+} else if (ids.length > 0) {
+  const byId = Object.fromEntries(manifest.items.map(it => [it.id, it]));
+  const missing = ids.filter(id => !byId[id]);
+  if (missing.length) {
+    console.error(`Unknown id(s): ${missing.join(", ")}`);
+    process.exit(2);
+  }
+  targets = ids.map(id => byId[id]);
+} else {
+  printHelp();
+  process.exit(0);
+}
+
+// ---------- copy ----------
+function copyRecursive(src, dst) {
+  const stat = fs.statSync(src);
+  if (stat.isDirectory()) {
+    fs.mkdirSync(dst, { recursive: true });
+    for (const name of fs.readdirSync(src)) {
+      copyRecursive(path.join(src, name), path.join(dst, name));
+    }
+  } else {
+    fs.mkdirSync(path.dirname(dst), { recursive: true });
+    fs.copyFileSync(src, dst);
+  }
+}
+
+const subdir = { skill: "skills", agent: "agents", command: "commands" };
+
+let installed = 0, skipped = 0;
+for (const it of targets) {
+  const src = path.join(repoRoot, it.path);
+  let dst;
+  if (it.type === "skill") {
+    dst = path.join(opts.dest, subdir[it.type], it.id);
+  } else {
+    dst = path.join(opts.dest, subdir[it.type], `${it.id}.md`);
+  }
+  if (fs.existsSync(dst) && !opts.force) {
+    console.log(`  skip  ${it.type.padEnd(8)} ${it.id}   (exists — pass --force to overwrite)`);
+    skipped++;
+    continue;
+  }
+  if (opts.dryRun) {
+    console.log(`  would ${it.type.padEnd(8)} ${it.id}   ${src} -> ${dst}`);
+  } else {
+    if (fs.existsSync(dst)) fs.rmSync(dst, { recursive: true, force: true });
+    copyRecursive(src, dst);
+    console.log(`  ok    ${it.type.padEnd(8)} ${it.id}`);
+  }
+  installed++;
+}
+
+console.log(`\n${opts.dryRun ? "Would install" : "Installed"} ${installed} item(s), skipped ${skipped}.`);
+if (!opts.dryRun && installed > 0) console.log(`Target: ${opts.dest}`);

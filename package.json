@@ -1,0 +1,21 @@
+{
+  "name": "accans-sec-skills",
+  "version": "0.1.0",
+  "description": "Security-focused skills, agents and commands for Claude Code and Cowork — with a selective install builder.",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "sec-install": "./bin/sec-install"
+  },
+  "scripts": {
+    "scaffold": "node scripts/scaffold.mjs",
+    "build": "node scripts/build-manifest.mjs",
+    "dev": "npm run scaffold && npm run build",
+    "list": "./bin/sec-install --list",
+    "profiles": "./bin/sec-install --list-profiles"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}

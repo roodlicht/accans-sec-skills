@@ -1,0 +1,712 @@
+{
+  "meta": {
+    "name": "Accans Sec Skills",
+    "version": "0.1.0",
+    "description": "Security-focused skills, agents and commands for Claude Code and Cowork. Build your install from the catalog."
+  },
+  "profiles": {
+    "core": {
+      "label": "Core",
+      "desc": "Cross-cutting security essentials — always useful."
+    },
+    "appsec": {
+      "label": "AppSec",
+      "desc": "DevSecOps, secure SDLC, framework-specific guardrails."
+    },
+    "pentest": {
+      "label": "Pentest",
+      "desc": "Offensive and red team work — recon to reporting."
+    },
+    "blue": {
+      "label": "Blue",
+      "desc": "SOC, detection engineering, incident response."
+    },
+    "grc": {
+      "label": "GRC",
+      "desc": "Compliance, policy drafting, audit prep (EU/NL-oriented)."
+    },
+    "full": {
+      "label": "Full",
+      "desc": "Everything in the catalog."
+    }
+  },
+  "items": [
+    {
+      "id": "ad-attacks",
+      "name": "AD Attack Paths",
+      "type": "skill",
+      "cat": [
+        "pentest"
+      ],
+      "profiles": [
+        "pentest",
+        "full"
+      ],
+      "desc": "BloodHound path review, Kerberos abuse, delegation flaws and Tier-0 hygiene.",
+      "path": "skills/ad-attacks"
+    },
+    {
+      "id": "alert-tuning",
+      "name": "Alert Tuning",
+      "type": "skill",
+      "cat": [
+        "blue"
+      ],
+      "profiles": [
+        "blue",
+        "full"
+      ],
+      "desc": "False-positive reduction with suppression logic, baseline learning and rule hygiene.",
+      "path": "skills/alert-tuning"
+    },
+    {
+      "id": "api-security",
+      "name": "API Security",
+      "type": "skill",
+      "cat": [
+        "appsec"
+      ],
+      "profiles": [
+        "appsec",
+        "full"
+      ],
+      "desc": "Auth review, rate-limit patterns, schema validation and OWASP API Top 10 hooks.",
+      "path": "skills/api-security"
+    },
+    {
+      "id": "audit-evidence",
+      "name": "Audit Evidence Collector",
+      "type": "skill",
+      "cat": [
+        "grc"
+      ],
+      "profiles": [
+        "grc",
+        "full"
+      ],
+      "desc": "Control-packaged evidence bundling with chain-of-custody and period tagging.",
+      "path": "skills/audit-evidence"
+    },
+    {
+      "id": "c2-hygiene",
+      "name": "C2 Hygiene",
+      "type": "skill",
+      "cat": [
+        "pentest"
+      ],
+      "profiles": [
+        "pentest",
+        "full"
+      ],
+      "desc": "Redirector setup, domain fronting alternatives, OPSEC review and beacon tuning.",
+      "path": "skills/c2-hygiene"
+    },
+    {
+      "id": "cicd-hardening",
+      "name": "CI/CD Hardening",
+      "type": "skill",
+      "cat": [
+        "appsec"
+      ],
+      "profiles": [
+        "appsec",
+        "full"
+      ],
+      "desc": "GitHub Actions and GitLab CI hardening — OIDC, pinned actions, supply-chain controls.",
+      "path": "skills/cicd-hardening"
+    },
+    {
+      "id": "container-hardening",
+      "name": "Container Hardening",
+      "type": "skill",
+      "cat": [
+        "appsec"
+      ],
+      "profiles": [
+        "appsec",
+        "full"
+      ],
+      "desc": "Docker and OCI image hardening — base-image hygiene, USER, caps, distroless migration.",
+      "path": "skills/container-hardening"
+    },
+    {
+      "id": "cve-triage",
+      "name": "CVE Triage",
+      "type": "skill",
+      "cat": [
+        "core",
+        "appsec"
+      ],
+      "profiles": [
+        "core",
+        "appsec",
+        "full"
+      ],
+      "desc": "Filter dependency vulns by exploitability, reachable-path and EPSS — cuts the noise.",
+      "path": "skills/cve-triage"
+    },
+    {
+      "id": "dast-workflow",
+      "name": "DAST Workflow",
+      "type": "skill",
+      "cat": [
+        "appsec"
+      ],
+      "profiles": [
+        "appsec",
+        "full"
+      ],
+      "desc": "ZAP automation and Burp collaborator playbooks with auth-state handling.",
+      "path": "skills/dast-workflow"
+    },
+    {
+      "id": "django-security",
+      "name": "Django Security",
+      "type": "skill",
+      "cat": [
+        "appsec"
+      ],
+      "profiles": [
+        "appsec",
+        "full"
+      ],
+      "desc": "CSRF, ORM-based SQLi, template-injection, admin hardening and deploy checklist.",
+      "path": "skills/django-security"
+    },
+    {
+      "id": "dora",
+      "name": "DORA Compliance",
+      "type": "skill",
+      "cat": [
+        "grc"
+      ],
+      "profiles": [
+        "grc",
+        "full"
+      ],
+      "desc": "Digital Operational Resilience Act controls for EU financial sector — ICT-risk and third-party.",
+      "path": "skills/dora"
+    },
+    {
+      "id": "exploit-chain",
+      "name": "Exploit Chain Composer",
+      "type": "skill",
+      "cat": [
+        "pentest"
+      ],
+      "profiles": [
+        "pentest",
+        "full"
+      ],
+      "desc": "OWASP chain assembly — from initial bug to high-impact path with CVSS rationale.",
+      "path": "skills/exploit-chain"
+    },
+    {
+      "id": "forensics-assist",
+      "name": "Forensics Assist",
+      "type": "skill",
+      "cat": [
+        "blue"
+      ],
+      "profiles": [
+        "blue",
+        "full"
+      ],
+      "desc": "Memory analysis with Volatility, disk imaging hygiene and timeline reconstruction.",
+      "path": "skills/forensics-assist"
+    },
+    {
+      "id": "gdpr-pia",
+      "name": "AVG / GDPR PIA",
+      "type": "skill",
+      "cat": [
+        "grc"
+      ],
+      "profiles": [
+        "grc",
+        "full"
+      ],
+      "desc": "Data Protection Impact Assessment templates with NL Autoriteit Persoonsgegevens guidance.",
+      "path": "skills/gdpr-pia"
+    },
+    {
+      "id": "iac-security",
+      "name": "IaC Security",
+      "type": "skill",
+      "cat": [
+        "appsec"
+      ],
+      "profiles": [
+        "appsec",
+        "full"
+      ],
+      "desc": "Terraform, CloudFormation, Ansible and Pulumi misconfig scanning with cloud-aware context.",
+      "path": "skills/iac-security"
+    },
+    {
+      "id": "ioc-hunter",
+      "name": "IOC Hunter",
+      "type": "skill",
+      "cat": [
+        "blue"
+      ],
+      "profiles": [
+        "blue",
+        "full"
+      ],
+      "desc": "Threat-intel enrichment, IOC deduplication and confidence scoring across feeds.",
+      "path": "skills/ioc-hunter"
+    },
+    {
+      "id": "ir-runbook",
+      "name": "IR Runbook",
+      "type": "skill",
+      "cat": [
+        "blue"
+      ],
+      "profiles": [
+        "blue",
+        "full"
+      ],
+      "desc": "Ransomware, BEC and data-exfil playbooks with NIST-aligned phases and comms templates.",
+      "path": "skills/ir-runbook"
+    },
+    {
+      "id": "iso27001",
+      "name": "ISO 27001 Mapper",
+      "type": "skill",
+      "cat": [
+        "grc"
+      ],
+      "profiles": [
+        "grc",
+        "full"
+      ],
+      "desc": "Annex A control mapping to evidence, policy artifacts and internal-audit prep.",
+      "path": "skills/iso27001"
+    },
+    {
+      "id": "k8s-security",
+      "name": "Kubernetes Security",
+      "type": "skill",
+      "cat": [
+        "appsec"
+      ],
+      "profiles": [
+        "appsec",
+        "full"
+      ],
+      "desc": "RBAC review, Pod Security Standards, NetworkPolicy generation and admission controllers.",
+      "path": "skills/k8s-security"
+    },
+    {
+      "id": "log-triage",
+      "name": "Log Triage",
+      "type": "skill",
+      "cat": [
+        "blue"
+      ],
+      "profiles": [
+        "blue",
+        "full"
+      ],
+      "desc": "CloudTrail, Azure AD and Google Workspace log triage — anomaly patterns per identity.",
+      "path": "skills/log-triage"
+    },
+    {
+      "id": "malware-triage",
+      "name": "Malware Triage",
+      "type": "skill",
+      "cat": [
+        "blue"
+      ],
+      "profiles": [
+        "blue",
+        "full"
+      ],
+      "desc": "Sandbox output parsing, YARA scaffolding and TTP extraction into ATT&CK mapping.",
+      "path": "skills/malware-triage"
+    },
+    {
+      "id": "nextjs-security",
+      "name": "Next.js Security",
+      "type": "skill",
+      "cat": [
+        "appsec"
+      ],
+      "profiles": [
+        "appsec",
+        "full"
+      ],
+      "desc": "SSR leak patterns, Server Actions auth, auth.js config and middleware pitfalls.",
+      "path": "skills/nextjs-security"
+    },
+    {
+      "id": "nis2",
+      "name": "NIS2 Gap Analysis",
+      "type": "skill",
+      "cat": [
+        "grc"
+      ],
+      "profiles": [
+        "grc",
+        "full"
+      ],
+      "desc": "EU NIS2 directive gap analysis with NL-implementation notes (Cyberbeveiligingswet).",
+      "path": "skills/nis2"
+    },
+    {
+      "id": "payload-crafter",
+      "name": "Payload Crafter",
+      "type": "skill",
+      "cat": [
+        "pentest"
+      ],
+      "profiles": [
+        "pentest",
+        "full"
+      ],
+      "desc": "XSS, SSTI, LFI, SSRF and command-injection payload library with WAF-bypass notes.",
+      "path": "skills/payload-crafter"
+    },
+    {
+      "id": "pentest-reporter",
+      "name": "Pentest Reporter",
+      "type": "skill",
+      "cat": [
+        "pentest"
+      ],
+      "profiles": [
+        "pentest",
+        "full"
+      ],
+      "desc": "Finding templates, CVSS scoring, executive summary and remediation roadmap builder.",
+      "path": "skills/pentest-reporter"
+    },
+    {
+      "id": "phishing-sim",
+      "name": "Phishing Sim",
+      "type": "skill",
+      "cat": [
+        "pentest"
+      ],
+      "profiles": [
+        "pentest",
+        "full"
+      ],
+      "desc": "Campaign design, pretexting, infrastructure and tracking — ethical scope template included.",
+      "path": "skills/phishing-sim"
+    },
+    {
+      "id": "policy-drafter",
+      "name": "Policy Drafter",
+      "type": "skill",
+      "cat": [
+        "grc"
+      ],
+      "profiles": [
+        "grc",
+        "full"
+      ],
+      "desc": "AUP, incident-response plan and access-control policy drafting with clause libraries.",
+      "path": "skills/policy-drafter"
+    },
+    {
+      "id": "post-exploit",
+      "name": "Post-Exploitation Playbook",
+      "type": "skill",
+      "cat": [
+        "pentest"
+      ],
+      "profiles": [
+        "pentest",
+        "full"
+      ],
+      "desc": "Pivoting, persistence, credential access and defense evasion across Win/Linux/cloud.",
+      "path": "skills/post-exploit"
+    },
+    {
+      "id": "purple-ops",
+      "name": "Purple Team Ops",
+      "type": "skill",
+      "cat": [
+        "blue",
+        "pentest"
+      ],
+      "profiles": [
+        "blue",
+        "pentest",
+        "full"
+      ],
+      "desc": "Detection validation against ATT&CK — run, measure, close gaps with D3FEND mapping.",
+      "path": "skills/purple-ops"
+    },
+    {
+      "id": "rails-security",
+      "name": "Rails Security",
+      "type": "skill",
+      "cat": [
+        "appsec"
+      ],
+      "profiles": [
+        "appsec",
+        "full"
+      ],
+      "desc": "Brakeman integration, mass-assignment, strong-params and Devise hardening.",
+      "path": "skills/rails-security"
+    },
+    {
+      "id": "risk-register",
+      "name": "Risk Register",
+      "type": "skill",
+      "cat": [
+        "grc"
+      ],
+      "profiles": [
+        "grc",
+        "full"
+      ],
+      "desc": "Likelihood × impact scoring, heatmap generator and treatment-option workflow.",
+      "path": "skills/risk-register"
+    },
+    {
+      "id": "sast-orchestrator",
+      "name": "SAST Orchestrator",
+      "type": "skill",
+      "cat": [
+        "appsec"
+      ],
+      "profiles": [
+        "appsec",
+        "full"
+      ],
+      "desc": "Semgrep, CodeQL and SonarQube configs — ruleset curation and PR-comment integration.",
+      "path": "skills/sast-orchestrator"
+    },
+    {
+      "id": "secrets-scanner",
+      "name": "Secrets Scanner",
+      "type": "skill",
+      "cat": [
+        "core",
+        "appsec"
+      ],
+      "profiles": [
+        "core",
+        "appsec",
+        "full"
+      ],
+      "desc": "Entropy heuristics, pre-commit hooks, git-history sweeps, regex library for common tokens.",
+      "path": "skills/secrets-scanner"
+    },
+    {
+      "id": "secure-coding",
+      "name": "Secure Coding Standards",
+      "type": "skill",
+      "cat": [
+        "core",
+        "appsec"
+      ],
+      "profiles": [
+        "core",
+        "appsec",
+        "full"
+      ],
+      "desc": "Universal secure-coding patterns and language-agnostic pitfalls reference.",
+      "path": "skills/secure-coding"
+    },
+    {
+      "id": "security-review",
+      "name": "Security Review",
+      "type": "skill",
+      "cat": [
+        "core",
+        "appsec"
+      ],
+      "profiles": [
+        "core",
+        "appsec",
+        "pentest",
+        "full"
+      ],
+      "desc": "OWASP Top 10, injection flaws, auth review, secret detection and security checklists.",
+      "path": "skills/security-review"
+    },
+    {
+      "id": "siem-query",
+      "name": "SIEM Query Builder",
+      "type": "skill",
+      "cat": [
+        "blue"
+      ],
+      "profiles": [
+        "blue",
+        "full"
+      ],
+      "desc": "Splunk SPL, Sentinel KQL and Elastic EQL cross-translation with performance hints.",
+      "path": "skills/siem-query"
+    },
+    {
+      "id": "soc2",
+      "name": "SOC 2 Type II Prep",
+      "type": "skill",
+      "cat": [
+        "grc"
+      ],
+      "profiles": [
+        "grc",
+        "full"
+      ],
+      "desc": "Trust Services Criteria mapping, evidence collection rhythms and auditor-friendly packaging.",
+      "path": "skills/soc2"
+    },
+    {
+      "id": "spring-security",
+      "name": "Spring Boot Security",
+      "type": "skill",
+      "cat": [
+        "appsec"
+      ],
+      "profiles": [
+        "appsec",
+        "full"
+      ],
+      "desc": "OAuth2, JWT, method-level auth, secure API configs and actuator lockdown.",
+      "path": "skills/spring-security"
+    },
+    {
+      "id": "supply-chain",
+      "name": "Supply Chain Defense",
+      "type": "skill",
+      "cat": [
+        "appsec"
+      ],
+      "profiles": [
+        "appsec",
+        "full"
+      ],
+      "desc": "SBOM generation, SLSA provenance, sigstore signing and dependency-confusion guards.",
+      "path": "skills/supply-chain"
+    },
+    {
+      "id": "vendor-questionnaire",
+      "name": "Vendor Security Questionnaire",
+      "type": "skill",
+      "cat": [
+        "grc"
+      ],
+      "profiles": [
+        "grc",
+        "full"
+      ],
+      "desc": "CAIQ, SIG-Lite and custom questionnaire authoring with evidence-reuse lookup.",
+      "path": "skills/vendor-questionnaire"
+    },
+    {
+      "id": "verification-loop",
+      "name": "Verification Loop",
+      "type": "skill",
+      "cat": [
+        "core"
+      ],
+      "profiles": [
+        "core",
+        "appsec",
+        "pentest",
+        "blue",
+        "grc",
+        "full"
+      ],
+      "desc": "Structured red-team pass over your own output — assumptions, gaps, failure modes.",
+      "path": "skills/verification-loop"
+    },
+    {
+      "id": "web-exploit-triage",
+      "name": "Web Exploit Triage",
+      "type": "skill",
+      "cat": [
+        "pentest"
+      ],
+      "profiles": [
+        "pentest",
+        "full"
+      ],
+      "desc": "JWT flaws, deserialization, prototype pollution and OAuth misconfigs — triage workflow.",
+      "path": "skills/web-exploit-triage"
+    },
+    {
+      "id": "detection-engineer",
+      "name": "Detection Engineer",
+      "type": "agent",
+      "cat": [
+        "blue"
+      ],
+      "profiles": [
+        "blue",
+        "full"
+      ],
+      "desc": "Sigma rule authoring, KQL and SPL translation with test-harness validation.",
+      "path": "agents/detection-engineer.md"
+    },
+    {
+      "id": "recon-agent",
+      "name": "Recon Agent",
+      "type": "agent",
+      "cat": [
+        "pentest"
+      ],
+      "profiles": [
+        "pentest",
+        "full"
+      ],
+      "desc": "Subdomain enumeration, port scanning, tech fingerprinting and attack-surface mapping.",
+      "path": "agents/recon-agent.md"
+    },
+    {
+      "id": "threat-modeler",
+      "name": "Threat Modeler",
+      "type": "agent",
+      "cat": [
+        "core",
+        "appsec"
+      ],
+      "profiles": [
+        "core",
+        "appsec",
+        "full"
+      ],
+      "desc": "STRIDE analysis, attack trees, trust boundaries and mitigation ranking.",
+      "path": "agents/threat-modeler.md"
+    },
+    {
+      "id": "security-gate",
+      "name": "Security Gate",
+      "type": "command",
+      "cat": [
+        "core",
+        "appsec"
+      ],
+      "profiles": [
+        "core",
+        "appsec",
+        "full"
+      ],
+      "desc": "Pre-merge blocker running SAST, secrets and dependency gates with policy-aware exceptions.",
+      "path": "commands/security-gate.md"
+    },
+    {
+      "id": "threat-hunt",
+      "name": "Threat Hunt Session",
+      "type": "command",
+      "cat": [
+        "blue"
+      ],
+      "profiles": [
+        "blue",
+        "full"
+      ],
+      "desc": "Hypothesis-driven hunt scaffolding — scope, data sources, queries, writeup template.",
+      "path": "commands/threat-hunt.md"
+    }
+  ]
+}
