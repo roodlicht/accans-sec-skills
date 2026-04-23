@@ -617,7 +617,7 @@
         "grc",
         "full"
       ],
-      "desc": "Structured red-team pass over your own output — assumptions, gaps, failure modes.",
+      "desc": "Structured red-team pass over your own output — surface assumptions, gaps, failure modes and security red flags before shipping.",
       "path": "skills/verification-loop"
     },
     {
