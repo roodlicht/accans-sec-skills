@@ -13,7 +13,7 @@
     "full":    { "label": "Full",    "desc": "Everything in the catalog." }
   },
   "items": [
-    { "id": "security-review",       "name": "Security Review",          "type": "skill",   "cat": ["core","appsec"],         "profiles": ["core","appsec","pentest","full"],        "desc": "OWASP Top 10, injection flaws, auth review, secret detection and security checklists." },
+    { "id": "security-review",       "name": "Security Review",          "type": "skill",   "cat": ["core","appsec"],         "profiles": ["core","appsec","pentest","full"],        "desc": "Security review workflow for a PR, feature or codebase — scope, automated scans, manual OWASP/CWE pattern-check, prioritize and report. Uses secure-coding as pattern library." },
     { "id": "threat-modeler",        "name": "Threat Modeler",           "type": "agent",   "cat": ["core","appsec"],         "profiles": ["core","appsec","full"],                  "desc": "STRIDE analysis, attack trees, trust boundaries and mitigation ranking." },
     { "id": "verification-loop",     "name": "Verification Loop",        "type": "skill",   "cat": ["core"],                  "profiles": ["core","appsec","pentest","blue","grc","full"], "desc": "Structured red-team pass over your own output — surface assumptions, gaps, failure modes and security red flags before shipping." },
     { "id": "secure-coding",         "name": "Secure Coding Standards",  "type": "skill",   "cat": ["core","appsec"],         "profiles": ["core","appsec","full"],                  "desc": "Language-agnostic secure-coding patterns — input validation, injection-safe APIs, authN/authZ, crypto, secrets, dependency hygiene. The default lens when no framework-specific skill applies." },
