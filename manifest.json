@@ -142,7 +142,7 @@
         "appsec",
         "full"
       ],
-      "desc": "Filter dependency vulns by exploitability, reachable-path and EPSS — cuts the noise.",
+      "desc": "Triage dependency vulnerabilities against CISA KEV, EPSS, reachability and compensating controls — turn a raw Dependabot/Snyk/osv-scanner dump into fix-now/sprint/quarter/accept decisions with rationale.",
       "path": "skills/cve-triage"
     },
     {
