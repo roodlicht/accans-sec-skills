@@ -70,7 +70,7 @@
         "appsec",
         "full"
       ],
-      "desc": "Auth review, rate-limit patterns, schema validation and OWASP API Top 10 hooks.",
+      "desc": "API security review against OWASP API Top 10 2023. Covers auth (OAuth2/JWT/API-keys), object-level authorization (BOLA/IDOR), schema validation, rate-limiting, CORS, SSRF, and GraphQL-specific concerns (introspection, query depth, batching).",
       "path": "skills/api-security"
     },
     {
