@@ -126,7 +126,7 @@
         "appsec",
         "full"
       ],
-      "desc": "Docker and OCI image hardening — base-image hygiene, USER, caps, distroless migration.",
+      "desc": "Docker and OCI image hardening — base-image selection, USER/caps/read-only FS discipline, distroless migration, build-time scanning with trivy/grype, image signing via sigstore, and runtime guardrails (seccomp, AppArmor).",
       "path": "skills/container-hardening"
     },
     {
@@ -240,7 +240,7 @@
         "appsec",
         "full"
       ],
-      "desc": "Terraform, CloudFormation, Ansible and Pulumi misconfig scanning with cloud-aware context.",
+      "desc": "IaC misconfig scanning and cloud-aware review for Terraform, CloudFormation, Ansible and Pulumi. Covers tool orchestration (checkov/tfsec/kics/cfn-nag), policy-as-code (OPA/Conftest), CIS benchmark mapping, IAM over-permission detection, drift monitoring.",
       "path": "skills/iac-security"
     },
     {
@@ -585,7 +585,7 @@
         "appsec",
         "full"
       ],
-      "desc": "SBOM generation, SLSA provenance, sigstore signing and dependency-confusion guards.",
+      "desc": "Software supply-chain defense — SBOM generation (CycloneDX/SPDX), SLSA build provenance, artifact signing with sigstore/cosign, dependency-confusion and typosquat defense, and consumer-side verification of what you pull in.",
       "path": "skills/supply-chain"
     },
     {
