@@ -13,20 +13,20 @@ Triggers:
 
 - "Ik denk dat ik per ongeluk een key heb gecommit", "deze token lijkt uit te lekken", "check of er secrets in de repo staan".
 - PR raakt files zoals `.env`, `.env.*`, `config/*.yaml`, `docker-compose*.yml`, `helm/values*.yaml`, `*.pem`, `*.key`, `credentials.json`, of nieuwe files onder `secrets/`, `vault/`.
-- Setup van een nieuwe repo: pre-commit + CI secret-gate installeren.
+- Setup van een nieuwe repo: pre-commit plus CI secret-gate installeren.
 - Periodieke audit van git-history op een bestaande repo.
 - Een finding uit `security-review` fase 3 (automated scan) die verdere triage vraagt.
 - Anthropic/OpenAI-achtige token-patronen in logs, screenshots, of gedeelde notebooks.
 
 ### Wanneer NIET (handoff)
 
-- **Runtime secret-injection** (Kubernetes Secrets, External Secrets Operator, sidecar-pattern) → `k8s-security` en `container-hardening`.
-- **Cloud IAM-policy review** (wie mag welke key gebruiken) → `iac-security`.
-- **Secret-handling patterns in code** (waar leeft de credential in geheugen, hoe wordt hij doorgegeven) → `secure-coding` fase 4.
-- **Vulnerability triage op dependencies die credentials lekken** → `cve-triage`.
-- **Post-incident forensics** bij aantoonbaar misbruik → `ir-runbook` en `forensics-assist`.
+- Runtime secret-injection (Kubernetes Secrets, External Secrets Operator, sidecar-pattern) → `k8s-security` en `container-hardening`.
+- Cloud IAM-policy review (wie mag welke key gebruiken) → `iac-security`.
+- Secret-handling patterns in code (waar leeft de credential in geheugen, hoe wordt hij doorgegeven) → `secure-coding` fase 4.
+- Vulnerability triage op dependencies die credentials lekken → `cve-triage`.
+- Post-incident forensics bij aantoonbaar misbruik → `ir-runbook` en `forensics-assist`.
 
-Bij een actief lek stopt deze skill niet — rotatie doet hij — maar escaleer naar `ir-runbook` zodra er bewijs van misbruik is (CloudTrail-hits, abnormaal API-verkeer, data-egress).
+Bij een actief lek stopt deze skill niet: rotatie doet hij. Maar escaleer naar `ir-runbook` zodra er bewijs van misbruik is (CloudTrail-hits, abnormaal API-verkeer, data-egress).
 
 ## Aanpak
 
@@ -38,12 +38,12 @@ Eén vraag: is er een credential die nú actief in verkeerde handen kan zijn? De
 
 Klassificatie:
 
-- **Actief lek, credential werkt nog** — onmiddellijk fase 4. Uren tellen. Alle andere fases later.
-- **Lek bevestigd, credential-status onbekend of mogelijk dood** — fase 4 zodra kan, intussen fase 2/3 parallel om het volledige beeld te krijgen.
-- **Vermoeden van lek** — fase 2 (detectie) eerst om te bevestigen, dan triage.
-- **Geen lek, preventief scannen of setup** — fase 2 → 3 → 6. Fase 4 en 5 niet van toepassing.
+- **Actief lek, credential werkt nog**: onmiddellijk fase 4. Uren tellen. Alle andere fases later.
+- **Lek bevestigd, credential-status onbekend of mogelijk dood**: fase 4 zodra kan, intussen fase 2/3 parallel om het volledige beeld te krijgen.
+- **Vermoeden van lek**: fase 2 (detectie) eerst om te bevestigen, dan triage.
+- **Geen lek, preventief scannen of setup**: fase 2 → 3 → 6. Fase 4 en 5 niet van toepassing.
 
-Noteer de klassificatie expliciet — hij bepaalt of fase-volgorde kan wachten op deliberate analyse of dat snelheid boven zorgvuldigheid gaat.
+Noteer de klassificatie expliciet. Hij bepaalt of fase-volgorde kan wachten op deliberate analyse of dat snelheid boven zorgvuldigheid gaat.
 
 ### 2. Detecteren
 
@@ -51,13 +51,13 @@ Tools in volgorde van voorkeur:
 
 - **gitleaks** (MIT, Go). Scant working tree en volledige history. TOML ruleset, community-set dekt 140+ providers out of the box. Default keuze voor zowel incident als scan.
 - **trufflehog** (AGPL / commercial). Unieke feature: `--only-verified` test gedetecteerde keys actief tegen de provider-API (AWS STS, Stripe, GitHub, etc.) en scheidt dode keys van levende. Verplicht bij incident-triage waar "werkt deze nog?" de kritieke vraag is.
-- **detect-secrets** (Yelp, Apache-2). Sterkte: baseline/allowlist-workflow. Scan genereert een `.secrets.baseline` die git-diff-able is — nieuwe findings springen eruit, oude known-safe worden niet steeds opnieuw gerapporteerd.
-- **GitHub/GitLab native secret scanning + push protection**: altijd aanzetten. Complement, geen vervanging voor CI/local — de providers vangen alleen bekende formats en pas bij push.
+- **detect-secrets** (Yelp, Apache-2). Sterkte: baseline/allowlist-workflow. Scan genereert een `.secrets.baseline` die git-diff-able is. Nieuwe findings springen eruit, oude known-safe worden niet steeds opnieuw gerapporteerd.
+- **GitHub/GitLab native secret scanning + push protection**: altijd aanzetten. Complement, geen vervanging voor CI/local. De providers vangen alleen bekende formats en pas bij push.
 
 Detectie-methoden in samenhang:
 
 - **Provider-specific regex** (voorbeelden van public format-prefixes: `AKIA` voor AWS access keys, `ghp_` / `gho_` / `ghs_` voor GitHub, `xox[abpr]-` voor Slack, `sk_live_` voor Stripe, `AIza` voor Google API-keys, `sk-ant-api03-` voor Anthropic, `npm_` voor npm). Hoge precision. Referentie-lijst: GitHub Secret Scanning patterns documentation.
-- **Shannon-entropy op base64/hex-achtige strings**. Tool-default thresholds gebruiken, niet zelf tunen — trufflehog en gitleaks hebben empirisch gekalibreerde waarden per context. Hoge recall, lage precision; triage altijd nodig.
+- **Shannon-entropy op base64/hex-achtige strings**. Tool-default thresholds gebruiken, niet zelf tunen. Trufflehog en gitleaks hebben empirisch gekalibreerde waarden per context. Hoge recall, lage precision, triage altijd nodig.
 - **Keyword + context** (`password\s*=`, `api_key:`, `BEGIN PRIVATE KEY`). Vangt hardcoded-in-source en README-ongelukken.
 
 Commando-referentie:
@@ -87,7 +87,7 @@ Voor non-git bronnen (logs, tarballs, backup-dumps): gitleaks heeft `detect --no
 Elke hit is pas een finding als je het volgende hebt bepaald:
 
 - **Soort credential.** Cloud (AWS/GCP/Azure), SaaS (Stripe, SendGrid, Slack, Twilio), VCS (GitHub PAT, GitLab token, BitBucket app-password), eigen systeem (DB-wachtwoord, interne API-key), crypto (private key, signing key), identity (JWT, session cookie).
-- **Exposure-oppervlak.** Private repo, public repo, public Docker image, public website asset, leaked logfile, backup-tarball op S3 met public ACL, screenshot op support-ticket, gist. **Public = assume harvested** — search-engines, GitHub-event-archief, GH-Archive.org en derde-partij scrapers indexeren in minuten.
+- **Exposure-oppervlak.** Private repo, public repo, public Docker image, public website asset, leaked logfile, backup-tarball op S3 met public ACL, screenshot op support-ticket, gist. **Public = assume harvested.** Search-engines, GitHub-event-archief, GH-Archive.org en derde-partij scrapers indexeren in minuten.
 - **Nog actief?** trufflehog `--only-verified` of handmatige call tegen een read-only provider-endpoint (bv. `aws sts get-caller-identity` met de key geconfigureerd).
 - **Blast radius.** Read-only API-key, write access, billing, admin, root-account? Bij onbekende scope: assume de maximale scope tot tegendeel bewezen is.
 - **Exposure-window.** Eerste commit: `git log -p --all -S '<unique-part-of-secret>'`. Of via `git blame` op het file indien het nog aanwezig is. Eindtijd: nu, of moment van revoke.
@@ -101,16 +101,16 @@ Severity (parallel aan `security-review` fase 6):
 
 ### 4. Rotatie-first remediation
 
-**Volgorde is wet.** Roteer eerst, dan communiceer, dan cleanup. Anti-pattern: git-history schoonmaken en vergeten te roteren — cosmetica voor een credential die al geharvest is.
+**Volgorde is wet.** Roteer eerst, dan communiceer, dan cleanup. Anti-pattern: git-history schoonmaken en vergeten te roteren. Cosmetica voor een credential die al geharvest is.
 
-1. **Roteer of revoke bij de provider.** AWS: `aws iam delete-access-key` + nieuwe aanmaken, of CLI-rollen via `aws iam update-access-key`. GitHub: Settings → Developer settings → PAT → Revoke. Stripe: Dashboard → Developers → API keys → Roll. Anthropic/OpenAI: console → revoke + nieuwe genereren. DB: `ALTER USER … WITH PASSWORD …` of drop & recreate-user. Voor signing/KMS-keys: schedule deletion met window, niet instant-delete.
-2. **Check provider-logs op misbruik** met de exposure-window als venster. AWS CloudTrail filteren op `userIdentity.accessKeyId`, GitHub Audit Log op PAT-owner, Stripe events, SaaS audit-exports. Bij aantoonbaar misbruik → escaleer naar `ir-runbook` (de secret is dan niet meer het verhaal, de inbreuk wel).
-3. **Vervang in alle plekken waar de oude credential gebruikt werd.** CI-secrets, production hosts, teamleden-configs. Liefst naar een vault tillen in deze stap — een rotatie-incident is een goede katalysator om secrets uit source te halen.
-4. **Incident-log.** Wat, waar, wanneer gelekt, wanneer gedetecteerd, wanneer geroteerd, wie heeft geacteerd, welke systemen geraakt. Voor compliance-doelen minimaal deze set; bij bewijs van misbruik meer detail onder `ir-runbook`.
+1. **Roteer of revoke bij de provider.** AWS: `aws iam delete-access-key` + nieuwe aanmaken, of CLI-rollen via `aws iam update-access-key`. GitHub: Settings → Developer settings → PAT → Revoke. Stripe: Dashboard → Developers → API keys → Roll. Anthropic/OpenAI: console → revoke plus nieuwe genereren. DB: `ALTER USER … WITH PASSWORD …` of drop en recreate-user. Voor signing/KMS-keys: schedule deletion met window, niet instant-delete.
+2. **Check provider-logs op misbruik** met de exposure-window als venster. AWS CloudTrail filteren op `userIdentity.accessKeyId`, GitHub Audit Log op PAT-owner, Stripe events, SaaS audit-exports. Bij aantoonbaar misbruik: escaleer naar `ir-runbook` (de secret is dan niet meer het verhaal, de inbreuk wel).
+3. **Vervang in alle plekken waar de oude credential gebruikt werd.** CI-secrets, production hosts, teamleden-configs. Liefst naar een vault tillen in deze stap, want een rotatie-incident is een goede katalysator om secrets uit source te halen.
+4. **Incident-log.** Wat, waar, wanneer gelekt, wanneer gedetecteerd, wanneer geroteerd, wie heeft geacteerd, welke systemen geraakt. Voor compliance-doelen minimaal deze set, bij bewijs van misbruik meer detail onder `ir-runbook`.
 
 ### 5. Git-history cleanup (optioneel, destructief)
 
-Alleen uitvoeren als alle drie waar zijn: credential is aantoonbaar gerevoked, repo is privé of exposure-window was kort genoeg dat removal praktisch zin heeft, en het team accepteert een force-push + coordinatie-moment.
+Alleen uitvoeren als alle drie waar zijn: credential is aantoonbaar gerevoked, repo is privé of exposure-window was kort genoeg dat removal praktisch zin heeft, en het team accepteert een force-push plus coordinatie-moment.
 
 Tools:
 
@@ -135,13 +135,13 @@ git push --force --all
 git push --force --tags
 ```
 
-Coordinatie: al je collega's moeten opnieuw clonen of careful reset doen. Oude clones behouden de history. Public forks van GitHub blijven de history houden — je kunt GitHub Support vragen om caches te invalideren, maar dat is geen garantie.
+Coordinatie: al je collega's moeten opnieuw clonen of careful reset doen. Oude clones behouden de history. Public forks van GitHub blijven de history houden. Je kunt GitHub Support vragen om caches te invalideren, maar dat is geen garantie.
 
-**Realiteit-check.** Voor public repos of publieke images: GitHub events, wayback-archief, GH-Archive.org, scraped copies op derde-partij sites. History-cleanup verlaagt alleen casual-discovery; het elimineert niet het leken-feit. Compliance of policy kan cleanup nog steeds vereisen ondanks die realiteit.
+**Realiteit-check.** Voor public repos of publieke images: GitHub events, wayback-archief, GH-Archive.org, scraped copies op derde-partij sites. History-cleanup verlaagt alleen casual-discovery, het elimineert niet het leken-feit. Compliance of policy kan cleanup nog steeds vereisen ondanks die realiteit.
 
 ### 6. Preventie instellen
 
-Meerlaags. Eén hek faalt altijd; de combinatie vangt de meeste fouten.
+Meerlaags. Eén hek faalt altijd, de combinatie vangt de meeste fouten.
 
 **Pre-commit hook** (developer-machine, eerste hek). Gebruikt het `pre-commit` framework (Python) of husky (Node):
 
@@ -165,7 +165,7 @@ Developers kunnen altijd `git commit --no-verify` draaien. Pre-commit is behulpz
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-Laat de stap falen op findings. Whitelist alleen via `.gitleaksignore` met commit-hash + reden per entry; geen wildcards of path-globs die hele directories overslaan.
+Laat de stap falen op findings. Whitelist alleen via `.gitleaksignore` met commit-hash plus reden per entry. Geen wildcards of path-globs die hele directories overslaan.
 
 **Repo-settings**:
 
@@ -176,9 +176,9 @@ Laat de stap falen op findings. Whitelist alleen via `.gitleaksignore` met commi
 
 **Runtime secret-store** (hoort niet in source, ook niet in CI-config als plain text):
 
-- Cloud-native: AWS Secrets Manager, GCP Secret Manager, Azure Key Vault — IAM-gated, rotatie-schema mogelijk.
+- Cloud-native: AWS Secrets Manager, GCP Secret Manager, Azure Key Vault. IAM-gated, rotatie-schema mogelijk.
 - Platform: HashiCorp Vault, Doppler, Infisical.
-- Kubernetes: External Secrets Operator met een van bovenstaande als backend. Native K8s Secrets als enige laag zijn onvoldoende — ze zijn base64-encoded, niet encrypted, en RBAC bepaalt wie ze kan lezen. Zie `k8s-security`.
+- Kubernetes: External Secrets Operator met een van bovenstaande als backend. Native K8s Secrets als enige laag zijn onvoldoende, die zijn base64-encoded, niet encrypted, en RBAC bepaalt wie ze kan lezen. Zie `k8s-security`.
 
 **Onboarding-checklist**:
 
@@ -187,7 +187,7 @@ Laat de stap falen op findings. Whitelist alleen via `.gitleaksignore` met commi
 
 ### 7. Verification-loop
 
-**Incident-mode**: Laag 1 scope-check (alle systemen geroteerd? alle teamleden geïnformeerd? alle CI-pipelines bijgewerkt?), aannames (credential daadwerkelijk gerevoked of alleen "ik heb op revoke geklikt"?), gaps (backups, read-replicas, cached configs meegenomen?). Laag 2 red flags vooral op claims: "key is dood" alleen als je het via trufflehog of provider-test hebt bevestigd; geen aangenomen rotatie.
+**Incident-mode**: Laag 1 scope-check (alle systemen geroteerd? alle teamleden geïnformeerd? alle CI-pipelines bijgewerkt?), aannames (credential daadwerkelijk gerevoked of alleen "ik heb op revoke geklikt"?), gaps (backups, read-replicas, cached configs meegenomen?). Laag 2 red flags vooral op claims: "key is dood" alleen als je het via trufflehog of provider-test hebt bevestigd. Geen aangenomen rotatie.
 
 **Prevention-mode**: Laag 1 gaps (dekken de gates zowel staging als prod? werken ze op nieuwe branches?), Laag 2 bron-kwaliteit (regex uit GitHub Secret Scanning docs, niet uit een willekeurige blog).
 
@@ -228,7 +228,7 @@ Verification-loop:
 - Repo-settings-checklist (push protection, secret scanning, required status checks).
 - Test-instructie: commit een canary-string als `AKIAIOSFODNN7EXAMPLE` (AWS' eigen documentation-placeholder) en verifieer dat pre-commit én CI de push blokkeren.
 
-Geen rapport afleveren zonder rotatie-status voor incidents. Zonder rotatie is het geen remediatie; dat moet expliciet in het rapport staan.
+Geen rapport afleveren zonder rotatie-status voor incidents. Zonder rotatie is het geen remediatie, dat moet expliciet in het rapport staan.
 
 ## Referenties
 

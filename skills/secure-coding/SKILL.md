@@ -7,26 +7,28 @@ description: Language-agnostic secure-coding patterns — input validation, inje
 
 ## Wanneer gebruiken
 
-Deze skill is de substrate-laag voor code-werk. Hij triggert wanneer Claude code schrijft of reviewt en er geen framework-specifieke skill is die dieper gaat. Concreet:
+Deze skill is de substrate-laag voor code-werk. Hij triggert wanneer Claude code schrijft of reviewt en er geen framework-specifieke skill is die dieper gaat.
 
-- De gebruiker vraagt "is dit veilig?", "review op security issues", "kan iemand dit misbruiken?", "wat kan er misgaan?".
-- Claude schrijft nieuwe code die untrusted input aanneemt, geheimen hanteert, auth uitvoert, crypto aanraakt, of met externe systemen praat.
-- Claude reviewt een patch of PR en er is geen scherpere skill (zoals `django-security` of `api-security`) actief.
+Activeert bij:
+
+- Een vraag als "is dit veilig?", "review op security issues", "kan iemand dit misbruiken?", "wat kan er misgaan?".
+- Nieuwe code die untrusted input aanneemt, geheimen hanteert, auth uitvoert, crypto aanraakt of met externe systemen praat.
+- Een patch of PR-review zonder scherpere skill (zoals `django-security` of `api-security`) actief.
 - Als backstop bij codegeneratie in een taal waarvoor geen specifieke skill bestaat (Go, Rust, C#, PHP, Kotlin).
 
 ### Wanneer NIET (handoff naar scherpere skills)
 
 - Framework-specifiek: Django → `django-security`, Rails → `rails-security`, Spring Boot → `spring-security`, Next.js → `nextjs-security`.
-- API-ontwerp / REST/GraphQL-endpoints → `api-security`.
-- Infrastructuur: Terraform/Ansible/Pulumi → `iac-security`; Dockerfile / OCI → `container-hardening`; Kubernetes manifests → `k8s-security`; CI/CD workflows → `cicd-hardening`.
-- Vulnerability triage op dependencies → `cve-triage`; SBOM en provenance → `supply-chain`; secrets in git-history → `secrets-scanner`.
-- Full PR-review als workflow (niet alleen patterns) → `security-review`; deze skill is diens pattern-bibliotheek.
+- API-ontwerp of REST/GraphQL-endpoints → `api-security`.
+- Infrastructuur: Terraform/Ansible/Pulumi → `iac-security`, Dockerfile of OCI → `container-hardening`, Kubernetes manifests → `k8s-security`, CI/CD workflows → `cicd-hardening`.
+- Vulnerability triage op dependencies → `cve-triage`, SBOM en provenance → `supply-chain`, secrets in git-history → `secrets-scanner`.
+- Full PR-review als workflow (niet alleen patterns) → `security-review`. Deze skill is diens pattern-bibliotheek.
 
 Als één van bovenstaande skills toepasbaar is, gebruik die eerst. `secure-coding` blijft relevant voor de niet-gedekte stukken.
 
 ## Aanpak
 
-Zes fases. Werk ze sequentieel af tijdens een review; bij codegeneratie kun je er door-heen springen afhankelijk van wat je schrijft. Elke fase heeft dezelfde opbouw: **regel → code-signaal (rode vlaggen om te herkennen) → do/don't**.
+Zes fases. Werk ze sequentieel af tijdens een review. Bij codegeneratie kun je er door-heen springen afhankelijk van wat je schrijft. Elke fase heeft dezelfde opbouw: **regel → code-signaal (rode vlaggen om te herkennen) → do/don't**.
 
 De fases corresponderen met OWASP Top 10 2021 en Proactive Controls v3, maar zijn hier georganiseerd rond de volgorde waarin een ontwikkelaar ze in de praktijk tegenkomt.
 
@@ -35,10 +37,10 @@ De fases corresponderen met OWASP Top 10 2021 en Proactive Controls v3, maar zij
 De eerste vraag bij elk stuk code: waar komt untrusted data binnen, en welke code draait met meer rechten dan de data-producer?
 
 - **Trust-sources inventariseren.** HTTP-parameters, headers, cookies, file-uploads, database-inhoud (die eerder door untrusted bron is geschreven), environment variables in multi-tenant context, message queues, cross-service RPC, bestanden uit object storage.
-- **Privilege-zones scheiden.** Setuid binaries, service-accounts, cloud-IAM roles, container caps — elke rechten-verhoging kruist een trust-boundary. Code die rechten-verhoogd draait moet input alsof het een verse aanval is behandelen.
-- **Data-integriteit bij serialisatie-grenzen.** Elke plek waar je serialiseert (JSON, protobuf, custom binary, YAML) of deserialiseert is een boundary. Signatuur + integriteitscheck hoort bij data die tussen trust-zones reist (denk JWT, cookies, cached computations).
+- **Privilege-zones scheiden.** Setuid binaries, service-accounts, cloud-IAM roles, container caps: elke rechten-verhoging kruist een trust-boundary. Code die rechten-verhoogd draait moet input alsof het een verse aanval is behandelen.
+- **Data-integriteit bij serialisatie-grenzen.** Elke plek waar je serialiseert (JSON, protobuf, custom binary, YAML) of deserialiseert is een boundary. Signatuur plus integriteitscheck hoort bij data die tussen trust-zones reist (denk JWT, cookies, cached computations).
 
-**Red flag — trust loss.** Code die zegt "dit komt uit de database dus het is veilig" — tenzij je de write-pad naar die database ook hebt gevalideerd is dat een aanname. Cached untrusted data is nog steeds untrusted.
+**Red flag: trust loss.** Code die zegt "dit komt uit de database dus het is veilig": tenzij je de write-pad naar die database ook hebt gevalideerd is dat een aanname. Cached untrusted data is nog steeds untrusted.
 
 ### 2. Invoer-validatie en uitvoer-encoding
 
@@ -84,10 +86,10 @@ child_process.execFile("git", ["clone", url])                         # Node
 
 Geen zelfgeschreven auth. Gebruik vetted frameworks (Spring Security, Django auth, auth.js, Devise, Keycloak, Auth0). Als je toch iets bouwt, dan alleen rondom een vetted primitive.
 
-- **Password hashing: argon2id (voorkeur), scrypt, of bcrypt.** Nooit MD5, SHA-1, SHA-256 zonder KDF, geen PBKDF2 met lage iteraties. Gebruik de library-defaults; custom parameters zijn een rode vlag.
+- **Password hashing: argon2id (voorkeur), scrypt, of bcrypt.** Nooit MD5, SHA-1, SHA-256 zonder KDF, geen PBKDF2 met lage iteraties. Gebruik de library-defaults, custom parameters zijn een rode vlag.
 - **MFA inbouwen vanaf dag 1 voor admin- en privileged accounts.** TOTP, WebAuthn/passkeys, push-based. SMS is legacy-fallback, niet primair.
 - **Sessions: signed, HttpOnly, Secure, SameSite=Lax of Strict, korte TTL, roteren bij privilege-change.** Geen session-ID in URL.
-- **Autorisatie per resource, niet per route.** IDOR (Insecure Direct Object Reference) ontstaat als `/api/documents/123` alleen authenticatie checkt maar niet of de actor `123` mag zien. Check eigendom/rol op elk lookup-pad.
+- **Autorisatie per resource, niet per route.** IDOR (Insecure Direct Object Reference) ontstaat als `/api/documents/123` alleen authenticatie checkt maar niet of de actor `123` mag zien. Check eigendom of rol op elk lookup-pad.
 - **Fail-closed default.** Geen toegang tenzij expliciet toegestaan. Middleware die bij onbekende route "allow" retourneert is een bug.
 
 **Red flags:**
@@ -177,8 +179,8 @@ Ingeleverde vulnerabilities via libraries zijn het grootste deel van modern-day 
 - **SBOM genereren.** CycloneDX of SPDX via `cyclonedx-bom`, `syft`, `sbom-tool`. In CI, per build. Zie `supply-chain` skill voor provenance.
 - **Vulnerability-scanning.** Dependabot/Renovate voor updates, `osv-scanner` of `grype` voor scan, Snyk/Mend voor enterprise. Scan op PR-basis, niet alleen nightly.
 - **Typosquatting-verdediging.** Nieuwe dependencies kritisch bekijken: author, age, download-trend, scoped naam. Overweeg een interne mirror voor kritische packages.
-- **Runtime-minimalism.** Container draait niet als root; filesystem read-only waar kan; seccomp/AppArmor defaults aan; egress network policies. Zie `container-hardening` en `k8s-security` voor diepgang.
-- **Update-ritme.** Kritieke CVE in een directe dependency: patch binnen dagen. In transitive: risk-weighted via `cve-triage` (reachable-path + EPSS).
+- **Runtime-minimalism.** Container draait niet als root. Filesystem read-only waar kan. Seccomp/AppArmor defaults aan. Egress network policies. Zie `container-hardening` en `k8s-security` voor diepgang.
+- **Update-ritme.** Kritieke CVE in een directe dependency: patch binnen dagen. In transitive: risk-weighted via `cve-triage` (reachable-path plus EPSS).
 
 **Red flags:**
 ```
@@ -201,7 +203,7 @@ DEBUG=True in productie-config (Django, Flask)
 
 ## Output
 
-Wanneer deze skill wordt gebruikt voor een code-review of scan, retourneert hij een gestructureerd rapport. Bij codegeneratie werkt de skill "stil" — hij beïnvloedt wát je schrijft, maar produceert geen aparte output.
+Wanneer deze skill wordt gebruikt voor een code-review of scan, retourneert hij een gestructureerd rapport. Bij codegeneratie werkt de skill "stil": hij beïnvloedt wát je schrijft, maar produceert geen aparte output.
 
 Rapport-structuur bij review:
 
@@ -226,17 +228,17 @@ Per issue:
 Algemene conclusie: <blockers-count, overall verdict>
 ```
 
-Issues altijd aan een CWE-ID koppelen waar mogelijk — dat is de taal die tools (SAST, CI, issue-trackers) spreken. Alleen CWE-nummers gebruiken die je verifieerbaar kent; bij twijfel `[verify: CWE]` markeren (zie `verification-loop` Laag 2).
+Issues altijd aan een CWE-ID koppelen waar mogelijk, dat is de taal die tools (SAST, CI, issue-trackers) spreken. Alleen CWE-nummers gebruiken die je verifieerbaar kent. Bij twijfel `[verify: CWE]` markeren (zie `verification-loop` Laag 2).
 
 ## Referenties
 
-- OWASP Top 10 2021 — [https://owasp.org/Top10/](https://owasp.org/Top10/). Canonieke lijst van applicatie-risicocategorieën; elke bevinding mapt naar een A0x.
+- OWASP Top 10 2021 — [https://owasp.org/Top10/](https://owasp.org/Top10/). Canonieke lijst van applicatie-risicocategorieën, elke bevinding mapt naar een A0x.
 - OWASP Proactive Controls v3 — [https://owasp.org/www-project-proactive-controls/](https://owasp.org/www-project-proactive-controls/). Wat ontwikkelaars moeten dóén (tegenover Top 10 die beschrijft wat er misgaat).
-- OWASP ASVS v4 — [https://owasp.org/www-project-application-security-verification-standard/](https://owasp.org/www-project-application-security-verification-standard/). Verification-checklist op drie niveaus; bruikbaar als requirement-set voor nieuwe services.
+- OWASP ASVS v4 — [https://owasp.org/www-project-application-security-verification-standard/](https://owasp.org/www-project-application-security-verification-standard/). Verification-checklist op drie niveaus, bruikbaar als requirement-set voor nieuwe services.
 - OWASP Cheat Sheet Series — [https://cheatsheetseries.owasp.org/](https://cheatsheetseries.owasp.org/). Per-topic diepgang (Input Validation, Authentication, Session Management, Cryptographic Storage, etc.). Samenvatten en verwijzen, niet woordelijk overnemen.
-- CWE Top 25 — [https://cwe.mitre.org/top25/](https://cwe.mitre.org/top25/). Klasse-niveau catalogus; gebruik CWE-IDs in findings voor tool-interoperabiliteit.
-- NIST SP 800-218 (SSDF v1.1) — [https://csrc.nist.gov/pubs/sp/800/218/final](https://csrc.nist.gov/pubs/sp/800/218/final). Secure Software Development Framework; procesmatige context voor deze patterns.
-- SEI CERT Coding Standards — [https://wiki.sei.cmu.edu/confluence/display/seccode](https://wiki.sei.cmu.edu/confluence/display/seccode). Taal-specifieke regelsets voor C/C++/Java/Perl; raadplegen voor detail per taal.
+- CWE Top 25 — [https://cwe.mitre.org/top25/](https://cwe.mitre.org/top25/). Klasse-niveau catalogus, gebruik CWE-IDs in findings voor tool-interoperabiliteit.
+- NIST SP 800-218 (SSDF v1.1) — [https://csrc.nist.gov/pubs/sp/800/218/final](https://csrc.nist.gov/pubs/sp/800/218/final). Secure Software Development Framework, procesmatige context voor deze patterns.
+- SEI CERT Coding Standards — [https://wiki.sei.cmu.edu/confluence/display/seccode](https://wiki.sei.cmu.edu/confluence/display/seccode). Taal-specifieke regelsets voor C/C++/Java/Perl, raadplegen voor detail per taal.
 - Alexis King — "Parse, don't validate" ([https://lexi-lambda.github.io/blog/2019/11/05/parse-don-t-validate/](https://lexi-lambda.github.io/blog/2019/11/05/parse-don-t-validate/)). Framing achter fase 2 input-validatie.
 
 ## Categorieën
