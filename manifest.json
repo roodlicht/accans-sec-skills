@@ -675,7 +675,7 @@
         "appsec",
         "full"
       ],
-      "desc": "STRIDE analysis, attack trees, trust boundaries and mitigation ranking.",
+      "desc": "STRIDE and LINDDUN threat-modeling agent for a service, feature or integration. Builds a DFD, enumerates threats per element, ranks mitigations and flags residual risk.",
       "path": "agents/threat-modeler.md"
     },
     {
