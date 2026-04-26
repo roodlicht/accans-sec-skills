@@ -268,7 +268,7 @@ const CATALOG = [
       "blue",
       "full"
     ],
-    "desc": "False-positive reduction with suppression logic, baseline learning and rule hygiene.",
+    "desc": "SOC alert-tuning workflow — false-positive reductie via gerichte suppressies (rule-id + reden + expiry), baseline-learning, rule-retirement, severity-recalibration, en metrics (alert-volume, mean-time-to-triage, fatigue-index). Voorkomt detection-collapse zonder coverage-verlies.",
     "path": "skills/alert-tuning"
   },
   {
@@ -480,7 +480,7 @@ const CATALOG = [
       "blue",
       "full"
     ],
-    "desc": "Ransomware, BEC and data-exfil playbooks with NIST-aligned phases and comms templates.",
+    "desc": "Incident Response runbook — NIST SP 800-61 fases (Preparation/Detection-Analysis/Containment-Eradication-Recovery/Lessons-Learned), per-scenario playbooks (ransomware, BEC, data-exfil, credential-compromise, cloud), regulatory-rapportage (NIS2 24h/72h, AVG datalek 72h, DORA), comms-templates en post-incident-review.",
     "path": "skills/ir-runbook"
   },
   {
@@ -522,7 +522,7 @@ const CATALOG = [
       "blue",
       "full"
     ],
-    "desc": "CloudTrail, Azure AD and Google Workspace log triage — anomaly patterns per identity.",
+    "desc": "Identity-log triage workflow — anomaly-patterns per provider (AWS CloudTrail, Azure AD/Entra, Google Workspace, Okta), session-en-token-misbruik, MFA-bypass-signalen, conditional-access-evasion, en cross-provider correlatie. Levert prioriteits-gestelde finding-list richting ir-runbook of detection-engineer.",
     "path": "skills/log-triage"
   },
   {
@@ -755,7 +755,7 @@ const CATALOG = [
       "blue",
       "full"
     ],
-    "desc": "Splunk SPL, Sentinel KQL and Elastic EQL cross-translation with performance hints.",
+    "desc": "SIEM query-builder workflow — Splunk SPL, Microsoft Sentinel/Defender KQL, Elastic EQL/KQL, met cross-translation-patterns, performance-tuning (data-models, summary-indexes, CCS), en query-by-detection-need. Bron-laag voor detection-engineer, log-triage en threat-hunt.",
     "path": "skills/siem-query"
   },
   {
@@ -857,7 +857,7 @@ const CATALOG = [
       "blue",
       "full"
     ],
-    "desc": "Sigma rule authoring, KQL and SPL translation with test-harness validation.",
+    "desc": "Detection-engineering agent — schrijft Sigma rules, vertaalt naar SPL/KQL/EQL, valideert via test-harness (atomic-red-team / MITRE Caldera / lab-replay), met ATT&CK-coverage-mapping en false-positive-discipline. Levert ready-to-deploy rules plus test-evidence per rule.",
     "path": "agents/detection-engineer.md"
   },
   {
