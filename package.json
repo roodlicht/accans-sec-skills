@@ -10,7 +10,9 @@
   "scripts": {
     "scaffold": "node scripts/scaffold.mjs",
     "build": "node scripts/build-manifest.mjs",
+    "validate": "node scripts/validate.mjs",
     "dev": "npm run scaffold && npm run build",
+    "check": "npm run build && npm run validate",
     "list": "./bin/sec-install --list",
     "profiles": "./bin/sec-install --list-profiles"
   },

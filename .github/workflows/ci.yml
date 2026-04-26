@@ -1,0 +1,39 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: setup-node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: scaffold (idempotent — should not produce changes on a complete catalog)
+        run: npm run scaffold
+
+      - name: build manifest + inject into web/index.html
+        run: npm run build
+
+      - name: validate catalog ↔ disk consistency
+        run: npm run validate
+
+      - name: drift-check (build artifacts must match committed state)
+        run: |
+          if ! git diff --quiet manifest.json web/index.html; then
+            echo "::error::manifest.json or web/index.html out of sync with on-disk SKILL.md frontmatter"
+            git diff manifest.json web/index.html
+            exit 1
+          fi
