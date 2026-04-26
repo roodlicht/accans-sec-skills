@@ -380,7 +380,7 @@
         "pentest",
         "full"
       ],
-      "desc": "Finding templates, CVSS scoring, executive summary and remediation roadmap builder.",
+      "desc": "Pentest report builder — executive summary, methodology, finding-template met CVSS v3.1/v4.0 scoring, reproduction steps, impact-en-remediation per finding, remediation roadmap, retest sign-off, en appendices. Werkt voor web-app-, network-, red-team- en bug-bounty-rapporten.",
       "path": "skills/pentest-reporter"
     },
     {
@@ -631,7 +631,7 @@
         "pentest",
         "full"
       ],
-      "desc": "JWT flaws, deserialization, prototype pollution and OAuth misconfigs — triage workflow.",
+      "desc": "Web vulnerability triage — JWT flaws (alg confusion, none alg, kid injection), deserialization (Java/Python/PHP/Ruby/Node), prototype pollution, OAuth misconfigs (redirect_uri, PKCE, scope), CSRF, DOM XSS, SSRF. Classification, impact-assessment at pattern level, and handoff to remediation.",
       "path": "skills/web-exploit-triage"
     },
     {
@@ -659,7 +659,7 @@
         "pentest",
         "full"
       ],
-      "desc": "Subdomain enumeration, port scanning, tech fingerprinting and attack-surface mapping.",
+      "desc": "Attack-surface reconnaissance agent — subdomain enumeration, passive OSINT (Shodan/Censys/crt.sh), port scanning (nmap/masscan/naabu), tech fingerprinting (httpx/wappalyzer), and asset inventory. Produces a scope-mapped surface report for downstream exploit-chain and web-exploit-triage work.",
       "path": "agents/recon-agent.md"
     },
     {
