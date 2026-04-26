@@ -129,12 +129,16 @@ npm run scaffold        # alleen ontbrekende files aanmaken (idempotent)
 npm run build           # manifest + HTML-injectie
 npm run validate        # catalog ↔ disk + frontmatter + reference-graph
 npm run check           # build + validate gecombineerd
+npm run package         # bouwt dist/ voor static-site-deploy
 npm run list            # alle items via CLI
 npm run profiles        # alle profielen + counts
 
 ./bin/sec-install --profile core --dry-run              # zie wat zou installeren
 ./bin/sec-install --profile full --dest .claude         # repo-scoped install ter test
 ./bin/sec-install <id> [<id>...] --dest /tmp/fake       # losse items testen
+
+# Curl-pipeable variant (voor gehoste deploy, zelfde flags als bin/sec-install):
+bash install.sh --base-url http://localhost:8765 --profile core --dry-run
 ```
 
 ## Wat uitdrukkelijk niet de taak is

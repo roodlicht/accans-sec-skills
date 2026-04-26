@@ -5,3 +5,6 @@ node_modules/
 .env.*
 .vscode/
 .idea/
+
+# Build output for static-site deploy (`npm run package`)
+dist/

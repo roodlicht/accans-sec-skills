@@ -49,6 +49,7 @@
   .brand{display:flex;align-items:center;gap:2px;font-weight:800;font-size:20px;letter-spacing:-.2px;line-height:1}
   .brand .wm{display:inline-flex;align-items:center}
   .brand .dot{color:var(--accent);font-weight:800;margin-left:1px}
+  h1 .dot,h2 .dot{color:var(--accent)}
   .brand .sep{display:inline-block;width:1px;height:18px;background:var(--text-muted);opacity:.45;margin:0 14px;border-radius:1px}
   .brand .sub{font-family:var(--mono);font-size:11px;letter-spacing:1.6px;color:var(--text-muted);font-weight:500;text-transform:uppercase}
   .nav{display:flex;gap:28px;font-family:var(--mono);font-size:12px;letter-spacing:1.2px;color:var(--text-light-muted);text-transform:uppercase;font-weight:500}
@@ -180,7 +181,7 @@
 
 <main class="wrap">
   <span class="kicker">Selective Install Builder</span>
-  <h1>Build your <span class="outline">security</span> install.</h1>
+  <h1>Build your <span class="outline">security</span> install<span class="dot">.</span></h1>
   <p class="lead">Kies skills, agents en commands uit de security-catalogus — AppSec, pentest, blue team, GRC. Begin met een profiel-preset, stem het pakket af op het werk en kopieer het install-commando. Geen lock-in, geen verborgen stack.</p>
 
   <div class="counters">
@@ -192,7 +193,7 @@
 
   <div style="margin-top:44px">
     <span class="kicker muted">Profile Presets</span>
-    <h2>Start vanuit een profiel, tune daarna.</h2>
+    <h2>Start vanuit een profiel, tune daarna<span class="dot">.</span></h2>
     <p class="lead" style="margin-bottom:20px">Presets zijn opinionated startpunten, geen lock-in. Houd Core slank voor kleine teams, of breid uit richting red team, blue team en compliance-zware workflows als het domein verandert.</p>
     <div class="presets" id="presets"></div>
   </div>
@@ -200,7 +201,7 @@
   <div class="sep"></div>
 
   <span class="kicker muted">Catalog</span>
-  <h2>Browse per categorie of zoek.</h2>
+  <h2>Browse per categorie of zoek<span class="dot">.</span></h2>
 
   <div class="search">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
@@ -213,7 +214,7 @@
 
   <div class="cta">
     <span class="kicker muted">Start met Sec</span>
-    <h2>Van OSS-catalogus naar repo-native security.</h2>
+    <h2>Van OSS-catalogus naar repo-native security<span class="dot">.</span></h2>
     <p>Het model blijft additief: open-source distributie eerst, CLI-install waar het in je tooling past, en team-brede profielen wanneer governance en uitrol het vragen. Fork het manifest, voeg je eigen skills toe, ship je eigen profiel.</p>
     <div class="cta-actions">
       <button class="btn primary">Fork on GitHub</button>
@@ -1081,17 +1082,25 @@ function renderFooter(){
     : (count > 0 ? "Custom" : "Nothing selected");
   $("#f-profile").textContent = label;
 
+  // Auto-detect: when served over http(s) from a host, render a curl-pipeable
+  // install command. When opened from disk (file://) fall back to the local
+  // ./bin/sec-install command for repo-local use.
+  const isHosted = location.protocol === "http:" || location.protocol === "https:";
+  const localCmd = "./bin/sec-install";
+  const remoteCmd = `curl -sSL ${location.origin}/install.sh | bash -s --`;
+  const prefix = isHosted ? remoteCmd : localCmd;
+
   let cmd;
   if (count === 0){
-    cmd = "$ sec-install --help";
+    cmd = `$ ${prefix} --help`;
   } else if (state.profile && !hasCustomDeviations()){
-    cmd = `$ sec-install --profile ${state.profile}`;
+    cmd = `$ ${prefix} --profile ${state.profile}`;
   } else {
     const ids = [...state.selected].sort();
     if (ids.length <= 6){
-      cmd = `$ sec-install ${ids.join(" ")}`;
+      cmd = `$ ${prefix} ${ids.join(" ")}`;
     } else {
-      cmd = `$ sec-install ${ids.slice(0,5).join(" ")} … +${ids.length-5} more`;
+      cmd = `$ ${prefix} ${ids.slice(0,5).join(" ")} … +${ids.length-5} more`;
     }
   }
   $("#f-cmd").textContent = cmd;
@@ -1107,9 +1116,11 @@ function hasCustomDeviations(){
 }
 
 function fullCommand(){
-  if (state.selected.size === 0) return "sec-install --help";
-  if (state.profile && !hasCustomDeviations()) return `sec-install --profile ${state.profile}`;
-  return `sec-install ${[...state.selected].sort().join(" ")}`;
+  const isHosted = location.protocol === "http:" || location.protocol === "https:";
+  const prefix = isHosted ? `curl -sSL ${location.origin}/install.sh | bash -s --` : "./bin/sec-install";
+  if (state.selected.size === 0) return `${prefix} --help`;
+  if (state.profile && !hasCustomDeviations()) return `${prefix} --profile ${state.profile}`;
+  return `${prefix} ${[...state.selected].sort().join(" ")}`;
 }
 
 function toggle(id){

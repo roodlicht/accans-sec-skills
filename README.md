@@ -29,6 +29,27 @@ xdg-open web/index.html # Linux
 ./bin/sec-install --profile full --dest .claude   # repo-scoped install
 ```
 
+## Hosting (optional)
+
+The catalog can be deployed as a static site so visitors can browse and install via `curl | bash`:
+
+```bash
+# Build a deploy-ready dist/ directory (index.html + manifest.json + install.sh + catalog files)
+npm run package
+
+# Upload dist/ to your static host's docroot
+rsync -av --delete dist/ user@host:/var/www/security.example.com/
+```
+
+When served over http(s) the page detects this and renders a curl-install command with the live origin baked in:
+
+```bash
+curl -sSL https://security.example.com/install.sh | bash -s -- --profile core
+curl -sSL https://security.example.com/install.sh | bash -s -- --list-profiles
+```
+
+`install.sh` requires `curl` and `jq` on the client. Override the source via `--base-url <url>` or `SEC_INSTALL_BASE_URL` env-var if hosting under a different domain than the script's default.
+
 ## Project layout
 
 ```
@@ -40,8 +61,10 @@ commands/<id>.md          One file per slash command
 scripts/scaffold.mjs      Creates files for new catalog entries (idempotent)
 scripts/build-manifest.mjs  Scans disk → writes manifest.json → injects into web/index.html
 scripts/validate.mjs      Validates catalog ↔ disk + frontmatter + cross-reference graph
+scripts/package.mjs       Builds dist/ for static-site deploy (web + manifest + catalog + installer)
 .github/workflows/ci.yml  Build + validate + drift-check on push/PR
-bin/sec-install           Installer CLI (Node, no deps)
+bin/sec-install           Installer CLI (Node, no deps) — local repo
+install.sh                Curl-pipeable installer (POSIX bash + curl + jq) — for hosted deploy
 web/index.html            Builder UI
 ```
 
