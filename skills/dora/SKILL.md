@@ -9,7 +9,7 @@ description: EU Digital Operational Resilience Act (2022/2554) compliance — sc
 
 ## Wanneer gebruiken
 
-De Digital Operational Resilience Act (EU-verordening 2022/2554) is van kracht sinds 17 januari 2025. Hij harmoniseert ICT-risk-management voor financiële entiteiten in de EU en breidt toezicht uit naar kritieke ICT-third-party providers. Als verordening (niet richtlijn) werkt DORA direct door in NL-recht zonder implementatiewet — wel met nationale toezichtsstructuur (DNB + AFM + ESAs).
+De Digital Operational Resilience Act (EU-verordening 2022/2554) is van kracht sinds 17 januari 2025. Hij harmoniseert ICT-risk-management voor financiële entiteiten in de EU en breidt toezicht uit naar kritieke ICT-third-party providers. Als verordening (niet richtlijn) werkt DORA direct door in NL-recht zonder implementatiewet, wel met nationale toezichtsstructuur (DNB + AFM + ESAs).
 
 Activeert bij:
 
@@ -58,14 +58,14 @@ Mapping: ISO 27001:2022 Annex A dekt grotendeels Art 6-13. NIST CSF 2.0 dekt vol
 
 Drietraps rapportage vergelijkbaar met NIS2, maar met eigen thresholds en regime:
 
-- **Classificatie (Art 18)**: major ICT-related incident wanneer criteria uit RTS overschreden (aantal klanten geraakt, duur, geografische impact, reputationele impact, data-impact, financial impact). De `[RTS on classification of major ICT-related incidents]` — Commission Delegated Regulation die de thresholds vastlegt — verify actuele versie.
+- **Classificatie (Art 18)**: major ICT-related incident wanneer criteria uit RTS overschreden (aantal klanten geraakt, duur, geografische impact, reputationele impact, data-impact, financial impact). De `[RTS on classification of major ICT-related incidents]` (Commission Delegated Regulation die de thresholds vastlegt): verify actuele versie.
 - **Initial notification**: binnen **4 uur** na classificatie als major, en uiterlijk **24 uur** na eerste vaststelling van incident. Afwijkend van NIS2 (24h early-warning), korter.
 - **Intermediate report**: binnen 72 uur na initial, met meer detail.
 - **Final report**: binnen één maand, met root-cause, impact, en lessons learned.
 
 Rapportage gaat naar de competent authority (NL: DNB voor banken/betalingsinstellingen/e-money, AFM voor handelsplatformen/investment firms/crowdfunding, etc.). ESAs ontvangen aggregate data.
 
-Daarnaast: **significant cyber-threat**-rapportage (vrijwillig, Art 19). Ondanks "vrijwillig" in de tekst is dit in praktijk een concurrency-vraag — als je peers het doen, valt niet-rapporteren op.
+Daarnaast: **significant cyber-threat**-rapportage (vrijwillig, Art 19). Ondanks "vrijwillig" in de tekst is dit in praktijk een concurrency-vraag: als je peers het doen, valt niet-rapporteren op.
 
 ### 4. Pijler 3 — Digital Operational Resilience Testing (Art 24–27)
 
@@ -88,7 +88,7 @@ Waarschijnlijk de meest operationele impact voor de meeste financiële entiteite
 
 - **Art 28 ICT-third-party strategy**: document waarin criteria staan voor selectie, due diligence, contract-management, exit.
 - **Art 28(3) Register of information**: machine-leesbaar register van alle contracten met ICT-third-parties, in te dienen bij competent authority. Formaat via ITS (Implementing Technical Standard) gestandaardiseerd. Bevat: provider-identificatie, service-beschrijving, contract-key-data, data-processed, sub-outsourcing, concentration-metrics.
-- **Art 29 Pre-contractual assessment**: due diligence op supplier — risk-assessment, lokaliteit data, sub-outsourcing chain, concentration-risk.
+- **Art 29 Pre-contractual assessment**: due diligence op supplier: risk-assessment, lokaliteit data, sub-outsourcing chain, concentration-risk.
 - **Art 30 Contract-clauses (verplichte elementen)**:
   - Volledige beschrijving functies + service-levels.
   - Locatie waar data verwerkt wordt plus lokaliteit van provider.
@@ -103,7 +103,7 @@ Workflow voor deze skill: contract-portfolio langslopen, per contract checken of
 
 ### 6. Pijler 5 — Information Sharing (Art 45)
 
-Vrijwillige uitwisseling van cyber-threat-informatie tussen financial entities, via trusted communities (ISACs). Niet-verplicht, maar expliciet toegestaan en juridisch beschermd — voor organisaties die twijfelen of sharing juridisch mag, is DORA het ja-antwoord.
+Vrijwillige uitwisseling van cyber-threat-informatie tussen financial entities, via trusted communities (ISACs). Niet-verplicht, maar expliciet toegestaan en juridisch beschermd: voor organisaties die twijfelen of sharing juridisch mag, is DORA het ja-antwoord.
 
 NL-ISAC-structuur: FI-ISAC NL en sectoren-specifieke platforms. Operationele koppeling aan threat-intel-feeds (zie `ioc-hunter`).
 

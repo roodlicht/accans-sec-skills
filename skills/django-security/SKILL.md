@@ -36,7 +36,7 @@ Zes fases. Django-defaults zijn redelijk veilig; de meeste issues ontstaan waar 
 
 Kritieke settings:
 
-- **`DEBUG = False`** in productie. `DEBUG = True` lekt stack traces, env-vars, SQL-queries — volledige app-interne exposure. Geen uitzonderingen.
+- **`DEBUG = False`** in productie. `DEBUG = True` lekt stack traces, env-vars, SQL-queries: volledige app-interne exposure. Geen uitzonderingen.
 - **`ALLOWED_HOSTS`** expliciet. Wildcard `['*']` in prod is een Host-header-injection-vector.
 - **`SECRET_KEY`** uit environment of vault, nooit in source. Rotatie-schema bij verdenking van lek. Zie `secrets-scanner`.
 - **`SECURE_SSL_REDIRECT = True`**, **`SECURE_HSTS_SECONDS >= 31536000`** met `SECURE_HSTS_INCLUDE_SUBDOMAINS` en `SECURE_HSTS_PRELOAD`, **`SESSION_COOKIE_SECURE = True`**, **`CSRF_COOKIE_SECURE = True`**. Alleen waar TLS gegarandeerd is.
@@ -50,43 +50,43 @@ Kritieke settings:
 
 Django's ORM parametriseert standaard. SQLi ontstaat op plekken waar je eruit stapt:
 
-- **`.raw()`** — string-formatting in het raw-queryset geeft SQLi. Gebruik placeholder-params: `Model.objects.raw('SELECT * FROM app_model WHERE name = %s', [name])`. Niet `f'SELECT ... WHERE name = {name}'`.
-- **`.extra()`** — deprecated, nog veelgebruikt. `where=`, `params=`, `select=` kunnen misbruikt worden. Liever vervangen door `Func()`, `RawSQL()` met params, of `annotate()` met `ExpressionWrapper`.
-- **`RawSQL`** — parameter-list móet gebruikt worden. Het voorbeeld in de Django-docs toont `RawSQL("select col from sometable where othercol = %s", (someparam,))` — volg dat.
+- **`.raw()`**: string-formatting in het raw-queryset geeft SQLi. Gebruik placeholder-params: `Model.objects.raw('SELECT * FROM app_model WHERE name = %s', [name])`. Niet `f'SELECT ... WHERE name = {name}'`.
+- **`.extra()`**: deprecated, nog veelgebruikt. `where=`, `params=`, `select=` kunnen misbruikt worden. Liever vervangen door `Func()`, `RawSQL()` met params, of `annotate()` met `ExpressionWrapper`.
+- **`RawSQL`**: parameter-list móet gebruikt worden. Het voorbeeld in de Django-docs toont `RawSQL("select col from sometable where othercol = %s", (someparam,))`. Volg dat.
 - **`QuerySet.annotate()` / `aggregate()` met dict-keys van user-input**. Historisch kwetsbaar (zie CVE-2022-28346, SQL-injection via column-aliases in dict-keys). Reviewer-regel: dict-keys in annotate/aggregate komen nooit van user-input, hardcode ze.
 - **Order-by met user-input**. `.order_by(request.GET.get('sort'))` laat users kolommen kiezen. Allowlist de toegestane kolomnamen.
 - **`__in=` met grote lijsten** uit user-input: geen SQLi maar wel DoS. Limiteer list-size.
 
 Django CVE-referenties (binnen 3-jaar venster, verify tegen release notes):
 
-- CVE-2022-28346 — QuerySet.annotate/aggregate SQLi via dict-keys. Fix in Django 2.2.28, 3.2.13, 4.0.4. Canonical voorbeeld van "ORM is veilig, behalve als ..."
-- CVE-2023-43665 — Truncator DoS via crafted HTML. Fix in 3.2.22, 4.1.12, 4.2.6.
-- Recentere CVEs in Django 4.2/5.x reeks — `[verify tegen https://docs.djangoproject.com/en/dev/releases/security/]` voor het huidige venster.
+- CVE-2022-28346: QuerySet.annotate/aggregate SQLi via dict-keys. Fix in Django 2.2.28, 3.2.13, 4.0.4. Canonical voorbeeld van "ORM is veilig, behalve als ..."
+- CVE-2023-43665: Truncator DoS via crafted HTML. Fix in 3.2.22, 4.1.12, 4.2.6.
+- Recentere CVEs in Django 4.2/5.x reeks: `[verify tegen https://docs.djangoproject.com/en/dev/releases/security/]` voor het huidige venster.
 
 ### 3. Template-injection en XSS
 
 Django-templates hebben **autoescape aan by default**. XSS ontstaat als je 'm uitzet.
 
-- **`{{ user_input|safe }}`** — rendert raw HTML. Alleen toepassen op content die je zelf hebt gecontroleerd (bv. sanitized HTML uit een trusted bleach-call), nooit op ongewaste user-input.
-- **`{% autoescape off %}`** — schakelt escaping uit voor het hele blok. Zelden nodig, review elke toepassing.
-- **`mark_safe(s)`** in Python-code — zelfde effect als `|safe`. Als `s` user-input bevat of samengesteld is uit user-input, heb je XSS.
-- **`format_html('<a href="{}">', user_url)`** — URL-attributes zijn een apart probleem. `javascript:`-URLs via `href` bypassen HTML-escaping. Valideer `user_url.startswith(('http:', 'https:'))`.
-- **Server-side template injection** — als je zelf templates rendert met user-controlled template-strings (`Template(user_input).render(...)`), krijg je SSTI met potentieel RCE. Nooit doen.
-- **`HttpResponse(user_input)`** — bypass template-autoescape omdat er geen template is. Gebruik `render()` of encode expliciet.
+- **`{{ user_input|safe }}`**: rendert raw HTML. Alleen toepassen op content die je zelf hebt gecontroleerd (bv. sanitized HTML uit een trusted bleach-call), nooit op ongewaste user-input.
+- **`{% autoescape off %}`**: schakelt escaping uit voor het hele blok. Zelden nodig, review elke toepassing.
+- **`mark_safe(s)`** in Python-code: zelfde effect als `|safe`. Als `s` user-input bevat of samengesteld is uit user-input, heb je XSS.
+- **`format_html('<a href="{}">', user_url)`**: URL-attributes zijn een apart probleem. `javascript:`-URLs via `href` bypassen HTML-escaping. Valideer `user_url.startswith(('http:', 'https:'))`.
+- **Server-side template injection**: als je zelf templates rendert met user-controlled template-strings (`Template(user_input).render(...)`), krijg je SSTI met potentieel RCE. Nooit doen.
+- **`HttpResponse(user_input)`**: bypass template-autoescape omdat er geen template is. Gebruik `render()` of encode expliciet.
 
 ### 4. CSRF-model
 
 Django's `CsrfViewMiddleware` is aan by default voor POST/PUT/PATCH/DELETE.
 
-- **`@csrf_exempt`** — zet CSRF uit voor een specifieke view. Alleen gebruiken op endpoints waar CSRF structureel niet werkt (bv. webhook-receivers met signature-verificatie). Elke `@csrf_exempt` in een PR is een security-review-moment.
-- **DRF en CSRF** — DRF `SessionAuthentication` forceert CSRF, `TokenAuthentication`/`JWT` niet (stateless). Mixed auth-modes: wees expliciet welke endpoints welk model gebruiken.
-- **`CSRF_COOKIE_HTTPONLY`** — default `False`, wat nodig is voor JS om token te lezen. Niet aanpassen tenzij je een custom CSRF-setup hebt.
-- **`CSRF_TRUSTED_ORIGINS`** — sinds Django 4 strikter geïnterpreteerd (volledige origin met scheme). Zonder correcte config: legitieme POSTs worden 403 geweigerd.
+- **`@csrf_exempt`**: zet CSRF uit voor een specifieke view. Alleen gebruiken op endpoints waar CSRF structureel niet werkt (bv. webhook-receivers met signature-verificatie). Elke `@csrf_exempt` in een PR is een security-review-moment.
+- **DRF en CSRF**: DRF `SessionAuthentication` forceert CSRF, `TokenAuthentication`/`JWT` niet (stateless). Mixed auth-modes: wees expliciet welke endpoints welk model gebruiken.
+- **`CSRF_COOKIE_HTTPONLY`**: default `False`, wat nodig is voor JS om token te lezen. Niet aanpassen tenzij je een custom CSRF-setup hebt.
+- **`CSRF_TRUSTED_ORIGINS`**: sinds Django 4 strikter geïnterpreteerd (volledige origin met scheme). Zonder correcte config: legitieme POSTs worden 403 geweigerd.
 
 ### 5. Auth, session, en admin
 
-- **`django.contrib.auth.password_validation`** — verwijder nooit. Lengte-check, common-password-check, attribute-similarity-check moeten actief zijn.
-- **`AUTHENTICATION_BACKENDS`** — aangepaste backends zijn klassieke foot-gun. Elke custom backend moet timing-safe zijn (identieke response-tijd voor "user bestaat niet" vs "password fout").
+- **`django.contrib.auth.password_validation`**: verwijder nooit. Lengte-check, common-password-check, attribute-similarity-check moeten actief zijn.
+- **`AUTHENTICATION_BACKENDS`**: aangepaste backends zijn klassieke foot-gun. Elke custom backend moet timing-safe zijn (identieke response-tijd voor "user bestaat niet" vs "password fout").
 - **Admin-interface**:
   - **`ADMIN_URL`** niet `/admin/` (security through obscurity + bot-traffic-reductie).
   - **IP-allowlist** via middleware of reverse-proxy voor `/admin/*`.

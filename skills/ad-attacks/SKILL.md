@@ -5,7 +5,7 @@ description: Active Directory aanvalspaden — BloodHound path-analyse, Kerberos
 
 # AD Attack Paths
 
-> **RoE-only en lab-discipline**: AD-attacks raken meestal aan de hoogste-privilege-laag van een organisatie. Versie-specifieke ticket-extraction-recepten, vendor-tool-output, kant-en-klare DCSync-commando's voor productie staan niet in deze skill — die horen in een afgesloten engagement-werkruimte. Skill bevat klasse-namen, BloodHound-edge-typen, ATT&CK-T-IDs en defensieve tegenhangers. Lab-werk doe je in een aparte AD-test-domein.
+> **RoE-only en lab-discipline**: AD-attacks raken meestal aan de hoogste-privilege-laag van een organisatie. Versie-specifieke ticket-extraction-recepten, vendor-tool-output, kant-en-klare DCSync-commando's voor productie staan niet in deze skill, die horen in een afgesloten engagement-werkruimte. Skill bevat klasse-namen, BloodHound-edge-typen, ATT&CK-T-IDs en defensieve tegenhangers. Lab-werk doe je in een aparte AD-test-domein.
 
 ## Wanneer gebruiken
 
@@ -26,7 +26,7 @@ Activeert bij:
 - C2-infrastructuur en beacon-OPSEC → `c2-hygiene`. Vermeld als context, niet uitgewerkt.
 - Final reporting met CVSS → `pentest-reporter`.
 - Detection-rule-bouw op de techniques → `detection-engineer`. Deze skill levert de attack-side, koppelt naar detection-opportunity.
-- Cloud-IAM-equivalenten (Azure AD / Entra ID heeft eigen patroon-set) — gedeeltelijk hier ja (hybrid scenarios, ADFS, Entra Connect), pure cloud-IAM-attacks horen elders.
+- Cloud-IAM-equivalenten (Azure AD / Entra ID heeft eigen patroon-set): gedeeltelijk hier ja (hybrid scenarios, ADFS, Entra Connect), pure cloud-IAM-attacks horen elders.
 - Forensics na AD-incident → `forensics-assist` plus `ir-runbook`.
 
 ## Aanpak
@@ -39,13 +39,13 @@ BloodHound (SpecterOps OSS, Apache-2) is de standaard tool voor AD-graph-analyse
 
 - **Collection**: SharpHound (Windows-binary) of Rusthound / BloodHound-Python op een ingebrachte AD-context. Lab-engagement gebruikt SharpHound; defensieve self-assessment kan via offline-export.
 - **Edges-typen** (klasse-niveau):
-  - `MemberOf`, `AdminTo`, `CanRDP`, `ExecuteDCOM` — direct-toegangs-relaties.
-  - `GenericAll`, `GenericWrite`, `WriteDACL`, `WriteOwner`, `Owns` — DACL-rechten die owner-take-over of password-reset toelaten.
-  - `ForceChangePassword`, `AddMember`, `AddSelf` — group/user-mutaties.
-  - `AllowedToDelegate`, `AllowedToActOnBehalfOfOtherIdentity` — delegation-edges (zie fase 3).
-  - `HasSession` — bevat-credential-indicator (legacy waardevol bij token-impersonation).
-  - `DCSync` — replicating-rights edge (kritiek).
-  - `ADCSESC1`-t/m-`ADCSESC10` — ADCS-templates met aanvalspaden (zie fase 4).
+  - `MemberOf`, `AdminTo`, `CanRDP`, `ExecuteDCOM`: direct-toegangs-relaties.
+  - `GenericAll`, `GenericWrite`, `WriteDACL`, `WriteOwner`, `Owns`: DACL-rechten die owner-take-over of password-reset toelaten.
+  - `ForceChangePassword`, `AddMember`, `AddSelf`: group/user-mutaties.
+  - `AllowedToDelegate`, `AllowedToActOnBehalfOfOtherIdentity`: delegation-edges (zie fase 3).
+  - `HasSession`: bevat-credential-indicator (legacy waardevol bij token-impersonation).
+  - `DCSync`: replicating-rights edge (kritiek).
+  - `ADCSESC1`-t/m-`ADCSESC10`: ADCS-templates met aanvalspaden (zie fase 4).
 - **Cypher-queries voor pad-vinden**: shortest-path-to-domain-admins, kortste pad van compromised user X naar Tier-0-asset, alle edges van type Y in domain. SpecterOps documenteert canonical queries.
 - **Triage-workflow**: alle paden ranken op (a) hoeveel hops, (b) welke edge-types (DACL > sessie > membership), (c) welke realistische uitvoerbaarheid. Niet elke 1-hop-edge is een quick-win; sommige vereisen specifieke tooling of admin-actie.
 
@@ -56,11 +56,11 @@ Defensieve gebruik: BloodHound op je eigen domain levert prioriterings-lijst voo
 Kerberos heeft een aantal canonical aanvalsklassen die in vrijwel elk red-team-rapport zitten.
 
 - **Kerberoasting (T1558.003)**. Service-accounts met SPN gekoppeld kunnen TGS-tickets opvragen door elke geauthenticeerde user. Ticket bevat een password-derived encrypted blob, offline-crackbaar als password zwak is (RC4-encrypted is sneller crackbaar dan AES). Defensive: alle service-accounts gMSA, RC4 disabled, Audit Kerberos Service Ticket Operations (Event 4769 met TicketEncryptionType 0x17 voor RC4).
-- **AS-REP roasting (T1558.004)**. Accounts met `DONT_REQ_PREAUTH` UAC-flag laten een AS-REP zonder pre-auth vrij — ook offline-crackbaar. Defensive: pre-auth verplicht maken op elk account, auditen welke accounts deze flag hebben.
+- **AS-REP roasting (T1558.004)**. Accounts met `DONT_REQ_PREAUTH` UAC-flag laten een AS-REP zonder pre-auth vrij, ook offline-crackbaar. Defensive: pre-auth verplicht maken op elk account, auditen welke accounts deze flag hebben.
 - **Pass-the-Ticket (T1550.003)**. Gestolen TGT/TGS-ticket hergebruiken op een andere machine. Detectie via 4768/4769-events in vreemde context.
 - **Silver Ticket (T1558.002)**. TGS-ticket gefabriceerd met service-account-NTLM-hash → service-toegang zonder DC te raken. Defensive: tier-0-isolation, password-rotatie service-accounts.
 - **Golden Ticket (T1558.001)**. TGT gefabriceerd met krbtgt-hash → domain-admin-niveau-toegang voor lange tijd. Detectie via anomalous-TGT-lifetime, gebruik van krbtgt-account als clienthuisnummer; verdediging via dubbele krbtgt-rotatie (procedure SpecterOps + Microsoft).
-- **Diamond/Sapphire Ticket** — variant op Golden, request-vorm minder herkenbaar. Recente klasse, detection-rule-set in beweging.
+- **Diamond/Sapphire Ticket**: variant op Golden, request-vorm minder herkenbaar. Recente klasse, detection-rule-set in beweging.
 
 Algemene Kerberos-discipline: monitor pre-auth-events, ticket-encryption-types (RC4 als red flag), gebruik van krbtgt door service-accounts.
 
@@ -68,7 +68,7 @@ Algemene Kerberos-discipline: monitor pre-auth-events, ticket-encryption-types (
 
 Delegation laat een service handelen namens een gebruiker. Misconfig is een hoog-impact aanvalspad.
 
-- **Unconstrained Delegation**. Service-account met `TRUSTED_FOR_DELEGATION` UAC-flag — krijgt TGT van elke user die mee inlogt. Aanvaller dwingt admin (printer-spool-service-trick) tot connect en steelt TGT. Defensive: minimaliseer unconstrained delegation, audit accounts met deze flag.
+- **Unconstrained Delegation**. Service-account met `TRUSTED_FOR_DELEGATION` UAC-flag krijgt TGT van elke user die mee inlogt. Aanvaller dwingt admin (printer-spool-service-trick) tot connect en steelt TGT. Defensive: minimaliseer unconstrained delegation, audit accounts met deze flag.
 - **Constrained Delegation (S4U2Self / S4U2Proxy)**. Service kan alleen voor specifieke services delegaten. Aanval: als compromised account constrained-delegation-rechten heeft naar een Tier-0-service, kan TGS gefabriceerd worden voor elk user-naam (S4U-Self/Proxy-trick).
 - **Resource-Based Constrained Delegation (RBCD)**. Doel-resource bepaalt wie mag delegaten via `msDS-AllowedToActOnBehalfOfOtherIdentity` attribute. Aanval: GenericWrite op een computer-object → schrijf je eigen account als trusted → gebruik S4U om te impersoneren naar dat computer-object. SpecterOps "RBCD" research is canonical.
 
@@ -76,8 +76,8 @@ Defensive: minimaliseer delegation-rechten, gebruik Authentication Policies en A
 
 ### 4. DCSync, AD CS, en hoge-impact aanvalspaden
 
-- **DCSync (T1003.006)**. Account met `Replicating Directory Changes`-recht kan zich voordoen als een DC en password-hashes ophalen — inclusief krbtgt. Defensive: alleen DCs en specifieke replication-accounts hebben dit recht, audit Event 4662 met directory-replication-rights.
-- **AD CS (Active Directory Certificate Services)** — sinds 2021 een hoofd-aanvalsoppervlak na SpecterOps "Certified Pre-Owned"-paper. ESC1 t/m ESC10+ klassen. Pattern-niveau:
+- **DCSync (T1003.006)**. Account met `Replicating Directory Changes`-recht kan zich voordoen als een DC en password-hashes ophalen, inclusief krbtgt. Defensive: alleen DCs en specifieke replication-accounts hebben dit recht, audit Event 4662 met directory-replication-rights.
+- **AD CS (Active Directory Certificate Services)**: sinds 2021 een hoofd-aanvalsoppervlak na SpecterOps "Certified Pre-Owned"-paper. ESC1 t/m ESC10+ klassen. Pattern-niveau:
   - **ESC1**: certificaat-template laat client-supplied SAN toe → request cert met admin-SAN, authenticate als admin.
   - **ESC2**: any-purpose EKU → request authenticator-cert.
   - **ESC3**: enrollment-agent abuse.
@@ -94,7 +94,7 @@ Tools: Certify (offensief, lab-only), Certipy (Python-port), PSPKIAudit (defensi
 
 Microsoft's Tier-model (sinds ~2014, geactualiseerd in Enterprise Access Model) is de structurele verdediging tegen alle bovenstaande klassen.
 
-- **Tier-0**: identity-systemen — DCs, ADFS-servers, Entra Connect, ADCS-CAs, PKI-keys, krbtgt. Compromise hier = domain takeover.
+- **Tier-0**: identity-systemen, dus DCs, ADFS-servers, Entra Connect, ADCS-CAs, PKI-keys, krbtgt. Compromise hier = domain takeover.
 - **Tier-1**: server-OS, applicatie-platforms, business-data.
 - **Tier-2**: workstations, end-user devices.
 
@@ -105,7 +105,7 @@ Implementatie:
 - **Authentication Policies + Silos** binnen AD: blokkeer Tier-0-accounts om in te loggen op niet-Tier-0-systems.
 - **Privileged Access Workstations (PAW)** voor Tier-0-werk.
 - **Just-In-Time access** voor admin-rechten (Azure AD PIM / on-prem-equivalent).
-- **No service accounts in Domain Admins** — zo strict mogelijk.
+- **No service accounts in Domain Admins**, zo strict mogelijk.
 - **gMSA** (group-Managed Service Accounts) voor service-accounts: passwords door AD beheerd, rotatie automatisch, niet kerberoastable.
 
 Tier-model is het anchor van een audit-rapport: per BloodHound-edge die naar Tier-0 leidt, ontwerp-vraag "waarom mag dit pad bestaan".
@@ -116,9 +116,9 @@ Laag 1: scope (alle BloodHound-collection binnen RoE? alle gebruikte techniques 
 
 Handoff:
 
-- `pentest-reporter` — finding-format met ATT&CK-mapping per gebruikte techniek.
-- `purple-ops` / `detection-engineer` — detection-opportunity per stap (welk Event-ID, welke Sigma-rule).
-- `policy-drafter` — input voor Access Control Policy en Privileged Access Policy.
+- `pentest-reporter`: finding-format met ATT&CK-mapping per gebruikte techniek.
+- `purple-ops` / `detection-engineer`: detection-opportunity per stap (welk Event-ID, welke Sigma-rule).
+- `policy-drafter`: input voor Access Control Policy en Privileged Access Policy.
 
 ## Output
 
