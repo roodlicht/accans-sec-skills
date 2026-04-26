@@ -11,17 +11,17 @@ The repo holds three things:
 ## Quickstart
 
 ```bash
-# 1. Generate stub files for every catalog entry (idempotent)
-node scripts/scaffold.mjs
+# Build manifest + inject into web/index.html (idempotent)
+npm run build
 
-# 2. Build the manifest and inject the catalog into web/index.html
-node scripts/build-manifest.mjs
+# Validate catalog ↔ disk consistency + reference graph
+npm run validate
 
-# 3. Open the builder
+# Open the builder
 open web/index.html     # macOS
 xdg-open web/index.html # Linux
 
-# 4. Or install directly from the CLI
+# Or install directly from the CLI
 ./bin/sec-install --list-profiles
 ./bin/sec-install --profile core --dry-run
 ./bin/sec-install --profile core              # installs to ~/.claude
@@ -33,12 +33,14 @@ xdg-open web/index.html # Linux
 
 ```
 catalog.json              Single source of truth — ids, names, categories, profile membership
-manifest.json             Generated: catalog merged with on-disk frontmatter (scaffold output)
+manifest.json             Generated: catalog merged with on-disk frontmatter (build output)
 skills/<id>/SKILL.md      One folder per skill, with frontmatter + markdown body
 agents/<id>.md            One file per agent (sub-agent definition)
 commands/<id>.md          One file per slash command
-scripts/scaffold.mjs      Creates missing stub files from catalog.json
+scripts/scaffold.mjs      Creates files for new catalog entries (idempotent)
 scripts/build-manifest.mjs  Scans disk → writes manifest.json → injects into web/index.html
+scripts/validate.mjs      Validates catalog ↔ disk + frontmatter + cross-reference graph
+.github/workflows/ci.yml  Build + validate + drift-check on push/PR
 bin/sec-install           Installer CLI (Node, no deps)
 web/index.html            Builder UI
 ```
@@ -46,9 +48,9 @@ web/index.html            Builder UI
 ## Adding a new item
 
 1. Add a row to `catalog.json` with `id`, `name`, `type` (`skill` / `agent` / `command`), `cat` (one or more of `core`, `appsec`, `pentest`, `blue`, `grc`), `profiles` (which presets include this item), and a short `desc`.
-2. Run `node scripts/scaffold.mjs` — a stub will appear under the right directory.
-3. Fill in the stub. Iterate on its `description` frontmatter until triggering is sharp.
-4. Run `node scripts/build-manifest.mjs` — the web builder picks up your changes automatically.
+2. Run `npm run scaffold` — a stub appears under the right directory.
+3. Fill in the stub following the conventions in `CLAUDE.md`. Iterate on the `description` frontmatter until triggering is sharp.
+4. Run `npm run check` — builds the manifest, validates catalog/disk consistency, and reports the cross-reference graph.
 
 ## Profiles
 
@@ -63,7 +65,7 @@ Profiles are opinionated bundles — they don't add capability, they just select
 
 ## Status
 
-Catalog is complete; the 47 items are stubs. Status inside each stub is `stub — inhoud nog uit te werken`. The plan is to fill them out in Claude Code, one at a time, with the skill-creator flow.
+All 47 items are filled in across the five profiles (`core` 7, `appsec` 12, `pentest` 9, `blue` 10, `grc` 9). Each item carries its own RoE/scope discipline where relevant — pentest skills stay at pattern-level (no version-specific weaponized exploits), GRC skills carry "no legal advice" disclaimers and reference primary EU/NL sources, and `verification-loop` is hybrid (universal self-review plus a removable security-red-flag layer). See `CLAUDE.md` for editing conventions and `scripts/validate.mjs` for the consistency checks.
 
 ## License
 

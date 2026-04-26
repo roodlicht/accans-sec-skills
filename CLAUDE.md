@@ -4,13 +4,17 @@ Context voor Claude wanneer je in deze repo werkt. Lees dit volledig voor je iet
 
 ## Waar je bent
 
-Dit is `accans-sec-skills` — een catalogus van security-skills, -agents en -commands voor Claude Code / Cowork, plus een web-builder en een installer-CLI. Single source of truth is `catalog.json`. Alle stubs onder `skills/`, `agents/` en `commands/` zijn gegenereerd met `scripts/scaffold.mjs` en wachten op inhoud.
+Dit is `accans-sec-skills` — een catalogus van security-skills, -agents en -commands voor Claude Code / Cowork, plus een web-builder en een installer-CLI. Single source of truth is `catalog.json`. De catalog is volledig uitgewerkt (47 items over `core` / `appsec` / `pentest` / `blue` / `grc`). Werk in deze repo betreft typisch onderhoud, herijking, of het toevoegen van nieuwe items.
 
-## Primaire taak
+## Primaire taken
 
-Stubs omzetten in **scherpe, bruikbare skills/agents/commands**. Elke stub heeft een header `_Status: stub — inhoud nog uit te werken._` — die regel moet weg zodra de inhoud er staat.
+Drie soorten werk komen voor:
 
-Prioriteer op basis van de `core` en `appsec` profielen eerst (samen 26 items) — dat is de bulk van de dagelijkse use cases. `pentest` en `blue` zijn specialistischer; `grc` is EU/NL-georiënteerd en vereist aparte research.
+- **Onderhoud van bestaande items**: bijwerken bij nieuwe CVE's, framework-versie-bumps, gewijzigde wetgeving (NIS2/DORA-RTS-updates, Cyberbeveiligingswet-status). Houd `[verify]`-markers actueel.
+- **Toevoegen van nieuwe items**: nieuwe categorie of vraag uit de praktijk die buiten een bestaande skill valt. Volg de scaffold-flow (zie Workflow hieronder).
+- **Hercategorisatie of profiel-aanpassing**: alleen `catalog.json` aanraken, daarna `npm run check`.
+
+Bij twijfel: `npm run validate` toont catalog ↔ disk-consistency en cross-reference-graph.
 
 ## Conventies
 
@@ -39,12 +43,12 @@ Richtlijn lengte:
 
 ## Workflow
 
-### Een skill invullen
+### Een bestaand item bewerken
 
 ```bash
-# Inhoud schrijven in skills/<id>/SKILL.md
+# Inhoud aanpassen in skills/<id>/SKILL.md (of agents/<id>.md / commands/<id>.md)
 # Eventueel helper-bestanden toevoegen: skills/<id>/references/, skills/<id>/templates/
-npm run build          # regenereer manifest + injecteer in web/index.html
+npm run check          # build + validate in één
 open web/index.html    # visuele check — description leesbaar? scope duidelijk?
 ```
 
@@ -55,8 +59,8 @@ open web/index.html    # visuele check — description leesbaar? scope duidelijk
 # 2. Scaffold stub
 npm run scaffold
 # 3. Schrijf inhoud
-# 4. Bouw
-npm run build
+# 4. Build + validate
+npm run check
 ```
 
 ### Commit-ritme
@@ -110,19 +114,21 @@ Niet aanraken tenzij bewust. `cat` is voor de UI-tab-filter, `profiles` is voor 
 
 Als je een bestaand item hercategoriseert, update **alleen** `catalog.json` en run `npm run build`. De manifest-scanner ziet de wijziging vanzelf.
 
-## Als je een stub af hebt
+## Als je een nieuw item klaar hebt
 
-1. Verwijder de `_Status: stub_` regel.
-2. Check dat `description` frontmatter scherp is (trigger-words, scope, 1–2 zinnen).
-3. `npm run build`.
-4. Open `web/index.html`, zoek je skill in de grid, lees de card-description — klopt het?
+1. Geen `_Status: stub_`-regel laten staan (validate vangt dit anders).
+2. `description` frontmatter scherp: trigger-words prominent, 1–2 zinnen, Engels.
+3. `npm run check` (build + validate). Geen errors, ideally geen warnings.
+4. Open `web/index.html`, zoek je item in de grid, lees de card-description — klopt het?
 5. Commit met de conventie hierboven.
 
 ## Handige commando's
 
 ```bash
-npm run scaffold        # alleen ontbrekende stubs aanmaken
+npm run scaffold        # alleen ontbrekende files aanmaken (idempotent)
 npm run build           # manifest + HTML-injectie
+npm run validate        # catalog ↔ disk + frontmatter + reference-graph
+npm run check           # build + validate gecombineerd
 npm run list            # alle items via CLI
 npm run profiles        # alle profielen + counts
 
