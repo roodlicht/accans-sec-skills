@@ -14,12 +14,12 @@ jobs:
       contents: read
     steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: setup-node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: scaffold (idempotent — should not produce changes on a complete catalog)
         run: npm run scaffold
