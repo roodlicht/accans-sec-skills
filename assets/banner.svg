@@ -1,33 +1,64 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 320" width="1200" height="320" role="img" aria-label="accans-sec-skills banner">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#0b1020"/>
-      <stop offset="1" stop-color="#11182a"/>
+      <stop offset="0" stop-color="#0a0f1f"/>
+      <stop offset="1" stop-color="#10182d"/>
     </linearGradient>
-    <radialGradient id="glow" cx="0.85" cy="0.15" r="0.7">
-      <stop offset="0" stop-color="#4f7df9" stop-opacity="0.18"/>
+    <radialGradient id="glow1" cx="0.88" cy="0.18" r="0.55">
+      <stop offset="0" stop-color="#4f7df9" stop-opacity="0.32"/>
       <stop offset="1" stop-color="#4f7df9" stop-opacity="0"/>
     </radialGradient>
+    <radialGradient id="glow2" cx="0.05" cy="0.95" r="0.45">
+      <stop offset="0" stop-color="#7c4ff9" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#7c4ff9" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="hero" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#cdd5e8"/>
+    </linearGradient>
+    <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4f7df9" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#4f7df9" stop-opacity="0.05"/>
+    </linearGradient>
   </defs>
 
+  <!-- background -->
   <rect width="1200" height="320" fill="url(#bg)"/>
-  <rect width="1200" height="320" fill="url(#glow)"/>
+  <rect width="1200" height="320" fill="url(#glow1)"/>
+  <rect width="1200" height="320" fill="url(#glow2)"/>
 
-  <!-- Brand line -->
-  <g transform="translate(80,82)" font-family="-apple-system, system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" fill="#ffffff">
-    <text x="0" y="0" font-size="22" font-weight="500" letter-spacing="2.2" fill="#9aa3b8">ACCANS<tspan fill="#4f7df9">.</tspan> &#8201; SEC SKILLS</text>
-    <text x="0" y="78" font-size="64" font-weight="800" letter-spacing="-1.5">47 skills<tspan fill="#4f7df9">.</tspan></text>
-    <text x="0" y="120" font-size="64" font-weight="800" letter-spacing="-1.5" fill="#3d4760">Five profiles<tspan fill="#4f7df9">.</tspan></text>
-    <text x="0" y="162" font-size="64" font-weight="800" letter-spacing="-1.5">One catalog<tspan fill="#4f7df9">.</tspan></text>
+  <!-- left edge accent stripe -->
+  <rect x="0" y="0" width="3" height="320" fill="#4f7df9"/>
+
+  <!-- brand line -->
+  <g transform="translate(80,68)" font-family="-apple-system, system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+    <text x="0" y="0" font-size="13" font-weight="600" letter-spacing="3.2" fill="#9aa3b8">ACCANS<tspan fill="#4f7df9">.</tspan> &#8201;&#8201;&#8194; SEC SKILLS</text>
   </g>
 
-  <!-- Tagline -->
-  <g transform="translate(80,275)" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#6b7385">
-    <text font-size="13" letter-spacing="1.2">CORE · APPSEC · PENTEST · BLUE · GRC &#8194;|&#8194; NL/EU REGULATORY-ANCHORED &#8194;|&#8194; CLAUDE SKILLS SYSTEM</text>
+  <!-- hero copy -->
+  <g transform="translate(80,138)" font-family="-apple-system, system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+    <text x="0" y="0" font-size="58" font-weight="800" letter-spacing="-1.4" fill="url(#hero)">Security expertise<tspan fill="#4f7df9">.</tspan></text>
+    <text x="0" y="62" font-size="58" font-weight="800" letter-spacing="-1.4" fill="#5b6584">Pre-loaded for Claude<tspan fill="#4f7df9">.</tspan></text>
   </g>
 
-  <!-- Right-side accent ring -->
-  <circle cx="1080" cy="160" r="110" fill="none" stroke="#4f7df9" stroke-opacity="0.18" stroke-width="1"/>
-  <circle cx="1080" cy="160" r="60"  fill="none" stroke="#4f7df9" stroke-opacity="0.30" stroke-width="1"/>
-  <circle cx="1080" cy="160" r="6"   fill="#4f7df9"/>
+  <!-- numbers stat block -->
+  <g transform="translate(80,252)" font-family="-apple-system, system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+    <text x="0" y="0" font-size="13" font-weight="600" letter-spacing="2.4" fill="#cdd5e8">
+      47 SKILLS &#8194;<tspan fill="#4f7df9">·</tspan>&#8194; 5 DISCIPLINES &#8194;<tspan fill="#4f7df9">·</tspan>&#8194; NL/EU REGULATORY-ANCHORED &#8194;<tspan fill="#4f7df9">·</tspan>&#8194; PATTERN-LEVEL DISCIPLINE
+    </text>
+    <text x="0" y="22" font-size="11" letter-spacing="2.2" fill="#6b7385" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace">
+      CORE &#8194;<tspan fill="#4f7df9">·</tspan>&#8194; APPSEC &#8194;<tspan fill="#4f7df9">·</tspan>&#8194; PENTEST &#8194;<tspan fill="#4f7df9">·</tspan>&#8194; BLUE &#8194;<tspan fill="#4f7df9">·</tspan>&#8194; GRC
+    </text>
+  </g>
+
+  <!-- right-side concentric "target" mark -->
+  <g transform="translate(1020,160)">
+    <circle cx="0" cy="0" r="135" fill="none" stroke="url(#ringGrad)" stroke-width="1"/>
+    <circle cx="0" cy="0" r="95"  fill="none" stroke="#4f7df9" stroke-opacity="0.22" stroke-width="1"/>
+    <circle cx="0" cy="0" r="55"  fill="none" stroke="#4f7df9" stroke-opacity="0.35" stroke-width="1.5"/>
+    <circle cx="0" cy="0" r="22"  fill="#0a0f1f" stroke="#4f7df9" stroke-opacity="0.7" stroke-width="1.5"/>
+    <circle cx="0" cy="0" r="5"   fill="#4f7df9"/>
+    <text x="0" y="-145" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" font-size="10" letter-spacing="2" fill="#5b6584" text-anchor="middle">OPEN SOURCE</text>
+    <text x="0" y="155" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" font-size="10" letter-spacing="2" fill="#5b6584" text-anchor="middle">CC BY-SA · APACHE 2.0</text>
+  </g>
 </svg>
