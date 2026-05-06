@@ -63,7 +63,7 @@ In practice: SaaS and commercial assistants that bundle the catalog text in thei
 
 Training a model on CC BY-SA 4.0 content places the resulting model in a contested legal area. Accans takes the position that derivative outputs of such training are subject to the ShareAlike obligation and must be made available under CC BY-SA 4.0. Test cases in EU courts are emerging; the maintainers reserve the right to participate in or initiate enforcement actions where appropriate.
 
-If you need a commercial license that exempts your operation from the ShareAlike obligation, contact us via [accans.com](https://accans.com).
+If you need a commercial license that exempts your operation from the ShareAlike obligation, contact Ric van Westhreenen at [ric@accans.com](mailto:ric@accans.com).
 
 ## Contributor licensing
 
@@ -83,4 +83,4 @@ This is the standard position under both Apache 2.0 §6 and the CC BY-SA 4.0 tra
 
 ## Questions
 
-License questions — particularly commercial licensing for AI training, SaaS bundling, or other use cases that exceed the standard grants — go to the maintainer via [accans.com](https://accans.com) or by emailing the repository owner.
+License questions — particularly commercial licensing for AI training, SaaS bundling, or other use cases that exceed the standard grants — go to Ric van Westhreenen at [ric@accans.com](mailto:ric@accans.com).

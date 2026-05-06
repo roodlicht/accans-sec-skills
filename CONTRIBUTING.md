@@ -77,4 +77,4 @@ This appends a `Signed-off-by:` trailer with your name and email, asserting that
 
 Pull requests without DCO sign-off will be flagged for fixup before merge. We don't require a separate CLA — DCO is sufficient.
 
-For the larger questions (commercial licensing for AI training, SaaS bundling, exemptions from the CC BY-SA 4.0 ShareAlike obligation), see [LICENSING.md](LICENSING.md) or contact the maintainer via [accans.com](https://accans.com).
+For the larger questions (commercial licensing for AI training, SaaS bundling, exemptions from the CC BY-SA 4.0 ShareAlike obligation), see [LICENSING.md](LICENSING.md) or contact the maintainer: Ric van Westhreenen, [ric@accans.com](mailto:ric@accans.com).

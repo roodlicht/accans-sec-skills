@@ -11,7 +11,7 @@ This catalog primarily contains **prose** that primes Claude with security trade
 ### How to report
 
 - For **non-critical issues** (tradecraft errors, doc fixes, scope-discipline gaps): open a public issue on GitHub.
-- For **anything that touches the installer, the build, or potential credential exposure**: email the maintainer privately first. Use the contact on the [accans.com](https://accans.com) site or the GitHub profile email of the repo owner. Please do not file a public issue for these classes until coordinated disclosure has happened.
+- For **anything that touches the installer, the build, or potential credential exposure**: email the maintainer privately first — Ric van Westhreenen, [ric@accans.com](mailto:ric@accans.com). Please do not file a public issue for these classes until coordinated disclosure has happened.
 
 We aim to respond within **5 working days**. The catalog is maintained on a small-team basis; please be patient, and please be specific (file path, line number, what's wrong, why).
 
