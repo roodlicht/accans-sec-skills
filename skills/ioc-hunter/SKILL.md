@@ -1,190 +1,190 @@
 ---
 name: ioc-hunter
-description: Threat-intel IOC workflow — feed-curatie (MISP/OpenCTI/vendor/ENISA/CISA), deduplicatie, confidence-scoring (TLP, source-reputation, age, sightings), enrichment-pipeline naar SIEM/EDR, retro-hunt op N-dagen-window, en lifecycle (expiry + retirement).
+description: Threat-intel IOC workflow — feed curation (MISP/OpenCTI/vendor/ENISA/CISA), deduplication, confidence scoring (TLP, source reputation, age, sightings), enrichment pipeline to SIEM/EDR, retro-hunt over an N-day window, and lifecycle (expiry + retirement).
 ---
 
 # IOC Hunter
 
-> **Bron-discipline en TLP-respect**: IOCs hebben een share-policy (TLP-RED/AMBER/GREEN/CLEAR). Doorgeven aan partijen waar het feed-contract het niet toestaat is een breach van trust en in sommige contracten ook van licentie. Sharing waar wel toegestaan (intra-industry ISAC, CSIRT-NL, sector-PAC) is een netto-positieve gewoonte.
+> **Source discipline and TLP respect**: IOCs come with a share policy (TLP-RED/AMBER/GREEN/CLEAR). Forwarding to parties the feed contract does not allow is a breach of trust and, in some contracts, of license. Sharing where permitted (intra-industry ISAC, CSIRT-NL, sector PAC) is a net-positive habit.
 
-## Wanneer gebruiken
+## When to use
 
-IOCs (Indicators of Compromise) zijn de tactische laag van threat-intel: hashes, IPs, domains, URLs, mutexes, certificate-fingerprints, JA3/JA4-strings. Deze skill helpt feeds beheren, dedup en confidence-scoren, in SIEM/EDR pluggen en retro-hunten.
+IOCs (Indicators of Compromise) are the tactical layer of threat intel: hashes, IPs, domains, URLs, mutexes, certificate fingerprints, JA3/JA4 strings. This skill helps manage feeds, dedup and confidence-score them, plug them into SIEM/EDR, and retro-hunt.
 
-Activeert bij:
+Triggers on:
 
-- Een vraag als "voeg deze IOC-feed toe aan onze stack", "is deze hash bekend", "retro-hunt afgelopen 30 dagen op deze IOCs", "hoe scoren we IOC-confidence", "MISP-instance opzetten".
-- Een handoff vanuit `detection-engineer` (rule heeft IOC-input nodig), `log-triage` of `threat-hunt`-command (enrichment van findings), `malware-triage` (extracted IOCs willen worden geïntegreerd).
-- Een nieuwe APT-campaign-publicatie waarvan de IOCs willen worden geprocessd.
-- Periodieke (kwartaal) feed-hygiene-review: welke feeds leveren waarde, welke niet.
+- A question like "add this IOC feed to our stack", "is this hash known", "retro-hunt the last 30 days against these IOCs", "how do we score IOC confidence", "set up a MISP instance".
+- A handoff from `detection-engineer` (rule needs IOC input), `log-triage` or the `threat-hunt` command (enrichment of findings), `malware-triage` (extracted IOCs to be integrated).
+- A new APT-campaign publication whose IOCs need processing.
+- A periodic (quarterly) feed-hygiene review: which feeds deliver value, which do not.
 
-### Wanneer NIET (handoff)
+### When NOT (handoff)
 
-- Detection-rule schrijven die de IOC consumeert → `detection-engineer`. Deze skill levert de IOC-input.
-- Triage van de alert die door een IOC-match firet → `log-triage`.
-- Threat-hunt als sessie zelf → `threat-hunt`-command.
-- Malware-sample-analyse die IOCs produceert → `malware-triage`.
-- Forensische bevestiging van IOC-impact → `forensics-assist`.
-- Strategische CTI (actor-profiles, geopolitical-context) ligt buiten deze skill — vraagt apart CTI-werk dat hier niet in scope is.
-- Vulnerability-feed (CVEs) → `cve-triage`.
+- Writing a detection rule that consumes the IOC → `detection-engineer`. This skill provides the IOC input.
+- Triage of the alert that fires from an IOC match → `log-triage`.
+- A threat-hunt session itself → the `threat-hunt` command.
+- Malware-sample analysis that produces IOCs → `malware-triage`.
+- Forensic confirmation of IOC impact → `forensics-assist`.
+- Strategic CTI (actor profiles, geopolitical context) is out of scope here — that is separate CTI work, not in this skill.
+- Vulnerability feed (CVEs) → `cve-triage`.
 
-## Aanpak
+## Approach
 
-Zes fases. Fase 2 (confidence-scoring) en fase 5 (retro-hunt) zijn de plekken waar IOC-werk operationele waarde levert.
+Six phases. Phase 2 (confidence scoring) and phase 5 (retro-hunt) are where IOC work delivers operational value.
 
-### 1. Feed-curatie
+### 1. Feed curation
 
-Welke feeds verdienen je SIEM-bandwidth? Niet alle.
+Which feeds deserve your SIEM bandwidth? Not all of them.
 
-**Bron-categorieën**:
+**Source categories**:
 
-- **Government / national-CERT**: CISA AIS, NCSC-NL, ENISA-feeds, BSI (DE), ANSSI (FR). Hoog-vertrouwd, soms vertraagd.
-- **ISAC / sector-PAC**: FI-ISAC NL voor financial, MS-ISAC voor government. Sector-specifieke relevantie.
-- **Commercial CTI**: Mandiant, Recorded Future, CrowdStrike Intelligence, Mandiant Advantage, IntSights/Rapid7, Group-IB. Hoge kwaliteit, hoge prijs.
-- **Open-source/community**: AlienVault OTX, abuse.ch (URLhaus, MalwareBazaar, ThreatFox), Spamhaus, Emerging Threats. Mixed kwaliteit, vrij of low-cost.
-- **Vendor-specifieke threat-intel**: Microsoft Security Graph, Cisco Talos, Palo Alto Unit 42 — vaak ingebakken in product-licentie.
-- **Internal sources**: eigen incidents leveren de hoogst-vertrouwde IOCs voor je organisatie. Categoriseer als "internal" met aparte TTL.
+- **Government / national CERT**: CISA AIS, NCSC-NL, ENISA feeds, BSI (DE), ANSSI (FR). High-trust, sometimes delayed.
+- **ISAC / sector PAC**: FI-ISAC NL for financial, MS-ISAC for government. Sector-specific relevance.
+- **Commercial CTI**: Mandiant, Recorded Future, CrowdStrike Intelligence, Mandiant Advantage, IntSights/Rapid7, Group-IB. High quality, high price.
+- **Open-source/community**: AlienVault OTX, abuse.ch (URLhaus, MalwareBazaar, ThreatFox), Spamhaus, Emerging Threats. Mixed quality, free or low-cost.
+- **Vendor-specific threat intel**: Microsoft Security Graph, Cisco Talos, Palo Alto Unit 42 — often baked into the product license.
+- **Internal sources**: your own incidents produce the highest-trust IOCs for your organization. Categorize as "internal" with a separate TTL.
 
-**Curatie-criteria**:
+**Curation criteria**:
 
-- Coverage: dekt het feed sectoren/regio's die je raken?
-- Freshness: hoe snel na incident verschijnt een IOC in de feed?
-- Validity: welke % van IOCs is na 30/60/90 dagen nog true-positive?
-- False-positive-history: bekende noisy feeds (bv. NRD-feeds die alle nieuwe-domeinen flaggen) hebben aparte cadens nodig.
-- Format: STIX 2.1 / OpenIOC / MISP-event-format / CSV. STIX is de de-facto standard.
+- Coverage: does the feed cover sectors/regions that touch you?
+- Freshness: how quickly after an incident does an IOC appear in the feed?
+- Validity: what % of IOCs are still true-positive after 30/60/90 days?
+- False-positive history: known noisy feeds (e.g. NRD feeds that flag every newly registered domain) need a separate cadence.
+- Format: STIX 2.1 / OpenIOC / MISP event format / CSV. STIX is the de facto standard.
 
-Een feed die niet wordt gebruikt voor matching of retro-hunt verdient niet zijn ingest-plek. Periodiek terugschalen.
+A feed that is not used for matching or retro-hunt does not deserve its ingest slot. Periodically downscale.
 
-### 2. Deduplicatie en confidence-scoring
+### 2. Deduplication and confidence scoring
 
-Eén IP kan in 5 feeds opduiken. Eén hash met 12 sources is niet 12× waardevoller dan eén met 1 source — wel iets. Confidence-model:
+One IP can show up in 5 feeds. A hash with 12 sources is not 12× more valuable than one with 1 source — but somewhat more. Confidence model:
 
-- **Source-reputation-score** per feed (intern bijgehouden op basis van TP-rate-historie). Hoog-betrouwbare bron = hogere weight.
-- **Age**: hoe ouder een IOC, hoe minder relevant. Default-decay: na 30 dagen halveert confidence; na 90 dagen retirement-kandidaat tenzij APT-context. Sommige IOC-types vergrijzen sneller (IPs > domains > hashes voor sustained-malware).
-- **Sightings**: aantal keren door verschillende-bronnen gerapporteerd. Beïnvloedt confidence positief, niet lineair.
-- **TLP**: niet zozeer confidence maar share-restrictie. TLP-RED = alleen specifiek-publiek, TLP-AMBER = beperkt-extern, TLP-GREEN = community, TLP-CLEAR = open. Sharing-discipline: TLP nooit opwaardeerd zonder bron-toestemming.
-- **Type-specifiek**:
-  - **Hashes** (SHA-256 voorkeur): hoogste-precision, lange leven mits hash niet wijzigt. False-positive-risk laag.
-  - **IPs**: short-lived in cloud-context (CDN-shared, ephemeral-cloud-resources). Confidence snel verlagen, retire na 14-30 dagen tenzij bevestigd APT-infrastructure.
-  - **Domains**: middel-leven; sinkholing en takedowns versnellen retirement. Watch voor wildcard-feed-noise.
-  - **URLs**: short-lived, exploit-kit-rotatie. Snel retire.
-  - **JA3/JA4 fingerprints**: TLS-handshake-fingerprint, sustained mits malware-bouwer dezelfde TLS-stack gebruikt.
-  - **Email-adressen / sender-domains**: medium-leven, BEC-context.
-  - **Mutexes**: implementatie-detail, sustained.
-  - **Yara-rules**: pattern niet IOC, maar functioneel verwante laag — zie `malware-triage`.
+- **Source-reputation score** per feed (kept internally based on TP-rate history). High-trust source = higher weight.
+- **Age**: the older an IOC, the less relevant. Default decay: confidence halves after 30 days; after 90 days it is a retirement candidate unless there is APT context. Some IOC types age faster (IPs > domains > hashes for sustained malware).
+- **Sightings**: number of times reported by different sources. Boosts confidence positively, not linearly.
+- **TLP**: not so much confidence as a sharing restriction. TLP-RED = specific audience only, TLP-AMBER = limited external, TLP-GREEN = community, TLP-CLEAR = open. Sharing discipline: never upgrade TLP without source consent.
+- **Type-specific**:
+  - **Hashes** (SHA-256 preferred): highest precision, long life provided the hash does not change. Low false-positive risk.
+  - **IPs**: short-lived in cloud context (CDN-shared, ephemeral cloud resources). Drop confidence quickly, retire after 14–30 days unless confirmed APT infrastructure.
+  - **Domains**: medium life; sinkholing and takedowns accelerate retirement. Watch out for wildcard-feed noise.
+  - **URLs**: short-lived, exploit-kit rotation. Retire fast.
+  - **JA3/JA4 fingerprints**: TLS-handshake fingerprint, sustained as long as the malware author keeps the same TLS stack.
+  - **Email addresses / sender domains**: medium life, BEC context.
+  - **Mutexes**: implementation detail, sustained.
+  - **Yara rules**: a pattern, not an IOC, but a functionally related layer — see `malware-triage`.
 
-**Dedup**-implementatie: MISP/OpenCTI doen dit native als events worden gemerged op same-attribute. Custom-stack vereist eigen normalisatie (canonical-form van IPs, lowercased domains, hash-format-normalisatie).
+**Dedup** implementation: MISP/OpenCTI do this natively when events are merged on the same attribute. A custom stack needs its own normalization (canonical form of IPs, lowercased domains, hash-format normalization).
 
-### 3. Storage en sharing-laag
+### 3. Storage and sharing layer
 
-- **MISP** (open-source) — de-facto-standaard voor threat-sharing-platforms in EU. Event-based, multi-tenant, sharing-policy per event/attribute. Sterk in NL/EU community via FI-ISAC en CSIRT-NL.
-- **OpenCTI** (open-source) — moderner, knowledge-graph-georiënteerd, betere visualisatie. Importeert STIX 2.1 native.
+- **MISP** (open-source) — the de facto standard for threat-sharing platforms in the EU. Event-based, multi-tenant, sharing policy per event/attribute. Strong in the NL/EU community via FI-ISAC and CSIRT-NL.
+- **OpenCTI** (open-source) — more modern, knowledge-graph oriented, better visualization. Imports STIX 2.1 natively.
 - **Anomali ThreatStream**, **EclecticIQ**, **Recorded Future** — commercial alternatives.
-- **Commercial-platform-keuze** is meestal contractueel met CTI-feed-vendor. Open-source self-hosted (MISP) is haalbaar voor middelgrote orgs.
+- **Commercial-platform choice** is usually contractual with a CTI feed vendor. Open-source self-hosted (MISP) is feasible for medium-size orgs.
 
-**Sharing-richting**:
+**Sharing direction**:
 
-- **In-bound**: integreer feeds via MISP-sync, STIX/TAXII feeds, OpenCTI-connector, of API-pulls.
-- **Out-bound**: wat genereer je zelf en deel je terug? Internal-IOCs uit incidents, dunigge bevestigde detections. NL FI-ISAC en CSIRT-NL nemen contributies. Anonimiseer waar TLP-policy het vereist.
+- **Inbound**: integrate feeds via MISP-sync, STIX/TAXII feeds, OpenCTI connectors, or API pulls.
+- **Outbound**: what do you generate yourself and share back? Internal IOCs from incidents, thinly confirmed detections. NL FI-ISAC and CSIRT-NL accept contributions. Anonymize where TLP policy requires.
 
-### 4. Enrichment-pipeline naar SIEM en EDR
+### 4. Enrichment pipeline to SIEM and EDR
 
-Een IOC die nergens matcht is dood gewicht. Pipeline om ze actief te krijgen:
+An IOC that does not match anywhere is dead weight. Pipeline to make them active:
 
-- **SIEM-ingestion**: feeds naar lookup-tables (Splunk lookup-files, Sentinel watchlists, Elastic enrich-policies). Fresh-feed = fresh lookup. Default refresh-cadens hourly tot daily afhankelijk van feed-update-tempo.
-- **EDR-ingestion**: native IOC-modules in Microsoft Defender, CrowdStrike Falcon, SentinelOne, Carbon Black accepteren IOCs als blocklist of detection-trigger. Verschil tussen detect-only en auto-block per type.
-- **Network-tooling**: firewall-blocklists (IP/domain), DNS-RPZ (recursive policy zone) voor domain-blocking, proxy/SWG-categorisatie.
-- **Email-gateway**: sender-domains, hashes voor attachments. Microsoft 365 Defender, Proofpoint, Mimecast.
+- **SIEM ingestion**: feeds into lookup tables (Splunk lookup files, Sentinel watchlists, Elastic enrich policies). Fresh feed = fresh lookup. Default refresh cadence hourly to daily depending on feed update tempo.
+- **EDR ingestion**: native IOC modules in Microsoft Defender, CrowdStrike Falcon, SentinelOne, Carbon Black accept IOCs as a blocklist or detection trigger. Differentiate detect-only vs. auto-block per type.
+- **Network tooling**: firewall blocklists (IP/domain), DNS-RPZ (recursive policy zone) for domain blocking, proxy/SWG categorization.
+- **Email gateway**: sender domains, hashes for attachments. Microsoft 365 Defender, Proofpoint, Mimecast.
 
-Enrichment-discipline: niet elke feed in elke laag. Hoog-confidence-actor-feeds → block-action; lager-confidence-feeds → detect-only met SIEM-alert. Te-aggressief-blocken op zwakke feeds is operational-disruption.
+Enrichment discipline: not every feed in every layer. High-confidence actor feeds → block action; lower-confidence feeds → detect-only with a SIEM alert. Aggressive blocking on weak feeds is operational disruption.
 
-### 5. Retro-hunt en lifecycle
+### 5. Retro-hunt and lifecycle
 
-- **Retro-hunt op nieuwe IOCs**: bij elke nieuwe high-confidence-feed-update een sweep over laatste N dagen logs (typisch 30-90 dagen, afhankelijk van retention en compute-budget). Met `siem-query` als bouwsteen.
-- **Hits-triage**: een retro-hit is geen confirmed compromise — kan benign-historical-traffic zijn. Pad naar bevestiging via `log-triage` (was de actor verdacht?) en `forensics-assist` (was er post-actie?).
-- **IOC-lifecycle**:
-  - **Active**: in scoring binnen, in lookup-tables.
-  - **Aging**: confidence dalend, in detect-only mode.
-  - **Retired**: out-of-active-detection. Bewaar in archief voor latere retro-hunt.
-  - **Re-promote**: oude IOC duikt opnieuw op in nieuwe feed of incident → re-active met fresh-confidence.
-- **Expiry-discipline**: feed-IOCs hebben default-TTL die uit feed-policy komt. Internal-IOCs met handmatige expiry (default 90 dagen, herzienbaar).
+- **Retro-hunt on new IOCs**: with each new high-confidence feed update, sweep the last N days of logs (typically 30–90 days, depending on retention and compute budget). With `siem-query` as the building block.
+- **Hits triage**: a retro-hit is not a confirmed compromise — it can be benign historical traffic. Path to confirmation via `log-triage` (was the actor suspicious?) and `forensics-assist` (was there a follow-on action?).
+- **IOC lifecycle**:
+  - **Active**: in scoring, in lookup tables.
+  - **Aging**: confidence falling, in detect-only mode.
+  - **Retired**: out of active detection. Keep in archive for later retro-hunt.
+  - **Re-promote**: an old IOC reappears in a new feed or incident → re-activated with fresh confidence.
+- **Expiry discipline**: feed IOCs have a default TTL from the feed policy. Internal IOCs use a manual expiry (default 90 days, revisable).
 
 ### 6. Verification-loop
 
-Laag 1: scope (feeds curatie up-to-date, geen feeds die niemand meer leest?), aannames (IOC-source-reputation-scoring gebaseerd op data, niet op gut-feel?), gaps (TLP-policy-respect bij sharing-out, retro-hunt-cadens op nieuwe high-conf feeds?). Laag 2: feed-bronnen actief (meerdere CTI-vendors fuseren of stoppen — verifieer URLs en API-status), TLP-classificatie correct (TLP 2.0 sinds 2022, oude TLP-AMBER+STRICT bestaat niet meer als zodanig), STIX-versie consistent (STIX 2.1 default in 2024+).
+Layer 1: scope (feed curation up to date, no feeds nobody reads anymore?), assumptions (IOC source-reputation scoring based on data, not gut feel?), gaps (TLP policy respected on sharing-out, retro-hunt cadence on new high-conf feeds?). Layer 2: feed sources alive (multiple CTI vendors merge or shut down — verify URLs and API status), TLP classification correct (TLP 2.0 since 2022, the old TLP-AMBER+STRICT no longer exists as such), STIX version consistent (STIX 2.1 default in 2024+).
 
 ## Output
 
-Twee modes: feed-management (vooraf, levend) en hunt-rapport (na retro-hunt of investigation).
+Two modes: feed management (in advance, living) and a hunt report (after a retro-hunt or investigation).
 
-**Feed-management-mode**:
+**Feed-management mode**:
 
 ```
 IOC feed inventory
-Datum: YYYY-MM-DD | Reviewer: <naam>
+Date: YYYY-MM-DD | Reviewer: <name>
 
-Feeds actief:
-  Naam | Categorie | Format | Update-cadens | Source-reputation | TLP-policy
+Active feeds:
+  Name | Category | Format | Update cadence | Source reputation | TLP policy
 
 Per feed:
-  Coverage:           <regio's, sectoren>
-  Freshness:          <gemiddelde delay tussen incident en publicatie>
-  Validity-rate:      <% TPs after 30/60/90 days>
-  TP-rate-trend:      <stable / dalend / stijgend>
-  Beslissing:         <retain / downgrade / replace / drop>
+  Coverage:           <regions, sectors>
+  Freshness:          <average delay between incident and publication>
+  Validity rate:      <% TPs after 30/60/90 days>
+  TP-rate trend:      <stable / falling / rising>
+  Decision:           <retain / downgrade / replace / drop>
 
 Sharing-out:
-  Internal-IOCs gegenereerd: <N>
-  Gedeeld via: <FI-ISAC NL / MISP-sync / CSIRT-NL>
-  TLP-classificatie: <per IOC>
+  Internal IOCs generated: <N>
+  Shared via: <FI-ISAC NL / MISP-sync / CSIRT-NL>
+  TLP classification: <per IOC>
 
-Coverage-gaps:
-  <welke threat-clusters niet gedekt door huidige feeds>
+Coverage gaps:
+  <which threat clusters not covered by current feeds>
 ```
 
-**Hunt-rapport** (na retro-hunt op nieuwe IOC-set):
+**Hunt report** (after retro-hunt on a new IOC set):
 
 ```
-IOC retro-hunt — <feed-update / campaign-naam>
-Window: laatste N dagen | Datum: YYYY-MM-DD
+IOC retro-hunt — <feed update / campaign name>
+Window: last N days | Date: YYYY-MM-DD
 
-Input-IOCs:
+Input IOCs:
   Hashes: N | IPs: N | Domains: N | URLs: N | JA3/JA4: N
 
 Hits per type:
-  Hash:    N (true-positive: M, false-positive: K, pending-triage: L)
+  Hash:    N (true-positive: M, false-positive: K, pending triage: L)
   IP:      N (...)
   Domain:  N (...)
   URL:     N (...)
 
 Confirmed sightings:
-  - <IOC + match-context + system + timestamp + handoff>
+  - <IOC + match context + system + timestamp + handoff>
 
 Pending triage:
-  - <IOC + reason for uncertainty + next-step>
+  - <IOC + reason for uncertainty + next step>
 
 Handoffs:
-  ir-runbook:         <indien confirmed-compromise>
-  log-triage:         <pending-triage diepte>
-  detection-engineer: <indien IOCs basis voor nieuwe rule>
-  forensics-assist:   <indien post-incident-onderzoek nodig>
+  ir-runbook:         <if confirmed compromise>
+  log-triage:         <pending-triage depth>
+  detection-engineer: <if IOCs basis for a new rule>
+  forensics-assist:   <if post-incident investigation needed>
 
 Verification-loop: ...
 ```
 
-## Referenties
+## References
 
-- **MISP** — [https://www.misp-project.org/](https://www.misp-project.org/). De-facto threat-sharing-platform, open-source, veel gebruikt in EU/NL.
-- **OpenCTI** — [https://www.opencti.io/](https://www.opencti.io/). Modern threat-intel-platform met knowledge-graph.
+- **MISP** — [https://www.misp-project.org/](https://www.misp-project.org/). De facto threat-sharing platform, open-source, widely used in EU/NL.
+- **OpenCTI** — [https://www.opencti.io/](https://www.opencti.io/). Modern threat-intel platform with a knowledge graph.
 - **STIX 2.1** — [https://oasis-open.github.io/cti-documentation/](https://oasis-open.github.io/cti-documentation/). Structured Threat Information Expression standard.
-- **TAXII 2.1** — [https://oasis-open.github.io/cti-documentation/taxii/intro](https://oasis-open.github.io/cti-documentation/taxii/intro). Transport mechanism voor STIX.
-- **TLP 2.0** — [https://www.first.org/tlp/](https://www.first.org/tlp/). Traffic Light Protocol, FIRST-onderhouden.
-- **abuse.ch** (URLhaus, MalwareBazaar, ThreatFox) — [https://abuse.ch/](https://abuse.ch/). Open-source IOC-feeds.
+- **TAXII 2.1** — [https://oasis-open.github.io/cti-documentation/taxii/intro](https://oasis-open.github.io/cti-documentation/taxii/intro). Transport mechanism for STIX.
+- **TLP 2.0** — [https://www.first.org/tlp/](https://www.first.org/tlp/). Traffic Light Protocol, FIRST-maintained.
+- **abuse.ch** (URLhaus, MalwareBazaar, ThreatFox) — [https://abuse.ch/](https://abuse.ch/). Open-source IOC feeds.
 - **AlienVault OTX** — [https://otx.alienvault.com/](https://otx.alienvault.com/). Community pulse-based feeds.
 - **CISA AIS** — [https://www.cisa.gov/topics/cyber-threats-and-advisories/information-sharing/automated-indicator-sharing-ais](https://www.cisa.gov/topics/cyber-threats-and-advisories/information-sharing/automated-indicator-sharing-ais).
 - **NCSC-NL Threat Intel** — [https://www.ncsc.nl/](https://www.ncsc.nl/).
-- **MITRE ATT&CK** — [https://attack.mitre.org/](https://attack.mitre.org/). Voor mapping IOCs naar TTPs.
+- **MITRE ATT&CK** — [https://attack.mitre.org/](https://attack.mitre.org/). For mapping IOCs to TTPs.
 
-## Categorieën
+## Categories
 
 - blue

@@ -1,181 +1,181 @@
 ---
 name: log-triage
-description: Identity-log triage workflow — anomaly-patterns per provider (AWS CloudTrail, Azure AD/Entra, Google Workspace, Okta), session-en-token-misbruik, MFA-bypass-signalen, conditional-access-evasion, en cross-provider correlatie. Levert prioriteits-gestelde finding-list richting ir-runbook of detection-engineer.
+description: Identity-log triage workflow — anomaly patterns per provider (AWS CloudTrail, Azure AD/Entra, Google Workspace, Okta), session and token misuse, MFA-bypass signals, conditional-access evasion, and cross-provider correlation. Produces a prioritized finding list routed to ir-runbook or detection-engineer.
 ---
 
 # Log Triage
 
-> **Identity-eerst-context**: het overgrote deel van moderne incidents start of escaleert via identity-providers. Logs zijn de truth-source — UI's zijn verouderd snapshots. Deze skill behandelt audit/identity-logs van de major-IdPs; netwerk-logs of endpoint-EDR raken aan, maar vallen in andere skills.
+> **Identity-first context**: the bulk of modern incidents starts or escalates via identity providers. Logs are the truth source — UIs are stale snapshots. This skill covers audit/identity logs from the major IdPs; network logs and endpoint EDR touch on this but live in other skills.
 
-## Wanneer gebruiken
+## When to use
 
-Een log-getriagede vraag begint met "iets is raar in de logs, kijk er eens naar". Deze skill geeft per provider de patroon-set om triageren waar mensen verloren raken in volume.
+A log-triage question begins with "something is odd in the logs, take a look". This skill provides, per provider, the pattern set you can use to triage where people get lost in volume.
 
-Activeert bij:
+Triggers on:
 
-- Een vraag als "kijk naar deze CloudTrail-events", "is deze Azure AD-signin-anomaly real", "Google Workspace-audit-log heeft N login-failures", "wat is de anomaly hier in Okta", "compromised-account-investigatie".
-- Een handoff vanuit `detection-engineer` (rule heeft gefired, vraagt diepere triage), `ir-runbook` (incident-onderzoek), `ioc-hunter` (IOC-match in identity-log).
-- Een proactieve hunting-sessie gericht op identity-anomalies — overlap met `threat-hunt`.
-- Een post-incident-onderzoek waar identity-pad gereconstrueerd moet worden voor `forensics-assist` of regulatory-rapportage.
+- A question like "look at these CloudTrail events", "is this Azure AD sign-in anomaly real", "Google Workspace audit log has N login failures", "what is the anomaly here in Okta", "compromised-account investigation".
+- A handoff from `detection-engineer` (rule fired, asks for deeper triage), `ir-runbook` (incident investigation), `ioc-hunter` (IOC match in an identity log).
+- A proactive hunting session focused on identity anomalies — overlap with `threat-hunt`.
+- A post-incident investigation where the identity path must be reconstructed for `forensics-assist` or regulatory reporting.
 
-### Wanneer NIET (handoff)
+### When NOT (handoff)
 
-- Generic SIEM-query-bouw → `siem-query`.
-- Detection-rule schrijven op basis van het patroon → `detection-engineer`.
-- Threat-hunt-sessie als geheel → `threat-hunt` (command).
-- Forensische memory/disk-analyse → `forensics-assist`.
-- Network-flow-triage of EDR-process-events → buiten deze skill; vallen onder generic SIEM-query of EDR-tool-skill.
-- IOC-curation of -enrichment → `ioc-hunter`.
-- Regulatory-rapportage → `ir-runbook` plus `nis2`/`gdpr-pia`.
+- Generic SIEM-query building → `siem-query`.
+- Writing a detection rule based on the pattern → `detection-engineer`.
+- A threat-hunt session as a whole → `threat-hunt` (command).
+- Forensic memory/disk analysis → `forensics-assist`.
+- Network-flow triage or EDR process events → out of scope here; covered in generic SIEM-query or an EDR-tool skill.
+- IOC curation or enrichment → `ioc-hunter`.
+- Regulatory reporting → `ir-runbook` plus `nis2`/`gdpr-pia`.
 
-## Aanpak
+## Approach
 
-Zes fases. Fase 1 (provider-context) en fase 4 (cross-provider-correlatie) zijn de plekken waar triage van losse-events naar betekenisvol-pad opbouwt.
+Six phases. Phase 1 (provider context) and phase 4 (cross-provider correlation) are where triage builds from isolated events into a meaningful path.
 
-### 1. Provider-context en log-source-inventaris
+### 1. Provider context and log-source inventory
 
-Identity-logs verschillen per provider in event-shape, retention, en toegankelijkheid. Triage start met "welke provider, welke log-stream, welke retention".
+Identity logs differ per provider in event shape, retention, and accessibility. Triage starts with "which provider, which log stream, which retention".
 
-- **AWS**: CloudTrail (management + data-events), CloudTrail Insights (anomaly-detection, betaald), GuardDuty (managed-detection, IAM-relevant findings).
+- **AWS**: CloudTrail (management + data events), CloudTrail Insights (anomaly detection, paid), GuardDuty (managed detection, IAM-relevant findings).
 - **Azure / Entra ID**: Sign-in logs (interactive + non-interactive + service-principal), Audit logs (directory changes), Risk Detections (Identity Protection), Provisioning logs.
 - **Google Workspace**: Login audit, Admin audit, OAuth Token audit, Drive audit.
-- **Okta**: System Log (alle auth-events plus admin-acties), Tableau Insights (managed-anomaly).
-- **JumpCloud / OneLogin / Ping**: vergelijkbare structuur.
-- **On-prem AD**: Security Event Log via Sysmon/Windows Audit; via DC-SIEM-forwarder.
+- **Okta**: System Log (all auth events plus admin actions), Tableau Insights (managed anomaly).
+- **JumpCloud / OneLogin / Ping**: comparable structure.
+- **On-prem AD**: Security Event Log via Sysmon/Windows Audit; via DC SIEM forwarder.
 
-Per source: retention-window (default veel korter dan compliance-eis), log-completeness (zijn alle event-types ingeschakeld?), log-integrity (verzending naar SIEM compleet?).
+Per source: retention window (default often shorter than the compliance requirement), log completeness (are all event types enabled?), log integrity (forwarding to SIEM complete?).
 
-Voorbereiding-check vóór triage: heb je toegang tot alle relevante streams voor de tijdvenster van het incident, niet alleen de "obvious" stream?
+Pre-triage check: do you have access to all relevant streams for the time window of the incident, not just the "obvious" stream?
 
-### 2. Anomaly-patterns per provider
+### 2. Anomaly patterns per provider
 
-Per IdP een pattern-set die je standaard langsloopt. Niet uitputtend; vertrekpunt voor triage.
+Per IdP, a pattern set you walk through by default. Not exhaustive; a starting point for triage.
 
 **AWS CloudTrail**:
 
-- **Console-login zonder MFA** waar policy MFA vereist. Event: `ConsoleLogin` met `additionalEventData.MFAUsed=No`.
-- **GetSecretValue / Decrypt-bursts** door één principal in korte tijd — credential-harvesting-pattern.
-- **AssumeRole-cross-account** vanuit onverwachte source-account.
-- **CreateAccessKey + persist** voor een bestaande user (pattern T1098.001 — additional cloud credentials).
-- **DisableLogging** events: StopLogging op Trails, DeleteTrail, UpdateConfigurationRecorder. Pattern T1562.008.
-- **Mass S3 GetObject** of `ListBuckets` op short window — exfil-discovery.
-- **IAM-policy met `Resource: "*"` plus `Action: "*"`** — overly-permissive setup.
-- **Region-anomaly**: activity in regions waar je organisatie nooit deployt.
+- **Console login without MFA** where policy requires MFA. Event: `ConsoleLogin` with `additionalEventData.MFAUsed=No`.
+- **GetSecretValue / Decrypt bursts** by one principal in a short window — credential-harvesting pattern.
+- **AssumeRole-cross-account** from an unexpected source account.
+- **CreateAccessKey + persist** for an existing user (pattern T1098.001 — additional cloud credentials).
+- **DisableLogging** events: StopLogging on Trails, DeleteTrail, UpdateConfigurationRecorder. Pattern T1562.008.
+- **Mass S3 GetObject** or `ListBuckets` over a short window — exfil discovery.
+- **IAM policy with `Resource: "*"` plus `Action: "*"`** — overly permissive setup.
+- **Region anomaly**: activity in regions the org never deploys to.
 
 **Azure AD / Entra ID**:
 
-- **Sign-in van impossible-travel**: geo-pattern met velocity > realistic flight-time. Identity Protection flagt dit, maar verifieer in detail (VPN-effecten, mobile-roaming).
-- **MFA-fatigue-pattern**: meerdere MFA-prompts kort na elkaar, gevolgd door een approve. T1621 patroon. Conditional-Access kan dit blokkeren met "request-frequency-limit".
-- **Service-principal-misuse**: principal met admin-rol die plotseling sign-ins doet vanuit niet-authorized-locations.
-- **Legacy-auth-protocol-gebruik**: Basic Authentication, IMAP, POP — meestal MFA-bypassend. Hoort uit te staan.
-- **Conditional-Access-bypass-attempts**: failures op CA-policy gevolgd door succes via andere route.
-- **Application consent grants** met gevoelige scopes (Mail.ReadWrite, Files.ReadWrite.All) door gewone gebruikers — illicit consent grant T1528.
-- **Token-replay**: zelfde token uit verschillende locaties.
+- **Sign-in from impossible travel**: geo-pattern with velocity > realistic flight time. Identity Protection flags this, but verify in detail (VPN effects, mobile roaming).
+- **MFA-fatigue pattern**: multiple MFA prompts in quick succession followed by an approve. T1621 pattern. Conditional Access can block this with "request-frequency limit".
+- **Service-principal misuse**: a principal with an admin role suddenly signing in from non-authorized locations.
+- **Legacy auth-protocol use**: Basic Authentication, IMAP, POP — usually MFA-bypassing. Should be off.
+- **Conditional-Access bypass attempts**: failures on a CA policy followed by success via another route.
+- **Application consent grants** with sensitive scopes (Mail.ReadWrite, Files.ReadWrite.All) by regular users — illicit consent grant T1528.
+- **Token replay**: same token from different locations.
 
 **Google Workspace**:
 
-- **OAuth-grants** met external apps door normale users — Drive-data-leak-vector.
-- **Admin-Add / Role-Change**: verhoging van privileges.
-- **Mass mail-forward-rule-set**: BEC-classifier T1114.003.
-- **Login from unusual location** plus device-fingerprint-mismatch.
-- **2SV-disabled** voor account dat eerder 2SV had — herstel-of-misbruik.
-- **Drive-scope-share** "anyone with link" op gevoelige data.
+- **OAuth grants** with external apps by regular users — Drive-data-leak vector.
+- **Admin-Add / Role-Change**: privilege elevation.
+- **Mass mail-forward-rule set**: BEC classifier T1114.003.
+- **Login from unusual location** plus device-fingerprint mismatch.
+- **2SV disabled** for an account that previously had 2SV — recovery or abuse.
+- **Drive scope-share** "anyone with link" on sensitive data.
 
 **Okta**:
 
-- **Push-notification-reject** gevolgd door push-accept-elsewhere — MFA-fatigue.
-- **Factor-reset** door admin op user — backdoor-pattern.
-- **API-token-creation** door admin met hoge-scope.
-- **App-instance-add / OIN-app-grant** met hoge-scope.
-- **Bypass** van network-zone-policies.
+- **Push-notification reject** followed by push-accept elsewhere — MFA fatigue.
+- **Factor reset** by an admin on a user — backdoor pattern.
+- **API-token creation** by an admin with a high scope.
+- **App-instance-add / OIN-app grant** with a high scope.
+- **Bypass** of network-zone policies.
 
-### 3. Per-event-triage: vragen-rij
+### 3. Per-event triage: question row
 
-Voor elke verdachte event, beantwoord:
+For each suspicious event, answer:
 
-- **Actor**: user, service-account, of API-token? Was het verwachte gedrag voor deze actor?
-- **Bron**: IP, ASN, geographic, device-fingerprint. Match dat met bekende werknemer-locaties / mobile-providers / VPN-exit-points / cloud-provider-IP-ranges.
-- **Authenticatie-keten**: hoe loggde de actor in (password, certificate, SAML-assertion, OAuth-token-replay)? MFA gebruikt? Welke factor?
-- **Tijd**: binnen working-hours voor deze actor? Coherent met andere activiteit (vóór/erna)?
-- **Outcome**: success, failure, partial. Bij failure: wat is de exact-error? Welke control vangde het?
-- **Voorgaand gedrag**: wat deed deze actor 24h ervoor? Pattern-shift?
+- **Actor**: user, service account, or API token? Was the behavior expected for this actor?
+- **Source**: IP, ASN, geographic, device fingerprint. Match this against known employee locations / mobile providers / VPN exit points / cloud-provider IP ranges.
+- **Authentication chain**: how did the actor sign in (password, certificate, SAML assertion, OAuth token replay)? MFA used? Which factor?
+- **Time**: within working hours for this actor? Coherent with other activity (before/after)?
+- **Outcome**: success, failure, partial. On failure: what is the exact error? Which control caught it?
+- **Prior behavior**: what did this actor do 24h before? Pattern shift?
 
-Verzamel antwoorden in incident-tabel-vorm. Zonder structuur verlies je consistency over events.
+Collect answers in incident-table form. Without structure you lose consistency across events.
 
-### 4. Cross-provider-correlatie
+### 4. Cross-provider correlation
 
-Echte aanvallen verspreiden zich over identity-providers. Een verstoring in Azure AD propageert vaak naar AWS via federated-auth, naar Google Workspace via SAML, naar SaaS-tools via OAuth.
+Real attacks spread across identity providers. A disturbance in Azure AD often propagates into AWS via federated auth, into Google Workspace via SAML, into SaaS tools via OAuth.
 
-Correlatie-strategieën:
+Correlation strategies:
 
-- **User-identity-mapping**: zelfde mens in Azure AD + Google + Okta + AWS. Email-match werkt vaak. Documenteer de mapping vooraf zodat triage geen lookup-loop wordt.
-- **Time-window-overlap**: actor X actief in Azure én GuardDuty-finding op AWS in dezelfde 30-minute-window.
-- **IP-correlatie**: zelfde IP voor sign-in in twee providers binnen kort venster.
-- **Token-trail-tracking**: SAML-assertion van IdP-A levert AccessKey op cloud-B die wordt gebruikt om SaaS-resource-C te raken.
+- **User-identity mapping**: the same person in Azure AD + Google + Okta + AWS. Email match works often. Document the mapping in advance so triage does not become a lookup loop.
+- **Time-window overlap**: actor X active in Azure AND a GuardDuty finding in AWS in the same 30-minute window.
+- **IP correlation**: the same IP for a sign-in in two providers within a short window.
+- **Token-trail tracking**: a SAML assertion from IdP A produces an AccessKey on cloud B that is used to hit SaaS resource C.
 
-SIEM-tooling met cross-provider data is hier kritiek (zie `siem-query`). Handmatige correlatie werkt voor kleine investigations; bij grotere incidents is geünificeerde-data-laag nodig.
+SIEM tooling with cross-provider data is critical here (see `siem-query`). Manual correlation works for small investigations; for larger incidents, a unified data layer is needed.
 
-### 5. Prioritering en triage-output
+### 5. Prioritization and triage output
 
 Per finding:
 
-- **Severity-classificatie**:
-  - **Confirmed compromise**: bewijs van real-misbruik, ga direct naar `ir-runbook`.
-  - **High-suspicion**: pattern matcht, geen direct-bewijs, vraagt diepere actie (force-MFA-reset, verify-with-user).
-  - **Anomalous-but-explainable**: lijkt-anomalie maar passend bij legitieme situatie. Documenteer voor baseline.
-  - **Background-noise**: false-positive-pattern. Handoff naar `alert-tuning` voor rule-aanpassing.
+- **Severity classification**:
+  - **Confirmed compromise**: evidence of real misuse, route directly to `ir-runbook`.
+  - **High-suspicion**: pattern matches, no direct evidence, asks for deeper action (force MFA reset, verify with user).
+  - **Anomalous but explainable**: looks anomalous but matches a legitimate situation. Document for the baseline.
+  - **Background noise**: false-positive pattern. Handoff to `alert-tuning` for rule adjustment.
 
-- **Recommended-action** per finding: account-disable, force-pw-reset, MFA-re-enroll, key-rotation, conditional-access-tighten, deeper-forensics.
+- **Recommended action** per finding: account disable, force pw reset, MFA re-enroll, key rotation, conditional-access tighten, deeper forensics.
 
-- **Handoffs**: high-suspicion en confirmed → `ir-runbook`; pattern-feedback → `detection-engineer`; new-IOCs → `ioc-hunter`; tuning-input → `alert-tuning`.
+- **Handoffs**: high-suspicion and confirmed → `ir-runbook`; pattern feedback → `detection-engineer`; new IOCs → `ioc-hunter`; tuning input → `alert-tuning`.
 
 ### 6. Verification-loop
 
-Laag 1: scope (alle relevante streams gecheckt voor tijdvenster, geen blind-spots zoals service-principal-logs of OAuth-grant-logs?), aannames (gebruiker bevestigde of ontkende activiteit?), gaps (cross-provider-correlatie gedaan, niet alleen single-provider tunnel-vision?). Laag 2: event-type-namen kloppen tegen actuele provider-docs, geen verzonnen field-names of API-event-IDs, ATT&CK-T-IDs correct.
+Layer 1: scope (all relevant streams checked for the time window, no blind spots like service-principal logs or OAuth-grant logs?), assumptions (user confirmed or denied the activity?), gaps (cross-provider correlation done, not just single-provider tunnel vision?). Layer 2: event-type names match current provider docs, no invented field names or API event IDs, ATT&CK T-IDs correct.
 
 ## Output
 
 ```
 Log triage — <scope / actor / event-cluster>
-Tijdvenster: <start → eind UTC>
-Streams gecheckt: <provider × log-source>
+Time window: <start → end UTC>
+Streams checked: <provider × log source>
 
 Findings (per actor, per provider):
   Actor:       <user-ID + provider>
   Provider:    <AWS/Azure/Google/Okta>
   Pattern:     <impossible-travel / mfa-fatigue / illicit-consent / etc>
-  Events:      <event-IDs + tijdstempels>
+  Events:      <event IDs + timestamps>
   Severity:    <confirmed | high-suspicion | anomalous-explainable | noise>
 
-Cross-provider correlatie:
-  IP-overlap:    <IP gevonden in providers X, Y>
-  Time-overlap:  <actor-cluster binnen N minuten>
-  Token-trail:   <indien relevant>
+Cross-provider correlation:
+  IP overlap:    <IP found in providers X, Y>
+  Time overlap:  <actor cluster within N minutes>
+  Token trail:   <if relevant>
 
 Recommended actions per finding:
   - <actor>: <account-disable / force-pw / MFA-reset / key-rotate / etc>
 
 Handoffs:
   ir-runbook:         <confirmed compromises>
-  detection-engineer: <patroon onderbouwt nieuwe rule>
-  ioc-hunter:         <nieuwe IOCs voor enrichment>
-  alert-tuning:       <noise-rules voor lifecycle-aanpak>
+  detection-engineer: <pattern supports a new rule>
+  ioc-hunter:         <new IOCs for enrichment>
+  alert-tuning:       <noise rules for lifecycle treatment>
 
 Verification-loop: ...
 ```
 
-## Referenties
+## References
 
-- **AWS CloudTrail user-guide** — [https://docs.aws.amazon.com/awscloudtrail/latest/userguide/](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/). Event-types, log-formats.
-- **AWS CloudTrail Reference (Mitiga)** — externe analyse-resource voor CloudTrail-event-mapping naar ATT&CK.
-- **Microsoft Entra ID monitoring docs** — [https://learn.microsoft.com/en-us/entra/identity/monitoring-health/](https://learn.microsoft.com/en-us/entra/identity/monitoring-health/). Sign-in / Audit / Risk-logs.
-- **Microsoft Defender for Identity** — [https://learn.microsoft.com/en-us/defender-for-identity/](https://learn.microsoft.com/en-us/defender-for-identity/). On-prem AD-monitoring.
+- **AWS CloudTrail user guide** — [https://docs.aws.amazon.com/awscloudtrail/latest/userguide/](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/). Event types, log formats.
+- **AWS CloudTrail Reference (Mitiga)** — external analysis resource for CloudTrail event mapping to ATT&CK.
+- **Microsoft Entra ID monitoring docs** — [https://learn.microsoft.com/en-us/entra/identity/monitoring-health/](https://learn.microsoft.com/en-us/entra/identity/monitoring-health/). Sign-in / Audit / Risk logs.
+- **Microsoft Defender for Identity** — [https://learn.microsoft.com/en-us/defender-for-identity/](https://learn.microsoft.com/en-us/defender-for-identity/). On-prem AD monitoring.
 - **Google Workspace Audit Logs** — [https://support.google.com/a/answer/9725452](https://support.google.com/a/answer/9725452).
 - **Okta System Log API** — [https://developer.okta.com/docs/reference/api/system-log/](https://developer.okta.com/docs/reference/api/system-log/).
 - **MITRE ATT&CK — Cloud matrix** — [https://attack.mitre.org/matrices/enterprise/cloud/](https://attack.mitre.org/matrices/enterprise/cloud/).
-- **Mandiant — Threats to identity providers** — periodieke rapporten via [https://www.mandiant.com/resources](https://www.mandiant.com/resources).
+- **Mandiant — Threats to identity providers** — periodic reports via [https://www.mandiant.com/resources](https://www.mandiant.com/resources).
 - **CISA — Cloud and identity hardening guidance** — [https://www.cisa.gov/](https://www.cisa.gov/).
 
-## Categorieën
+## Categories
 
 - blue

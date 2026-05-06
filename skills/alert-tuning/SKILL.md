@@ -1,78 +1,78 @@
 ---
 name: alert-tuning
-description: SOC alert-tuning workflow — false-positive reductie via gerichte suppressies (rule-id + reden + expiry), baseline-learning, rule-retirement, severity-recalibration, en metrics (alert-volume, mean-time-to-triage, fatigue-index). Voorkomt detection-collapse zonder coverage-verlies.
+description: SOC alert-tuning workflow — false-positive reduction via targeted suppressions (rule-id + reason + expiry), baseline learning, rule retirement, severity recalibration, and metrics (alert volume, mean-time-to-triage, fatigue index). Prevents detection collapse without losing coverage.
 ---
 
 # Alert Tuning
 
-> **Discipline-balans**: te weinig tuning = analyst-fatigue + missed real alerts in de stortvloed. Te veel tuning = silent-failure waar je rules niets meer detecteren maar niemand het merkt. Suppressies altijd met rule-id + reden + expiry, nooit wildcard-permanent. Periodieke review verplicht.
+> **Discipline balance**: too little tuning = analyst fatigue + missed real alerts in the flood. Too much tuning = silent failure where your rules detect nothing but no one notices. Suppressions always with rule-id + reason + expiry, never wildcard-permanent. Periodic review required.
 
-## Wanneer gebruiken
+## When to use
 
-Een SOC die niet tuned, drown-t in alerts. Een SOC die te aggressief tuned, mist incidents. Deze skill is de discipline tussen die twee.
+A SOC that does not tune drowns in alerts. A SOC that tunes too aggressively misses incidents. This skill is the discipline between those two.
 
-Activeert bij:
+Triggers on:
 
-- Een vraag als "we hebben 5000 alerts per dag, hoe moet dat minder", "hoe suppressen we deze rule netjes", "rule X firet nu nooit, klopt dat", "review onze tuning-stack".
-- Een baseline-meting voor het in productie nemen van een nieuwe rule (zie `detection-engineer` fase 4).
-- Periodieke (kwartaal) review-cyclus van actieve rules.
-- Een handoff vanuit `detection-engineer` (rule met te hoge FP-rate vraagt tuning).
-- Een SOC-MTTR-meting waar tuning-actie als root-cause is geïdentificeerd.
+- A question like "we have 5000 alerts per day, how do we get fewer", "how do we suppress this rule cleanly", "rule X never fires now, is that right", "review our tuning stack".
+- A baseline measurement before putting a new rule into production (see `detection-engineer` phase 4).
+- A periodic (quarterly) review cycle of active rules.
+- A handoff from `detection-engineer` (rule with too high an FP rate needs tuning).
+- A SOC MTTR measurement where tuning action has been identified as the root cause.
 
-### Wanneer NIET (handoff)
+### When NOT (handoff)
 
-- Nieuwe rule schrijven → `detection-engineer`. Deze skill werkt op bestaande rules.
-- Triage van een specifieke alert in real-time → `log-triage`, `siem-query`. Deze skill is over rule-niveau, niet alert-instance.
-- IOC-feed-curatie zelf → `ioc-hunter`.
-- Threat-hunt om niet-gedetecteerde TTPs te vinden → `threat-hunt` (command).
-- Detection-coverage-mapping → `detection-engineer` of DeTT&CT.
+- Writing a new rule → `detection-engineer`. This skill works on existing rules.
+- Triage of a specific alert in real time → `log-triage`, `siem-query`. This skill is at rule level, not alert instance.
+- IOC feed curation → `ioc-hunter`.
+- Threat hunt to find undetected TTPs → `threat-hunt` (command).
+- Detection-coverage mapping → `detection-engineer` or DeTT&CT.
 
-## Aanpak
+## Approach
 
-Zes fases. Fase 1 (volume-triage) is altijd het startpunt; fase 5 (lifecycle-discipline) is wat bestaande tuning-stacks van langzaam-rotten redt.
+Six phases. Phase 1 (volume triage) is always the starting point; phase 5 (lifecycle discipline) is what saves an existing tuning stack from slow rot.
 
-### 1. Volume-triage en hot-list
+### 1. Volume triage and hot list
 
-Begin met data, niet meningen.
+Start with data, not opinions.
 
-- **Top-N rules per alert-volume**: laatste 30 dagen, gerangschikt. 80/20 verdeling: typisch produceert 10-20% van rules 80% van alerts.
-- **Mean-time-to-triage per rule**: hoe lang duurt het tot een analyst tot conclusie komt? Hoge MTT plus hoge volume = pijnpunt.
-- **True-positive-rate per rule** (waar getrackt): TP / (TP + FP). Onder 5% TP-rate = sterk-tuning-kandidaat.
-- **Analyst-fatigue-signaal**: alerts met "snooze"-acties, alerts die niet binnen SLA worden opgepakt, alerts die met copy-paste-comments worden gesloten.
+- **Top-N rules by alert volume**: last 30 days, ranked. 80/20 distribution: typically 10–20% of rules produce 80% of alerts.
+- **Mean time to triage per rule**: how long does it take for an analyst to reach a conclusion? High MTT plus high volume = pain point.
+- **True-positive rate per rule** (where tracked): TP / (TP + FP). Below 5% TP rate = strong tuning candidate.
+- **Analyst-fatigue signal**: alerts with "snooze" actions, alerts not picked up within SLA, alerts closed with copy-paste comments.
 
-Output: hot-list van rules met onevenredig veel volume of slecht-converterende-tot-incidents. Top-10 voor deze cyclus.
+Output: a hot list of rules with disproportionate volume or poor conversion to incidents. Top 10 for this cycle.
 
-### 2. FP-pattern-identification per hot-rule
+### 2. FP-pattern identification per hot rule
 
-Per rule op de hot-list: wat veroorzaakt de FPs? Niet "te aggressief" — specifiek welke pattern.
+Per rule on the hot list: what causes the FPs? Not "too aggressive" — specifically which pattern.
 
-Veelvoorkomende FP-categorieën:
+Common FP categories:
 
-- **Legitimate process / user / system**: backup-tools, AV-scanners, deployment-pipelines, monitoring-agents, scheduled health-checks.
-- **Geographic / time-based legitimate**: travel-pattern-trigger op global-team, normaal-after-hours-werk in 24/7-team.
-- **Stale config**: rule voor specifiek aanvalspatroon dat sindsdien intern is geremedieerd, dus alleen het ruisige FP-aandeel blijft over.
-- **Schema-drift**: log-source heeft nieuwe veldwaarden, rule matcht oude waarden — alle nieuwe events triggeren als "rare" terwijl ze normaal zijn.
-- **Threshold te scherp**: rule firet bij N=3, terwijl baseline al regelmatig N=4 ziet.
+- **Legitimate process / user / system**: backup tools, AV scanners, deployment pipelines, monitoring agents, scheduled health checks.
+- **Geographic / time-based legitimate**: travel-pattern trigger on a global team, normal after-hours work in a 24/7 team.
+- **Stale config**: rule for a specific attack pattern that has since been remediated internally, leaving only the noisy FP share.
+- **Schema drift**: log source has new field values, rule matches old values — every new event triggers as "rare" while it is normal.
+- **Threshold too tight**: rule fires at N=3 while the baseline already regularly sees N=4.
 
-Per FP-categorie een aanpak (zie fase 3).
+Per FP category, a course of action (see phase 3).
 
-### 3. Suppressie-discipline
+### 3. Suppression discipline
 
-Niet alle FPs los je op met suppressie — sommige met rule-refactor. Dit is de keuze.
+Not all FPs are solved with suppression — some with rule refactor. This is the choice.
 
-**Suppressie geschikt** als:
+**Suppression appropriate** if:
 
-- FP komt van een specifieke, identificeerbare bron (één service-account, één range).
-- De legitieme activity is te-divers-om-in-rule-conditions te vangen.
-- Rule blijft inhoudelijk valid voor andere bronnen.
+- The FP comes from a specific, identifiable source (one service account, one range).
+- The legitimate activity is too diverse to capture in rule conditions.
+- The rule remains substantively valid for other sources.
 
-**Refactor de rule** als:
+**Refactor the rule** if:
 
-- FP komt van een fundamentele design-fout in de detection-logica.
-- De rule is verouderd voor de huidige threat-pattern.
-- Suppressie-list zou onhoudbaar groot worden.
+- The FP comes from a fundamental design flaw in the detection logic.
+- The rule is outdated for the current threat pattern.
+- The suppression list would grow unsustainably large.
 
-**Suppressie-format** (consistent over rules):
+**Suppression format** (consistent across rules):
 
 ```yaml
 suppression:
@@ -82,115 +82,115 @@ suppression:
   reason: "Microsoft Defender Antimalware Service legitimate LSASS access"
   added_by: <analyst-name>
   added_date: YYYY-MM-DD
-  expires: YYYY-MM-DD     # 6 maanden default
+  expires: YYYY-MM-DD     # 6 months default
   evidence_link: <ticket / wiki>
 ```
 
-**Verboden patterns**:
+**Forbidden patterns**:
 
-- `match: '*'` of geen match-criteria (suppressie-all).
-- Geen reden ingevuld.
-- Geen expiry ingevuld.
-- Suppressie op rule-id-globaal in plaats van event-specifiek.
+- `match: '*'` or no match criteria (suppress-all).
+- No reason filled in.
+- No expiry filled in.
+- Suppression on rule-id global instead of event-specific.
 
-Suppressie zonder al deze velden = audit-finding bij volgende review.
+A suppression without all of these fields = an audit finding at the next review.
 
-### 4. Baseline-learning en threshold-recalibration
+### 4. Baseline learning and threshold recalibration
 
-Voor frequency-based en anomaly-based rules:
+For frequency-based and anomaly-based rules:
 
-- **Rolling baseline** (laatste N dagen) voor "wat is normaal hier". Updates wekelijks of maandelijks; te-snelle-update kan attack-pattern absorberen in baseline.
-- **Threshold-aanpassing op basis van baseline-distributie**: percentile-based (alert wanneer >P99 op metric X) in plaats van vaste cijfers.
-- **Per-segment-baselines**: admin-accounts hebben andere baseline dan service-accounts dan end-users. Eén rule die alle drie dezelfde drempel toepast levert garantie-FPs.
-- **Time-of-day en day-of-week-segmentatie** waar relevant (bv. weekend-werk vs. weekdag).
+- **Rolling baseline** (last N days) for "what is normal here". Updates weekly or monthly; too-fast updates can absorb an attack pattern into the baseline.
+- **Threshold adjustment based on baseline distribution**: percentile-based (alert when >P99 on metric X) rather than fixed numbers.
+- **Per-segment baselines**: admin accounts have a different baseline from service accounts and from end users. One rule applying the same threshold to all three is a guaranteed FP source.
+- **Time-of-day and day-of-week segmentation** where relevant (e.g. weekend work vs. weekday).
 
-Anti-pattern: baseline die zo wide-net-fitted is dat een real attack ruimschoots binnen "normaal" past.
+Anti-pattern: a baseline so wide-net-fitted that a real attack fits comfortably inside "normal".
 
-### 5. Rule-lifecycle: retirement, refresh, retire
+### 5. Rule lifecycle: retirement, refresh, retire
 
-Rules verouderen. Discipline om de stack te onderhouden:
+Rules age. Discipline to maintain the stack:
 
-- **Retire**: rule die N maanden (default 6) geen TP heeft + threat-pattern is verouderd of inmiddels door andere rule beter gedekt. Verwijder uit productie, archive in detection-as-code-repo voor reference.
-- **Refresh**: rule die wel TP heeft maar grote tuning-stack rondom heeft groeid. Herschrijf op basis van actuele baseline en threat-pattern.
-- **Retain**: rule blijft, met huidige tuning, tot volgende review.
-- **Promote**: experimental rule met goede TP-rate naar production-severity.
-- **Demote**: rule met te-veel-FPs en lage TP-rate naar lager severity-niveau (informational), niet meteen retire — soms levert het nog hunting-context.
+- **Retire**: rule with no TP for N months (default 6) + threat pattern is outdated or now better covered by another rule. Remove from production, archive in the detection-as-code repo for reference.
+- **Refresh**: rule that does have TPs but has grown a large tuning stack. Rewrite based on the current baseline and threat pattern.
+- **Retain**: rule stays, with current tuning, until the next review.
+- **Promote**: experimental rule with a good TP rate to production severity.
+- **Demote**: rule with too many FPs and a low TP rate to a lower severity level (informational), not retired right away — sometimes it still provides hunting context.
 
-Quarterly cyclus: alle rules langs deze vier acties. Default: retain. Maar elke retain moet expliciet gedocumenteerd zijn ("FP-rate stabiel, 12 TPs in afgelopen kwartaal").
+Quarterly cycle: walk all rules through these four actions. Default: retain. But every retain must be explicitly documented ("FP rate stable, 12 TPs in the last quarter").
 
-### 6. Metrics en verification-loop
+### 6. Metrics and verification-loop
 
-Houden welke metrics tracked je tuning-effectiviteit:
+Track which metrics gauge your tuning effectiveness:
 
-- **Alert-volume per dag/week** (target: stabiel of dalend, geen onverwachte spikes).
-- **TP-rate per rule** (target: > 10% high-severity, > 5% medium).
-- **Mean-time-to-triage (MTT)** (target: korter wordend).
-- **Fatigue-index** (zelf-gerapporteerd door analysts of berekend uit acceptance-rate van alert-acties).
-- **Coverage-regressie**: dropt je ATT&CK-coverage doordat je rules retiret zonder vervanging? Track via DeTT&CT.
-- **Suppression-cardinaliteit**: hoeveel actieve suppressies per rule? Boven N=10 is signal dat de rule zelf gefixt moet worden.
-- **Suppression-expiry-compliance**: % suppressies die nog binnen geldigheid zijn (target: > 95%; rest re-evaluate of expired-removed).
+- **Alert volume per day/week** (target: stable or falling, no unexpected spikes).
+- **TP rate per rule** (target: > 10% high severity, > 5% medium).
+- **Mean time to triage (MTT)** (target: getting shorter).
+- **Fatigue index** (self-reported by analysts or computed from acceptance rate of alert actions).
+- **Coverage regression**: is your ATT&CK coverage dropping because you retire rules without replacement? Track via DeTT&CT.
+- **Suppression cardinality**: how many active suppressions per rule? Above N=10 is a signal that the rule itself needs to be fixed.
+- **Suppression expiry compliance**: % of suppressions still within validity (target: > 95%; the rest re-evaluate or expired-removed).
 
 **Verification-loop**:
 
-Laag 1: scope (alle hot-rules deze cyclus geadresseerd?), aannames (FP-categorieën onderbouwd door data, niet door anekdote?), gaps (suppressies hebben expiry + reden + evidence-link?). Laag 2: TP/FP-cijfers afkomstig van source-of-truth (SOC-platform), niet samengevat geheugen, ATT&CK-coverage-claims via tool-rapport, geen verzonnen baseline-percentielen.
+Layer 1: scope (all hot rules addressed this cycle?), assumptions (FP categories supported by data, not anecdote?), gaps (suppressions have expiry + reason + evidence link?). Layer 2: TP/FP figures from the source of truth (the SOC platform), not summarized memory; ATT&CK coverage claims via tool report; no invented baseline percentiles.
 
 ## Output
 
 ```
-Alert-tuning rapport — <SOC / org>
-Periode: <start → eind>
-Reviewer: <naam + rol>
+Alert-tuning report — <SOC / org>
+Period: <start → end>
+Reviewer: <name + role>
 
-Volume-triage (Top-10 hot rules):
-  Rule | Alert-vol | MTT | TP-rate | Acties
+Volume triage (top 10 hot rules):
+  Rule | Alert vol | MTT | TP rate | Actions
 
 Per hot rule:
   Rule-ID:           <id>
-  FP-pattern:        <categorie>
-  Beslissing:        <suppress / refactor / retire / refresh>
-  Implementatie:     <suppression-yaml / refactor-PR-link / retirement-ticket>
-  Verwachte impact:  <volume-reductie %, FP-rate-target>
+  FP pattern:        <category>
+  Decision:          <suppress / refactor / retire / refresh>
+  Implementation:    <suppression yaml / refactor PR link / retirement ticket>
+  Expected impact:   <volume-reduction %, FP-rate target>
 
-Suppressie-stack-status:
-  Totaal actief:        N
-  Per rule (Top-N):     gemiddeld M
-  Verlopen / re-eval:   N (deze cyclus afgehandeld)
-  Verboden patterns:    <0 of lijst, met fix-actie>
+Suppression-stack status:
+  Total active:         N
+  Per rule (top N):     average M
+  Expired / re-eval:    N (handled this cycle)
+  Forbidden patterns:   <0 or list, with fix action>
 
-Baseline-recalibration:
-  Rules met geüpdatete thresholds: N
-  Per-segment-baselines toegevoegd: <lijst>
+Baseline recalibration:
+  Rules with updated thresholds: N
+  Per-segment baselines added:   <list>
 
-Lifecycle-acties deze cyclus:
+Lifecycle actions this cycle:
   Retire:   <N rules>
   Refresh:  <N rules>
   Promote:  <N>
   Demote:   <N>
   Retain:   <N (default)>
 
-Coverage-impact (DeTT&CT of equivalent):
-  ATT&CK techniques nu gedekt:    <%>
-  Verschuivingen sinds vorig kwartaal: <toename/afname>
+Coverage impact (DeTT&CT or equivalent):
+  ATT&CK techniques covered now:        <%>
+  Shifts since last quarter:            <increase/decrease>
 
 Metrics:
-  Alert-volume trend:           <grafiek-ref>
-  TP-rate trend:                <per severity>
-  MTT trend:                    <minuten>
-  Fatigue-index:                <score>
+  Alert-volume trend:        <chart ref>
+  TP-rate trend:             <per severity>
+  MTT trend:                 <minutes>
+  Fatigue index:             <score>
 
 Verification-loop: ...
 ```
 
-## Referenties
+## References
 
-- **NIST SP 800-92** — [https://csrc.nist.gov/pubs/sp/800/92/final](https://csrc.nist.gov/pubs/sp/800/92/final). Guide to Computer Security Log Management; baseline-laag.
-- **MITRE D3FEND** — [https://d3fend.mitre.org/](https://d3fend.mitre.org/). Defensive countermappings.
-- **DeTT&CT** — [https://github.com/rabobank-cdc/DeTTECT](https://github.com/rabobank-cdc/DeTTECT). Coverage-tracking en data-source-mapping. NL-bron (Rabobank CDC).
-- **Sigma project** — [https://github.com/SigmaHQ/sigma](https://github.com/SigmaHQ/sigma). `falsepositives` veld is built-in tuning-discipline.
-- **MITRE ATT&CK Navigator** — [https://mitre-attack.github.io/attack-navigator/](https://mitre-attack.github.io/attack-navigator/). Visuele coverage-mapping.
-- **SANS — Detection Engineering Maturity Model** — [https://www.sans.org/](https://www.sans.org/). Maturity-rubric voor team-volwassenheid.
-- **Florian Roth — Sigma rules best practices** — [https://github.com/SigmaHQ/sigma/wiki/Rule-Creation-Guide](https://github.com/SigmaHQ/sigma/wiki/Rule-Creation-Guide). Praktisch tuning-advies vanuit project-maintainer.
+- **NIST SP 800-92** — [https://csrc.nist.gov/pubs/sp/800/92/final](https://csrc.nist.gov/pubs/sp/800/92/final). Guide to Computer Security Log Management; baseline layer.
+- **MITRE D3FEND** — [https://d3fend.mitre.org/](https://d3fend.mitre.org/). Defensive counter-mappings.
+- **DeTT&CT** — [https://github.com/rabobank-cdc/DeTTECT](https://github.com/rabobank-cdc/DeTTECT). Coverage tracking and data-source mapping. NL source (Rabobank CDC).
+- **Sigma project** — [https://github.com/SigmaHQ/sigma](https://github.com/SigmaHQ/sigma). The `falsepositives` field is built-in tuning discipline.
+- **MITRE ATT&CK Navigator** — [https://mitre-attack.github.io/attack-navigator/](https://mitre-attack.github.io/attack-navigator/). Visual coverage mapping.
+- **SANS — Detection Engineering Maturity Model** — [https://www.sans.org/](https://www.sans.org/). Maturity rubric for team maturity.
+- **Florian Roth — Sigma rules best practices** — [https://github.com/SigmaHQ/sigma/wiki/Rule-Creation-Guide](https://github.com/SigmaHQ/sigma/wiki/Rule-Creation-Guide). Practical tuning advice from the project maintainer.
 
-## Categorieën
+## Categories
 
 - blue

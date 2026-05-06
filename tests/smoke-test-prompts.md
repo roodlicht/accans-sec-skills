@@ -62,16 +62,16 @@ A "pass" means: Claude routes to the expected item within the first or second me
 
 | # | Prompt | Expected trigger |
 |---|---|---|
-| 29 | "Stel een ransomware-runbook op voor onze SaaS-stack." | `ir-runbook` |
-| 30 | "Schrijf een Sigma-rule voor LSASS-dumping en vertaal naar Sentinel KQL." | `detection-engineer` (agent) |
-| 31 | "We hebben 5000 alerts/dag in Splunk — tuning-plan?" | `alert-tuning` |
-| 32 | "Triage deze CloudTrail-events: meerdere AssumeRole-calls van een user na werktijd." | `log-triage` |
-| 33 | "Schrijf me een SPL-query die outbound DNS-traffic naar new-domains filtert." | `siem-query` |
-| 34 | "We willen onze IOC-feeds dedupliceren en MISP opzetten." | `ioc-hunter` |
-| 35 | "Sample uit een sandbox-rapport — kun je TTPs extracten en mappen op ATT&CK?" | `malware-triage` |
-| 36 | "We hebben een Volatility-dump van een verdachte host. Welke plugins draaien?" | `forensics-assist` |
-| 37 | "Plan een purple-team cyclus rondom Kerberoasting (T1558.003)." | `purple-ops` |
-| 38 | "/threat-hunt" (slash-command) | `threat-hunt` (command) |
+| 29 | "Set up a ransomware runbook for our SaaS stack." | `ir-runbook` |
+| 30 | "Write a Sigma rule for LSASS dumping and translate it to Sentinel KQL." | `detection-engineer` (agent) |
+| 31 | "We have 5000 alerts/day in Splunk — tuning plan?" | `alert-tuning` |
+| 32 | "Triage these CloudTrail events: multiple AssumeRole calls from one user after hours." | `log-triage` |
+| 33 | "Write me an SPL query that filters outbound DNS traffic to new domains." | `siem-query` |
+| 34 | "We want to deduplicate our IOC feeds and set up MISP." | `ioc-hunter` |
+| 35 | "Sample from a sandbox report — can you extract TTPs and map them to ATT&CK?" | `malware-triage` |
+| 36 | "We have a Volatility dump of a suspicious host. Which plugins should we run?" | `forensics-assist` |
+| 37 | "Plan a purple-team cycle around Kerberoasting (T1558.003)." | `purple-ops` |
+| 38 | "/threat-hunt" (slash command) | `threat-hunt` (command) |
 
 ### GRC (9 items)
 

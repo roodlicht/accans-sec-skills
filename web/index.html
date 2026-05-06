@@ -269,7 +269,7 @@ const CATALOG = [
       "blue",
       "full"
     ],
-    "desc": "SOC alert-tuning workflow — false-positive reductie via gerichte suppressies (rule-id + reden + expiry), baseline-learning, rule-retirement, severity-recalibration, en metrics (alert-volume, mean-time-to-triage, fatigue-index). Voorkomt detection-collapse zonder coverage-verlies.",
+    "desc": "SOC alert-tuning workflow — false-positive reduction via targeted suppressions (rule-id + reason + expiry), baseline learning, rule retirement, severity recalibration, and metrics (alert volume, mean-time-to-triage, fatigue index). Prevents detection collapse without losing coverage.",
     "path": "skills/alert-tuning"
   },
   {
@@ -425,7 +425,7 @@ const CATALOG = [
       "blue",
       "full"
     ],
-    "desc": "Digitale-forensisch assistant voor IR-context — memory-analyse via Volatility 3, disk-imaging-hygiene (write-blocker, hash-validation), timeline-reconstructie via plaso/log2timeline, file-system-artefacten per OS. Audit-grade evidence; rechtbank-grade chain-of-custody vraagt aanvullend gespecialiseerd-forensics-werk.",
+    "desc": "Digital-forensics assistant for IR context — memory analysis via Volatility 3, disk-imaging hygiene (write-blocker, hash validation), timeline reconstruction via plaso/log2timeline, file-system artifacts per OS. Audit-grade evidence; courtroom-grade chain of custody requires additional specialized forensics work.",
     "path": "skills/forensics-assist"
   },
   {
@@ -467,7 +467,7 @@ const CATALOG = [
       "blue",
       "full"
     ],
-    "desc": "Threat-intel IOC workflow — feed-curatie (MISP/OpenCTI/vendor/ENISA/CISA), deduplicatie, confidence-scoring (TLP, source-reputation, age, sightings), enrichment-pipeline naar SIEM/EDR, retro-hunt op N-dagen-window, en lifecycle (expiry + retirement).",
+    "desc": "Threat-intel IOC workflow — feed curation (MISP/OpenCTI/vendor/ENISA/CISA), deduplication, confidence scoring (TLP, source reputation, age, sightings), enrichment pipeline to SIEM/EDR, retro-hunt over an N-day window, and lifecycle (expiry + retirement).",
     "path": "skills/ioc-hunter"
   },
   {
@@ -481,7 +481,7 @@ const CATALOG = [
       "blue",
       "full"
     ],
-    "desc": "Incident Response runbook — NIST SP 800-61 fases (Preparation/Detection-Analysis/Containment-Eradication-Recovery/Lessons-Learned), per-scenario playbooks (ransomware, BEC, data-exfil, credential-compromise, cloud), regulatory-rapportage (NIS2 24h/72h, AVG datalek 72h, DORA), comms-templates en post-incident-review.",
+    "desc": "Incident Response runbook — NIST SP 800-61 phases (Preparation/Detection-Analysis/Containment-Eradication-Recovery/Lessons-Learned), per-scenario playbooks (ransomware, BEC, data exfil, credential compromise, cloud), regulatory reporting (NIS2 24h/72h, AVG breach 72h, DORA), comms templates, and post-incident review.",
     "path": "skills/ir-runbook"
   },
   {
@@ -523,7 +523,7 @@ const CATALOG = [
       "blue",
       "full"
     ],
-    "desc": "Identity-log triage workflow — anomaly-patterns per provider (AWS CloudTrail, Azure AD/Entra, Google Workspace, Okta), session-en-token-misbruik, MFA-bypass-signalen, conditional-access-evasion, en cross-provider correlatie. Levert prioriteits-gestelde finding-list richting ir-runbook of detection-engineer.",
+    "desc": "Identity-log triage workflow — anomaly patterns per provider (AWS CloudTrail, Azure AD/Entra, Google Workspace, Okta), session and token misuse, MFA-bypass signals, conditional-access evasion, and cross-provider correlation. Produces a prioritized finding list routed to ir-runbook or detection-engineer.",
     "path": "skills/log-triage"
   },
   {
@@ -537,7 +537,7 @@ const CATALOG = [
       "blue",
       "full"
     ],
-    "desc": "Malware-triage workflow — sandbox-output-analyse (CAPE/Hybrid-Analysis/ANY.RUN/Joe Sandbox), YARA-rule-scaffolding op patroon-niveau, IOC-extractie, en TTP-mapping naar MITRE ATT&CK. Sandbox-only-discipline; niet detoneren in productie of zonder isolated runtime.",
+    "desc": "Malware triage workflow — sandbox output analysis (CAPE/Hybrid-Analysis/ANY.RUN/Joe Sandbox), YARA rule scaffolding at pattern level, IOC extraction, and TTP mapping to MITRE ATT&CK. Sandbox-only discipline; do not detonate in production or without an isolated runtime.",
     "path": "skills/malware-triage"
   },
   {
@@ -651,7 +651,7 @@ const CATALOG = [
       "pentest",
       "full"
     ],
-    "desc": "Purple-team operations — gestructureerde detection-validatie tegen MITRE ATT&CK door planned-emulatie, gemeten coverage-gaps, gemeenschappelijke red+blue-debrief en tracked closure via D3FEND-mapping. Bridge tussen pentest-bundel en blue-bundel.",
+    "desc": "Purple-team operations — structured detection validation against MITRE ATT&CK through planned emulation, measured coverage gaps, joint red+blue debrief, and tracked closure via D3FEND mapping. Bridge between the pentest bundle and the blue bundle.",
     "path": "skills/purple-ops"
   },
   {
@@ -756,7 +756,7 @@ const CATALOG = [
       "blue",
       "full"
     ],
-    "desc": "SIEM query-builder workflow — Splunk SPL, Microsoft Sentinel/Defender KQL, Elastic EQL/KQL, met cross-translation-patterns, performance-tuning (data-models, summary-indexes, CCS), en query-by-detection-need. Bron-laag voor detection-engineer, log-triage en threat-hunt.",
+    "desc": "SIEM query-builder workflow — Splunk SPL, Microsoft Sentinel/Defender KQL, Elastic EQL/KQL, with cross-translation patterns, performance tuning (data models, summary indexes, CCS), and query-by-detection-need. Source layer for detection-engineer, log-triage, and threat-hunt.",
     "path": "skills/siem-query"
   },
   {
@@ -858,7 +858,7 @@ const CATALOG = [
       "blue",
       "full"
     ],
-    "desc": "Detection-engineering agent — schrijft Sigma rules, vertaalt naar SPL/KQL/EQL, valideert via test-harness (atomic-red-team / MITRE Caldera / lab-replay), met ATT&CK-coverage-mapping en false-positive-discipline. Levert ready-to-deploy rules plus test-evidence per rule.",
+    "desc": "Detection-engineering agent — writes Sigma rules, translates to SPL/KQL/EQL, validates via test harness (atomic-red-team / MITRE Caldera / lab replay), with ATT&CK coverage mapping and false-positive discipline. Delivers ready-to-deploy rules plus test evidence per rule.",
     "path": "agents/detection-engineer.md"
   },
   {
@@ -918,7 +918,7 @@ const CATALOG = [
       "blue",
       "full"
     ],
-    "desc": "Hypothesis-driven threat-hunt session scaffolding — scope, hypothese-formulering, data-source-binding, query-handoff naar siem-query, IOC-input via ioc-hunter, en gestructureerde writeup met findings en handoffs naar detection-engineer.",
+    "desc": "Hypothesis-driven threat-hunt session scaffolding — scope, hypothesis formulation, data-source binding, query handoff to siem-query, IOC input via ioc-hunter, and structured writeup with findings and handoffs to detection-engineer.",
     "path": "commands/threat-hunt.md"
   }
 ];

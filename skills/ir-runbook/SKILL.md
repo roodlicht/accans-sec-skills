@@ -1,204 +1,204 @@
 ---
 name: ir-runbook
-description: Incident Response runbook — NIST SP 800-61 fases (Preparation/Detection-Analysis/Containment-Eradication-Recovery/Lessons-Learned), per-scenario playbooks (ransomware, BEC, data-exfil, credential-compromise, cloud), regulatory-rapportage (NIS2 24h/72h, AVG datalek 72h, DORA), comms-templates en post-incident-review.
+description: Incident Response runbook — NIST SP 800-61 phases (Preparation/Detection-Analysis/Containment-Eradication-Recovery/Lessons-Learned), per-scenario playbooks (ransomware, BEC, data exfil, credential compromise, cloud), regulatory reporting (NIS2 24h/72h, AVG breach 72h, DORA), comms templates, and post-incident review.
 ---
 
 # IR Runbook
 
-> **Operational discipline**: een runbook stuurt mensen onder druk; ambiguïteit kost tijd. Houd procedures concreet en testbaar — een stap die niet uitvoerbaar is op 03:00 zonder eigen interpretatie is niet operationeel. Juridische en regulatory-aspecten (datalek-melding, NIS2-incident-rapportage, contract-clausules met klanten/leveranciers) zijn deel van de runbook maar vragen DPO/legal-input voor finale beslissingen — deze skill structureert, vervangt geen jurist tijdens incident.
+> **Operational discipline**: a runbook steers people under pressure; ambiguity costs time. Keep procedures concrete and testable — a step that cannot be executed at 03:00 without personal interpretation is not operational. Legal and regulatory aspects (breach notification, NIS2 incident reporting, contract clauses with customers/suppliers) are part of the runbook but require DPO/legal input for final decisions — this skill structures, it does not replace a lawyer during an incident.
 
-## Wanneer gebruiken
+## When to use
 
-Een incident is geen moment om procedures te ontwerpen. Deze skill helpt vooraf met runbook-opbouw en tijdens met scenario-keuze, fase-overgangen en regulatory-tijdlijnen.
+An incident is not the moment to design procedures. This skill helps in advance with runbook construction and during with scenario selection, phase transitions, and regulatory timelines.
 
-Activeert bij:
+Triggers on:
 
-- Een vraag als "schrijf een ransomware-runbook", "wat doen we bij een verdachte phish-melding van een gebruiker", "is dit een datalek onder AVG", "BEC-procedure ontwerpen", "post-incident-review structuur".
-- Een actieve incident-response waar fase-bepaling of regulatory-vraag (NIS2 24h, AVG 72h, DORA 4h) duidelijkheid vraagt.
-- Een handoff vanuit `secrets-scanner` (lek bevestigd, escalatie naar IR), `cve-triage` (CVE met aantoonbaar misbruik), `forensics-assist` (forensisch onderzoek loopt parallel met IR).
-- Een tabletop-oefening waar je het runbook test.
-- Periodieke runbook-review (minstens jaarlijks of na elk significant incident).
+- A question like "write a ransomware runbook", "what do we do on a suspicious phishing report from a user", "is this a data breach under AVG", "design a BEC procedure", "post-incident review structure".
+- An active incident response where phase determination or a regulatory question (NIS2 24h, AVG 72h, DORA 4h) needs clarity.
+- A handoff from `secrets-scanner` (leak confirmed, escalating to IR), `cve-triage` (CVE with confirmed exploitation), `forensics-assist` (forensics running in parallel with IR).
+- A tabletop exercise where you test the runbook.
+- Periodic runbook review (at least annually or after every significant incident).
 
-### Wanneer NIET (handoff)
+### When NOT (handoff)
 
-- Beleidsmatige IR-policy zelf (purpose, scope, roles op management-niveau) → `policy-drafter`. Een IRP-policy is high-level eisen; deze runbook is de operationele uitvoering.
-- Forensische onderzoeken (memory-analyse, disk-imaging, timeline-reconstructie) → `forensics-assist`. Loopt parallel.
-- Detection-side: rule-tuning, alert-triage van het alarm dat het incident triggert → `detection-engineer`, `alert-tuning`, `log-triage`.
-- Threat-intel + IOC-enrichment → `ioc-hunter`.
-- Malware-analyse zelf → `malware-triage`.
-- Audit-evidence-collectie van controls die het incident raakte → `audit-evidence`.
-- Pentest-context (gepland) → pentest-skills, niet incident-response.
+- Policy-level IR policy itself (purpose, scope, roles at management level) → `policy-drafter`. An IRP policy is high-level requirements; this runbook is the operational execution.
+- Forensic investigations (memory analysis, disk imaging, timeline reconstruction) → `forensics-assist`. Runs in parallel.
+- Detection side: rule tuning, alert triage of the alarm that triggers the incident → `detection-engineer`, `alert-tuning`, `log-triage`.
+- Threat intel + IOC enrichment → `ioc-hunter`.
+- Malware analysis itself → `malware-triage`.
+- Audit-evidence collection of the controls touching the incident → `audit-evidence`.
+- Pentest context (planned) → pentest skills, not incident response.
 
-## Aanpak
+## Approach
 
-Zes fases gebaseerd op NIST SP 800-61 Rev. 2, met regulatory-laag (fase 5) als NL/EU-specificum.
+Six phases based on NIST SP 800-61 Rev. 2, with a regulatory layer (phase 5) as the NL/EU specific.
 
-### 1. Preparation (vóór elk incident)
+### 1. Preparation (before any incident)
 
-Wat moet klaar staan voordat het knalt:
+What must be ready before things break:
 
-- **Runbook-portfolio**: scenarios geïdentificeerd uit threat-intel + risk-register. Minimaal: ransomware, business-email-compromise (BEC), credential-compromise (single-account), cloud-credential-compromise, data-exfil, insider-threat-melding, supply-chain-incident bij vendor.
-- **IR-team-roster** met rollen: incident commander, technical lead, forensics, comms-lead, legal/DPO-liaison, exec-bridge. Per rol primary + backup. 24/7 bereikbaarheid via paging.
-- **Communicatie-channels**: out-of-band (vermijd compromised email tijdens incident), Signal/Wire group, dedicated bridge-link, status-page voor externe communicatie.
-- **Tools-readiness**: SIEM-toegang, EDR-console-access, jump-hosts, backup-restore-procedures getest, evidence-storage-bestemming bekend.
-- **Regulatory-contact-info paraat**: CSIRT-NL (NCSC-NL), AP voor datalek, sector-toezichthouder (RDI/DNB/AFM), CERT-NL contacts. Telefoonnummers en webformulier-URLs in runbook, niet "we zoeken het op".
-- **Tabletop-cadens**: minstens jaarlijks per scenario, vaker voor high-impact (ransomware, cloud-cred-compromise).
+- **Runbook portfolio**: scenarios identified from threat intel + risk register. Minimum: ransomware, business-email compromise (BEC), credential compromise (single-account), cloud credential compromise, data exfil, insider-threat report, supply-chain incident at a vendor.
+- **IR team roster** with roles: incident commander, technical lead, forensics, comms lead, legal/DPO liaison, exec bridge. Per role primary + backup. 24/7 reachability via paging.
+- **Communication channels**: out-of-band (avoid compromised email during an incident), Signal/Wire group, dedicated bridge link, status page for external communication.
+- **Tools readiness**: SIEM access, EDR console access, jump hosts, tested backup-restore procedures, known evidence-storage destination.
+- **Regulatory contact info on hand**: CSIRT-NL (NCSC-NL), AP for data-breach reporting, sector regulator (RDI/DNB/AFM), CERT-NL contacts. Phone numbers and web-form URLs in the runbook, not "we'll look it up".
+- **Tabletop cadence**: at least annually per scenario, more frequently for high-impact (ransomware, cloud credential compromise).
 
-### 2. Detection en Analysis
+### 2. Detection and Analysis
 
-Eerste minuten/uren bepalen veel.
+The first minutes/hours decide a lot.
 
-- **Triage-criteria**: is het een echt incident of een false-positive? Aanvankelijke severity-assessment. Vier severity-levels gangbaar: SEV1 (existentieel: ransomware op productie, mass-exfil, prod-down), SEV2 (significante impact: single-system-compromise, beperkte exfil), SEV3 (lokaal containable: phish-click zonder credential-overdracht), SEV4 (informational, monitoring).
-- **Initial scoping**: welke systems geraakt, welke data-classificatie, welke users betrokken. Niet wachten tot je 100% zekerheid hebt — werk met "best knowledge at time".
-- **Klok start**: voor regulatory-tijdlijnen (NIS2 24h vanaf detection, AVG 72h vanaf "kennisgenomen", DORA 4h vanaf classification). Documenteer detection-tijd want het is de start van rapportage-clocks.
-- **Communications-trigger**: SEV1/SEV2 wakker je IC + technical lead onmiddellijk; SEV3 binnen kantooruren.
-- **Evidence-preservation**: snapshot logs, memory, disk-images vóór containment (containment kan evidence vernietigen). Zie `forensics-assist`.
+- **Triage criteria**: is it a real incident or a false positive? Initial severity assessment. Four severity levels are common: SEV1 (existential: ransomware in production, mass exfil, prod down), SEV2 (significant impact: single-system compromise, limited exfil), SEV3 (locally containable: phishing click without credential handover), SEV4 (informational, monitoring).
+- **Initial scoping**: which systems are affected, which data classification, which users involved. Do not wait for 100% certainty — work with "best knowledge at time".
+- **Clock starts**: for regulatory timelines (NIS2 24h from detection, AVG 72h from "becoming aware", DORA 4h from classification). Document the detection time because it starts the reporting clocks.
+- **Communications trigger**: SEV1/SEV2 wakes the IC + technical lead immediately; SEV3 within office hours.
+- **Evidence preservation**: snapshot logs, memory, disk images before containment (containment can destroy evidence). See `forensics-assist`.
 
-Output van deze fase: incident-ticket met scope, severity, IC, eerste hypotheses.
+Output of this phase: an incident ticket with scope, severity, IC, first hypotheses.
 
 ### 3. Containment
 
-Korte-termijn (stop-bleeding) plus lange-termijn (sustainable).
+Short-term (stop the bleeding) plus long-term (sustainable).
 
-**Korte-termijn containment** (minuten tot uren):
+**Short-term containment** (minutes to hours):
 
-- **Network-isolation**: getroffen hosts off-network (firewall/EDR-network-isolate). Minder destructief dan power-off, behoudt memory-state.
-- **Account-disablement** voor compromised credentials. Rotate keys via `secrets-scanner` fase 4.
-- **Block-rules** voor C2-IOCs in firewall/DNS/SIEM.
-- **Stop attack-progression**: kill processen, stop services die actief misbruikt worden.
+- **Network isolation**: affected hosts off-network (firewall/EDR network-isolate). Less destructive than power-off, preserves memory state.
+- **Account disablement** for compromised credentials. Rotate keys via `secrets-scanner` phase 4.
+- **Block rules** for C2 IOCs in firewall/DNS/SIEM.
+- **Stop attack progression**: kill processes, stop services that are actively abused.
 
-**Lange-termijn containment** (uren tot dagen):
+**Long-term containment** (hours to days):
 
-- **Patch + reconfig** vóór recovery. Anders is het herhaling-incident binnen weken.
-- **Network-segmentation versterken** waar het hadden moeten zijn.
-- **Backup-isolation** verzekeren als ransomware speelt — offline-copies onbereikbaar voor aanvaller.
+- **Patch + reconfigure** before recovery. Otherwise it is a repeat incident within weeks.
+- **Strengthen network segmentation** where it should have been.
+- **Backup isolation** ensured if ransomware is in play — offline copies unreachable to the attacker.
 
-Per scenario verschilt prioriteit. Ransomware: backups isoleren + payload-spread stoppen; BEC: account-revoke + email-rule-cleanup; data-exfil: egress-block + identify-uplevel-paths.
+Priority differs per scenario. Ransomware: isolate backups + stop payload spread; BEC: account revoke + email-rule cleanup; data exfil: egress block + identify uplevel paths.
 
-### 4. Eradication en Recovery
+### 4. Eradication and Recovery
 
-- **Eradication**: aanvaller-tools/persistence verwijderen. Niet alleen het ene compromised account fixen — search-en-destroy alle persistence (zie `post-exploit` fase 5 voor wat aanvallers achterlaten). EDR-baseline-rebuild, password-reset waar persistence cred-based is, image-rebuilds waar persistence on-disk is.
-- **Recovery**: gefaseerd brengen van services online, monitoring-versterking tijdens come-back, gevalideerde-clean-state per restored system. Geen "we zien dat er nu niets gebeurt dus alles is goed" — actief monitoren met heightened-detection.
-- **Validatie-criteria** vooraf bepaald: hoe weet je dat de threat weg is? Welke detection-rules moeten N dagen niet triggeren? Welke logs moeten clean zijn?
+- **Eradication**: remove attacker tools/persistence. Not just fixing the one compromised account — search-and-destroy all persistence (see `post-exploit` phase 5 for what attackers leave behind). EDR baseline rebuild, password reset where persistence is cred-based, image rebuilds where persistence is on disk.
+- **Recovery**: phased return of services online, strengthened monitoring during come-back, validated clean state per restored system. No "we don't see anything happening, so all is well" — actively monitor with heightened detection.
+- **Validation criteria** decided in advance: how do you know the threat is gone? Which detection rules must not fire for N days? Which logs must be clean?
 
-### 5. Regulatory-rapportage en compliance-laag
+### 5. Regulatory reporting and compliance layer
 
-NL/EU-specifiek met meerdere overlap-regimes:
+NL/EU-specific with several overlapping regimes:
 
-- **AVG datalek (Art 33)**: 72 uur na "kennisgenomen". Aan AP via meldformulier. Daarbij Art 34: betrokkenen informeren bij hoog risico (vaak overlapt met grote incidents). Zie `gdpr-pia` voor context.
-- **NIS2 (Art 23)**: drie-fasen 24h/72h/1-maand voor essential en important entities, naar CSIRT-NL plus competent authority (vaak RDI). Zie `nis2`.
-- **DORA (Art 17–23)**: voor financial entities. Major-incident-classificatie via RTS-thresholds, daarna 4h initial / 72h intermediate / 1 maand final naar DNB/AFM. Zie `dora`.
-- **Sector-specifieke regels**: zorg (Wkkgz), kritieke-infra-aanvulling, telecoms-eis. Per sector inventariseren.
-- **Contract-clausules**: vele B2B-contracten eisen klant-notificatie binnen X uur bij security-incidents die hun data raken. Inventariseren in fase-1-prep.
+- **AVG breach (Art 33)**: 72 hours after "becoming aware". To AP via the report form. Plus Art 34: notify data subjects on high risk (often overlaps with large incidents). See `gdpr-pia` for context.
+- **NIS2 (Art 23)**: three phases 24h/72h/1-month for essential and important entities, to CSIRT-NL plus competent authority (often RDI). See `nis2`.
+- **DORA (Art 17–23)**: for financial entities. Major-incident classification via RTS thresholds, then 4h initial / 72h intermediate / 1 month final to DNB/AFM. See `dora`.
+- **Sector-specific rules**: healthcare (Wkkgz), critical-infra additions, telecoms requirement. Inventory per sector.
+- **Contract clauses**: many B2B contracts require customer notification within X hours for security incidents touching their data. Inventory in phase-1 prep.
 
-Discipline tijdens incident: één persoon (vaak de DPO of compliance-lead) tracked klok per regime. Late melding kan op zich tot enforcement-actie leiden, los van het incident-impact.
+Discipline during the incident: one person (often the DPO or compliance lead) tracks the clock per regime. A late notification can on its own lead to enforcement action, separate from the incident impact.
 
-### 6. Lessons Learned en post-incident-review (PIR)
+### 6. Lessons Learned and post-incident review (PIR)
 
-Binnen 1-2 weken na recovery:
+Within 1–2 weeks after recovery:
 
-- **PIR-meeting** met alle betrokkenen plus management. Geen blame; focus op proces-leren.
-- **Timeline-reconstructie**: wat gebeurde wanneer, wie wist wat, welke beslissingen werden genomen.
-- **Wat ging goed**: detection-trigger werkte, comms-channel was bereikbaar, etc. Bewust documenteren — anders verdwijnt institutional knowledge.
-- **Wat ging niet goed**: gemiste detection, onduidelijkheid over rolverdeling, vertraging in regulatory-melding.
-- **Action-items** met owners en deadlines. Niet "we moeten x verbeteren" maar "DevOps lead implementeert offline-backup-validatie binnen 6 weken".
-- **Update runbook én policy** op basis van findings. Volgende incident moet niet dezelfde leerpunten opleveren.
-- **Threat-intel uitgaan**: anonimiseerde IOCs en TTPs delen via FI-ISAC/CSIRT-NL waar passend (zie `dora` Pillar 5 voor financial; vrijwillig voor anderen).
+- **PIR meeting** with all involved plus management. No blame; focus on process learning.
+- **Timeline reconstruction**: what happened when, who knew what, which decisions were made.
+- **What went well**: detection trigger worked, comms channel was reachable, etc. Document deliberately — otherwise institutional knowledge disappears.
+- **What did not go well**: missed detection, unclear role split, delayed regulatory notification.
+- **Action items** with owners and deadlines. Not "we must improve x" but "DevOps lead implements offline backup validation within 6 weeks".
+- **Update runbook AND policy** based on findings. The next incident must not produce the same lessons.
+- **Threat intel out**: anonymized IOCs and TTPs shared via FI-ISAC/CSIRT-NL where appropriate (see `dora` Pillar 5 for financial; voluntary for others).
 
-### 7. Verification-loop voor runbook-onderhoud
+### 7. Verification-loop for runbook maintenance
 
-Niet voor het incident zelf, voor de runbook-revisie:
+Not for the incident itself, for runbook revision:
 
-Laag 1: scope (alle scenario's gedekt, of zit ons threat-model op een gat?), aannames (contact-info actueel? backup-procedure laatst getest wanneer?), gaps (eviction-procedures voor cloud-providers anders dan AWS gedekt?). Laag 2: regulatory-tijdlijnen kloppen (NIS2/AVG/DORA-uren niet door elkaar), CSIRT-NL/AP/RDI-procedure-stappen actueel, geen verzonnen wettekst-referenties.
+Layer 1: scope (all scenarios covered, or does our threat model have a gap?), assumptions (contact info current? backup procedure last tested when?), gaps (eviction procedures covered for cloud providers other than AWS?). Layer 2: regulatory timelines correct (NIS2/AVG/DORA hours not mixed up), CSIRT-NL/AP/RDI procedure steps current, no invented statutory references.
 
 ## Output
 
-Twee modes: runbook-document (vooraf, levend document) of incident-log (tijdens, real-time).
+Two modes: a runbook document (in advance, a living document) or an incident log (during, real time).
 
-**Runbook-document** structuur:
+**Runbook document** structure:
 
 ```
-IR Runbook — versie X.Y, geldig tot YYYY-MM-DD
-Eigenaar: <CISO/IRT-lead> | Laatste tabletop: <datum>
+IR Runbook — version X.Y, valid until YYYY-MM-DD
+Owner: <CISO/IRT lead> | Last tabletop: <date>
 
 1. Preparation
-   IR-team roster (primary + backup)
-   Comms-channels (out-of-band)
+   IR team roster (primary + backup)
+   Comms channels (out-of-band)
    Regulatory contacts (CSIRT-NL, AP, sector)
-   Tooling-access (SIEM, EDR, jump-hosts)
+   Tooling access (SIEM, EDR, jump hosts)
 
-2. Per scenario (ransomware, BEC, data-exfil, cred-comp, cloud-comp, etc.):
-   Detection-triggers
-   Initial actions (eerste 30 min)
-   Severity-criteria
-   Communication-flow
-   Containment-steps (short + long term)
-   Eradication-checklist
-   Recovery-validation-criteria
-   Regulatory-rapportage-trigger
+2. Per scenario (ransomware, BEC, data exfil, cred comp, cloud comp, etc.):
+   Detection triggers
+   Initial actions (first 30 min)
+   Severity criteria
+   Communication flow
+   Containment steps (short + long term)
+   Eradication checklist
+   Recovery validation criteria
+   Regulatory reporting trigger
    Per-step expected duration
 
-3. Communication-templates
-   Internal: status-update naar IRT-bridge
-   Internal: comms naar wider org
+3. Communication templates
+   Internal: status update to IRT bridge
+   Internal: comms to wider org
    External: status-page wording
-   Klant-notificatie (per contract)
-   Regulator-notificatie (AVG, NIS2, DORA)
+   Customer notification (per contract)
+   Regulator notification (AVG, NIS2, DORA)
 
-4. Tabletop-archief
-   Per oefening: scenario, deelnemers, lessons learned
+4. Tabletop archive
+   Per exercise: scenario, participants, lessons learned
 
 Verification-loop: ...
 ```
 
-**Incident-log** (tijdens):
+**Incident log** (during):
 
 ```
-Incident-log — INC-YYYY-NNNN
-IC: <naam> | Detection-tijd: <UTC> | Severity: <SEV1-4>
+Incident log — INC-YYYY-NNNN
+IC: <name> | Detection time: <UTC> | Severity: <SEV1-4>
 
 Timeline:
-  HH:MM — actie/beslissing — door wie
+  HH:MM — action/decision — by whom
 
 Scope:
-  Affected systems: <lijst>
-  Affected data: <classificatie>
+  Affected systems: <list>
+  Affected data: <classification>
   Affected users: <N>
 
-Regulatory-clocks:
-  AVG datalek (72h): <start, deadline, status>
-  NIS2 (24h/72h/1m): <indien essential/important>
-  DORA (4h/72h/1m): <indien financial>
-  Klant-notificatie: <per contract>
+Regulatory clocks:
+  AVG breach (72h):    <start, deadline, status>
+  NIS2 (24h/72h/1m):   <if essential/important>
+  DORA (4h/72h/1m):    <if financial>
+  Customer notification: <per contract>
 
 Containment:
-  Korte-termijn: <stappen + tijdstempel>
-  Lange-termijn: <plan>
+  Short-term: <steps + timestamp>
+  Long-term:  <plan>
 
-Eradication-status:
-  <persistence-checks doorgelopen, status>
+Eradication status:
+  <persistence checks completed, status>
 
 Recovery:
-  Validatie-criteria: <welke gemeten>
-  Online-fasering: <volgorde + tijden>
+  Validation criteria: <which measured>
+  Online phasing:      <order + times>
 
-Open vragen / blockers:
+Open questions / blockers:
   - <...>
 
 Verification-loop: ...
 ```
 
-## Referenties
+## References
 
-- **NIST SP 800-61 Rev. 2** — [https://csrc.nist.gov/pubs/sp/800/61/r2/final](https://csrc.nist.gov/pubs/sp/800/61/r2/final). Computer Security Incident Handling Guide; canonical fases.
+- **NIST SP 800-61 Rev. 2** — [https://csrc.nist.gov/pubs/sp/800/61/r2/final](https://csrc.nist.gov/pubs/sp/800/61/r2/final). Computer Security Incident Handling Guide; canonical phases.
 - **ENISA Incident Response Guidelines** — [https://www.enisa.europa.eu/topics/incident-response](https://www.enisa.europa.eu/topics/incident-response).
-- **NCSC-NL** — [https://www.ncsc.nl/](https://www.ncsc.nl/). NL-CSIRT-procedures plus playbooks.
-- **AP — Datalek melden** — [https://www.autoriteitpersoonsgegevens.nl/themas/beveiliging/datalekken](https://www.autoriteitpersoonsgegevens.nl/themas/beveiliging/datalekken). AVG Art 33/34-procedure.
-- **EU Directive 2022/2555 (NIS2) Art 23** — [https://eur-lex.europa.eu/eli/dir/2022/2555](https://eur-lex.europa.eu/eli/dir/2022/2555). Incident-rapportage-tijdlijn.
-- **EU Regulation 2022/2554 (DORA) Art 17–23** — [https://eur-lex.europa.eu/eli/reg/2022/2554](https://eur-lex.europa.eu/eli/reg/2022/2554). Major-incident-rapportage.
-- **MITRE ATT&CK** — [https://attack.mitre.org/](https://attack.mitre.org/). Voor TTP-classificatie tijdens analysis.
-- **SANS Reading Room — IR** — [https://www.sans.org/reading-room/](https://www.sans.org/reading-room/). Per-scenario-playbook-templates.
+- **NCSC-NL** — [https://www.ncsc.nl/](https://www.ncsc.nl/). NL CSIRT procedures plus playbooks.
+- **AP — Datalek melden** — [https://www.autoriteitpersoonsgegevens.nl/themas/beveiliging/datalekken](https://www.autoriteitpersoonsgegevens.nl/themas/beveiliging/datalekken). AVG Art 33/34 procedure.
+- **EU Directive 2022/2555 (NIS2) Art 23** — [https://eur-lex.europa.eu/eli/dir/2022/2555](https://eur-lex.europa.eu/eli/dir/2022/2555). Incident-reporting timeline.
+- **EU Regulation 2022/2554 (DORA) Art 17–23** — [https://eur-lex.europa.eu/eli/reg/2022/2554](https://eur-lex.europa.eu/eli/reg/2022/2554). Major-incident reporting.
+- **MITRE ATT&CK** — [https://attack.mitre.org/](https://attack.mitre.org/). For TTP classification during analysis.
+- **SANS Reading Room — IR** — [https://www.sans.org/reading-room/](https://www.sans.org/reading-room/). Per-scenario playbook templates.
 
-## Categorieën
+## Categories
 
 - blue
