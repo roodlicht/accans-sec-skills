@@ -1,6 +1,6 @@
 {
   "name": "accans-sec-skills",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Security-focused skills, agents and commands for Claude Code and Cowork — with a selective install builder.",
   "type": "module",
   "private": true,

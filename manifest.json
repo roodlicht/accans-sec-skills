@@ -84,7 +84,7 @@
         "grc",
         "full"
       ],
-      "desc": "Evidence collection en packaging voor security-audits — evidence-types (inspection/observation/inquiry/re-performance/automated), cadens per control, chain-of-custody, period-tagging, WORM-storage en retention, auditor-delivery. Bruikbaar voor SOC 2, ISO 27001, NIS2, DORA en interne audits.",
+      "desc": "Evidence collection and packaging for security audits — evidence types (inspection/observation/inquiry/re-performance/automated), cadence per control, chain of custody, period tagging, WORM storage and retention, auditor delivery. Usable for SOC 2, ISO 27001, NIS2, DORA, and internal audits.",
       "path": "skills/audit-evidence"
     },
     {
@@ -226,7 +226,7 @@
         "grc",
         "full"
       ],
-      "desc": "Data Protection Impact Assessment (DPIA / GEB) workflow tegen AVG Art 35 — trigger-check (AP-criteria en WP 248), systematische beschrijving, noodzakelijkheid, risico-analyse vanuit het perspectief van de betrokkene, maatregelen en restrisico, voorafgaande raadpleging van de Autoriteit Persoonsgegevens.",
+      "desc": "Data Protection Impact Assessment (DPIA / GEB) workflow against AVG Art 35 — trigger check (AP criteria and WP 248), systematic description, necessity, risk analysis from the data subject's perspective, measures and residual risk, prior consultation with the Autoriteit Persoonsgegevens.",
       "path": "skills/gdpr-pia"
     },
     {
@@ -282,7 +282,7 @@
         "grc",
         "full"
       ],
-      "desc": "ISO/IEC 27001:2022 ISMS implementation and certification-prep — clauses 4-10 (context, leadership, planning, support, operation, evaluation, improvement), Annex A 93 controls over vier thema's, Statement of Applicability, Stage 1/Stage 2 audit-prep en certification-cycle.",
+      "desc": "ISO/IEC 27001:2022 ISMS implementation and certification prep — clauses 4-10 (context, leadership, planning, support, operation, evaluation, improvement), Annex A 93 controls across four themes, Statement of Applicability, Stage 1/Stage 2 audit prep, and the certification cycle.",
       "path": "skills/iso27001"
     },
     {
@@ -408,7 +408,7 @@
         "grc",
         "full"
       ],
-      "desc": "Policy-drafting workflow voor security-policies — AUP, Incident Response Plan, Access Control, Data Classification, BCP, Change Management, Vendor Management, Crypto en Remote Work. Structuur met Purpose/Scope/Statement/Roles/Enforcement/Review, ISO 27001 Annex A.5 alignment, NL/EN-drafting.",
+      "desc": "Policy-drafting workflow for security policies — AUP, Incident Response Plan, Access Control, Data Classification, BCP, Change Management, Vendor Management, Crypto, and Remote Work. Structure with Purpose/Scope/Statement/Roles/Enforcement/Review, ISO 27001 Annex A.5 alignment, NL/EN drafting.",
       "path": "skills/policy-drafter"
     },
     {
@@ -466,7 +466,7 @@
         "grc",
         "full"
       ],
-      "desc": "Risk-management workflow — risk identification, qualitative en quantitative analyse (likelihood × impact, FAIR-basis), evaluatie tegen risk-appetite, treatment (avoid/mitigate/transfer/accept), heatmaps en trend, met ISO 31000 en ISO 27005 als methodologie-basis.",
+      "desc": "Risk-management workflow — risk identification, qualitative and quantitative analysis (likelihood × impact, FAIR basis), evaluation against risk appetite, treatment (avoid/mitigate/transfer/accept), heatmaps and trend, with ISO 31000 and ISO 27005 as the methodology base.",
       "path": "skills/risk-register"
     },
     {
@@ -557,7 +557,7 @@
         "grc",
         "full"
       ],
-      "desc": "SOC 2 Type II prep — AICPA Trust Services Criteria (Security verplicht plus Availability/Confidentiality/Processing Integrity/Privacy), Common Criteria CC1–CC9, Type I vs Type II keuze, evidence-collection rhythm, auditor-friendly packaging, Complementary User Entity Controls.",
+      "desc": "SOC 2 Type II prep — AICPA Trust Services Criteria (Security required plus Availability/Confidentiality/Processing Integrity/Privacy), Common Criteria CC1–CC9, Type I vs Type II choice, evidence-collection rhythm, auditor-friendly packaging, Complementary User Entity Controls.",
       "path": "skills/soc2"
     },
     {
@@ -599,7 +599,7 @@
         "grc",
         "full"
       ],
-      "desc": "Vendor security questionnaire workflow — vendor-tiering, gestandaardiseerde vragenlijsten (CAIQ, SIG-Lite/Core, VSA), custom-authoring, evidence-reuse tegen bestaande attestations (SOC 2, ISO 27001), en ongoing vendor-risk monitoring.",
+      "desc": "Vendor security questionnaire workflow — vendor tiering, standardized questionnaires (CAIQ, SIG-Lite/Core, VSA), custom authoring, evidence reuse against existing attestations (SOC 2, ISO 27001), and ongoing vendor-risk monitoring.",
       "path": "skills/vendor-questionnaire"
     },
     {

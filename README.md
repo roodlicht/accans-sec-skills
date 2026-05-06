@@ -61,15 +61,11 @@ cd accans-sec-skills
 
 ## Working language
 
-The catalog is moving to English to be globally accessible. State per profile:
+The catalog is fully English. All 47 items — across Core, AppSec, Pentest, Blue, and GRC — have English bodies, English front-matter descriptions, and English public-facing positioning (this README, examples, smoke tests, contributor docs).
 
-- **Core (7 items): English** — fully translated.
-- **AppSec, Pentest, Blue, GRC (40 items): translation in progress.** Bodies currently in Dutch; English versions land in subsequent releases. Front-matter descriptions are already English across the whole catalog, so the Claude matcher behaves the same way today regardless of body language.
-- **Front-matter `description` fields**: English (always).
-- **Public-facing positioning** (this README, examples, smoke-tests, contributor docs): English.
-- **GRC items remain explicitly NL/EU-anchored** in their references and regulatory text. That is the catalog's positioning — preserved across the translation work. NIS2, DORA, AVG, Cyberbeveiligingswet, AP, RDI, DNB, AFM stay as primary sources. Only the wrapping prose becomes English.
+**GRC items remain explicitly NL/EU-anchored** in their references and regulatory text. That is the catalog's positioning — preserved through the translation work. NIS2, DORA, AVG, Cyberbeveiligingswet, AP, RDI, DNB, AFM stay as primary sources. Only the wrapping prose is English.
 
-If you'd like to contribute English translations, see [CONTRIBUTING.md](CONTRIBUTING.md). The roadmap is roughly: AppSec → Pentest → Blue → GRC.
+If you find Dutch leftovers or translation infelicities, see [CONTRIBUTING.md](CONTRIBUTING.md) — patches welcome.
 
 ## Disclaimers
 
@@ -83,7 +79,7 @@ The catalog is opinionated. These rules are themselves a security mechanism; the
 - **No copyright violation.** OWASP cheat sheets, vendor docs, and similar are summarized and linked, not transcribed.
 - **No tools.** This catalog does not ship scanners, exploits, or runtime services. It is prose that primes Claude with structured tradecraft.
 
-These disclaimers are mirrored — in their full form, in the source language of the relevant skill — within each item that touches the corresponding boundary.
+These disclaimers are mirrored in full form within each item that touches the corresponding boundary.
 
 ## Examples
 
@@ -105,7 +101,7 @@ We do not currently publish a pass-rate. The matcher is downstream of the skills
 ```
 catalog.json                  Single source of truth — ids, names, categories, profile membership
 manifest.json                 Generated: catalog merged with on-disk frontmatter (build output)
-skills/<id>/SKILL.md          One folder per skill, with frontmatter + markdown body (Dutch)
+skills/<id>/SKILL.md          One folder per skill, with frontmatter + markdown body (English)
 agents/<id>.md                One file per agent (sub-agent definition)
 commands/<id>.md              One file per slash command
 scripts/scaffold.mjs          Creates files for new catalog entries (idempotent)
@@ -119,7 +115,7 @@ install.sh                    Curl-pipeable installer (POSIX bash + curl + jq) f
 web/index.html                Builder UI
 examples/                     End-to-end walkthroughs
 tests/                        Smoke-test prompts
-docs/CLAUDE.md (root)         Working-language editing conventions (Dutch — for contributors)
+CLAUDE.md (root)              Working-language editing conventions (for contributors)
 ```
 
 ## Hosting
@@ -138,22 +134,22 @@ When the site is served over http(s), the builder auto-detects `location.origin`
 
 1. Add a row to `catalog.json` with `id`, `name`, `type` (`skill` / `agent` / `command`), `cat` (one or more of `core`, `appsec`, `pentest`, `blue`, `grc`), `profiles`, and a short English `desc`.
 2. Run `npm run scaffold` — a stub appears under the right directory.
-3. Fill in the body following the conventions in [CLAUDE.md](CLAUDE.md). The contributor doc is in Dutch (matching the working-language policy); structure and discipline rules carry through any language.
+3. Fill in the body following the conventions in [CLAUDE.md](CLAUDE.md). Body in English; preserve NL/EU regulatory references where they carry weight (NIS2, DORA, AVG, Cyberbeveiligingswet, AP, RDI, DNB, AFM, etc.).
 4. Run `npm run check` — builds the manifest, validates catalog/disk consistency, and reports the cross-reference graph.
 5. Add a corresponding entry in `tests/smoke-test-prompts.md`.
 
 ## Status
 
-47 items committed and tagged `v0.1.0`. CI runs build + validate + drift-check on every push and PR. Validation passes with 0 errors and 0 warnings as of the v0.1.0 tag.
+47 items committed. v0.1.0 shipped the catalog with mixed NL/EN bodies; v0.2.0 ships the catalog fully in English across all five profiles (Core, AppSec, Pentest, Blue, GRC). CI runs build + validate + drift-check on every push and PR. Validation passes with 0 errors and 0 warnings.
 
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). Particularly welcome:
 
-- Translation of `core` + `appsec` skill bodies to English.
 - Realistic end-to-end walkthroughs in `examples/`.
 - Fixes to outdated CVE / framework references.
 - Improvements to the build / validate / packaging pipeline.
+- Refinements to translations or NL/EU regulatory references.
 
 ## Code of Conduct
 

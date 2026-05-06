@@ -11,7 +11,7 @@ These tests are not automated — they are intended for manual self-evaluation i
 3. Observe which skill, agent, or command Claude invokes.
 4. Compare to the *expected trigger* column. If Claude invokes the wrong item, refines too late, or fails to trigger anything, file an issue with the prompt and the observed behavior.
 
-A "pass" means: Claude routes to the expected item within the first or second message, and the response demonstrates that the skill's `Aanpak` (or equivalent) is being followed.
+A "pass" means: Claude routes to the expected item within the first or second message, and the response demonstrates that the skill's `Approach` is being followed.
 
 ## Prompts
 
@@ -77,15 +77,15 @@ A "pass" means: Claude routes to the expected item within the first or second me
 
 | # | Prompt | Expected trigger |
 |---|---|---|
-| 39 | "ISO 27001:2022 Stage 2 voorbereiden — wat moet in de SoA?" | `iso27001` |
-| 40 | "Wat is de overlap tussen SOC 2 Type II en ISO 27001 voor dual-attestation?" | `soc2` |
-| 41 | "Vallen wij onder NIS2? We zijn een SaaS in fintech, 80 FTE." | `nis2` |
-| 42 | "DORA Pillar 4 third-party risk register opzetten — DNB toezicht." | `dora` |
-| 43 | "Moet er een DPIA komen voor onze nieuwe AI-feature die klantgedrag scoort?" | `gdpr-pia` |
-| 44 | "Risk-register-methodologie kiezen tussen ISO 31000, NIST 800-30 en FAIR." | `risk-register` |
-| 45 | "Schrijf een Acceptable Use Policy template aligned met ISO Annex A.5.10." | `policy-drafter` |
-| 46 | "Vendor-onboarding voor een nieuwe SaaS — welke vragenlijst?" | `vendor-questionnaire` |
-| 47 | "Hoe pakken we evidence-collection aan voor SOC 2 Type II observation period?" | `audit-evidence` |
+| 39 | "Prepare for ISO 27001:2022 Stage 2 — what goes into the SoA?" | `iso27001` |
+| 40 | "What is the overlap between SOC 2 Type II and ISO 27001 for dual attestation?" | `soc2` |
+| 41 | "Do we fall under NIS2? We are a fintech SaaS, 80 FTE." | `nis2` |
+| 42 | "Set up a DORA Pillar 4 third-party risk register — DNB supervision." | `dora` |
+| 43 | "Do we need a DPIA for our new AI feature that scores customer behavior?" | `gdpr-pia` |
+| 44 | "Choose risk-register methodology between ISO 31000, NIST 800-30, and FAIR." | `risk-register` |
+| 45 | "Write an Acceptable Use Policy template aligned with ISO Annex A.5.10." | `policy-drafter` |
+| 46 | "Vendor onboarding for a new SaaS — which questionnaire?" | `vendor-questionnaire` |
+| 47 | "How do we approach evidence collection for the SOC 2 Type II observation period?" | `audit-evidence` |
 
 ## Evaluation
 

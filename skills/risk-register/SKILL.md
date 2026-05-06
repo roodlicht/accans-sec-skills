@@ -1,178 +1,178 @@
 ---
 name: risk-register
-description: Risk-management workflow — risk identification, qualitative en quantitative analyse (likelihood × impact, FAIR-basis), evaluatie tegen risk-appetite, treatment (avoid/mitigate/transfer/accept), heatmaps en trend, met ISO 31000 en ISO 27005 als methodologie-basis.
+description: Risk-management workflow — risk identification, qualitative and quantitative analysis (likelihood × impact, FAIR basis), evaluation against risk appetite, treatment (avoid/mitigate/transfer/accept), heatmaps and trend, with ISO 31000 and ISO 27005 as the methodology base.
 ---
 
 # Risk Register
 
-> **Disclaimer**: risk-management is een management-verantwoordelijkheid. Deze skill helpt bij methodologie en documentatie; risk-appetite, acceptance-decisies en treatment-keuzes vragen eigenaarschap bij het management-orgaan.
+> **Disclaimer**: risk management is a management responsibility. This skill helps with methodology and documentation; risk appetite, acceptance decisions, and treatment choices require ownership at the management body.
 
-## Wanneer gebruiken
+## When to use
 
-Deze skill is methodologisch, niet framework-specifiek. Hij wordt aangeroepen vanuit vrijwel elke andere GRC-skill — `iso27001` (Cl 6.1), `soc2` (CC3 Risk Assessment), `nis2` (Art 21 eerste maatregel), `dora` (Art 5-14), `gdpr-pia` (Art 35 via risk-analysis-fase). Ook stand-alone toepasbaar voor generic business-risk-management.
+This skill is methodological, not framework-specific. It is invoked from nearly every other GRC skill — `iso27001` (Cl 6.1), `soc2` (CC3 Risk Assessment), `nis2` (Art 21 first measure), `dora` (Art 5-14), `gdpr-pia` (Art 35 via the risk-analysis phase). Also stand-alone applicable for generic business risk management.
 
-Activeert bij:
+Triggers on:
 
-- Een vraag als "hoe doen we risk-scoring", "welke methodologie voor risk-assessment", "heatmap opbouwen", "wat is risk-appetite", "FAIR vs ISO 27005", "wanneer accepteren we een risico".
-- Een handoff vanuit compliance-skills wanneer een risk-assessment nodig is.
-- Een periodieke (kwartaal/jaar) risk-review.
-- Nieuw product/dienst/project dat een risk-assessment als voorwaarde heeft.
-- Een incident waar achteraf blijkt dat de kans/impact-inschatting scheef stond — revisie-traject.
+- A question like "how do we do risk scoring", "which methodology for risk assessment", "build a heatmap", "what is risk appetite", "FAIR vs ISO 27005", "when do we accept a risk".
+- A handoff from compliance skills when a risk assessment is needed.
+- A periodic (quarterly/yearly) risk review.
+- A new product/service/project that has a risk assessment as a precondition.
+- An incident where the likelihood/impact estimate turned out skewed in hindsight — revision trajectory.
 
-### Wanneer NIET (handoff)
+### When NOT (handoff)
 
-- Framework-specifieke compliance-mapping → de betreffende GRC-skill. Deze skill levert de risk-methode, die skills de compliance-wrapping.
-- Technische threat-modeling op design-niveau → `threat-modeler`. Een DFD-plus-STRIDE-exercitie voor een specifiek systeem is geen enterprise-risk-assessment. Ze vullen elkaar aan: threat-modeler produceert input voor risk-register.
-- DPIA specifiek → `gdpr-pia`. DPIA is risk-analyse vanuit betrokkenen-perspectief, andere lens.
-- Security-finding-triage uit scans → `cve-triage` en `security-review` hebben eigen severity-modellen. Die gaan over technical-findings, deze skill gaat over enterprise-niveau risico's.
-- Ops-incident-handling → `ir-runbook`. Incidents zijn gerealiseerde risico's; deze skill is anticipatief.
-- Financial-risk specifiek (krediet, marktrisico) ligt buiten scope — andere vak-expertise.
+- Framework-specific compliance mapping → the relevant GRC skill. This skill provides the risk method, those skills the compliance wrapping.
+- Technical threat modeling at design level → `threat-modeler`. A DFD-plus-STRIDE exercise for a specific system is not an enterprise risk assessment. They complement each other: threat-modeler produces input for the risk register.
+- DPIA specifically → `gdpr-pia`. A DPIA is risk analysis from the data subject's perspective, a different lens.
+- Security-finding triage from scans → `cve-triage` and `security-review` have their own severity models. Those concern technical findings; this skill is about enterprise-level risks.
+- Ops incident handling → `ir-runbook`. Incidents are realized risks; this skill is anticipatory.
+- Financial-risk specifically (credit, market risk) is out of scope — different professional expertise.
 
-## Aanpak
+## Approach
 
-Zeven fases. Fases 2–5 vormen de ISO 31000-cyclus; fases 1 en 6 randvoorwaarden, fase 7 verification.
+Seven phases. Phases 2–5 form the ISO 31000 cycle; phases 1 and 6 are preconditions, phase 7 is verification.
 
-### 1. Methodologie en register-opzet
+### 1. Methodology and register setup
 
-Beslissingen vooraf die de rest van de cyclus kaderen.
+Decisions in advance that frame the rest of the cycle.
 
-- **Framework-basis**: ISO 31000:2018 voor principes, ISO 27005:2022 voor infosec-specifieke invulling, NIST SP 800-30 als alternatief met sterke US-overheids-adoption, FAIR voor kwantitatieve monetaire risk-analyse. Keuze één van deze plus eventueel FAIR als overlay voor kritieke risico's.
-- **Taxonomie**: hoe benoem je risico's? Asset-based (per systeem/dataset), threat-based (per aanvals-klasse), scenario-based (per bedrijfsimpact-scenario), of hybrid. Infosec-context typisch scenario-based ("leak van klantdata") aangevuld met asset-hooks.
-- **Register-format**: spreadsheet, GRC-tool (ServiceNow, Archer, OneTrust, Drata, SafeBase), of maatwerk-db. Spreadsheet is prima tot ~100 risks; schaal daarboven vereist tooling.
-- **Velden per risk**: ID, titel, beschrijving (threat + vulnerability + consequence), eigenaar, categorie (strategic/operational/financial/compliance/infosec), likelihood-score, impact-score, inherent-risk, geselecteerde treatment, residual-risk, controls, review-datum, status.
-- **Schaal**: 3x3, 5x5, of 10x10. 5x5 is de sweet spot — 3x3 mist nuance, 10x10 geeft valse precisie.
+- **Framework basis**: ISO 31000:2018 for principles, ISO 27005:2022 for infosec-specific implementation, NIST SP 800-30 as an alternative with strong US government adoption, FAIR for quantitative monetary risk analysis. Pick one of these plus optionally FAIR as an overlay for critical risks.
+- **Taxonomy**: how do you name risks? Asset-based (per system/dataset), threat-based (per attack class), scenario-based (per business-impact scenario), or hybrid. Infosec context typically scenario-based ("leak of customer data") complemented with asset hooks.
+- **Register format**: spreadsheet, GRC tool (ServiceNow, Archer, OneTrust, Drata, SafeBase), or custom DB. A spreadsheet is fine up to ~100 risks; scaling beyond that requires tooling.
+- **Fields per risk**: ID, title, description (threat + vulnerability + consequence), owner, category (strategic/operational/financial/compliance/infosec), likelihood score, impact score, inherent risk, selected treatment, residual risk, controls, review date, status.
+- **Scale**: 3x3, 5x5, or 10x10. 5x5 is the sweet spot — 3x3 misses nuance, 10x10 produces false precision.
 
-### 2. Risk-identification
+### 2. Risk identification
 
-Sources van risk-input:
+Sources of risk input:
 
-- **Threat-modeling** (handoff naar `threat-modeler`): technische dreigingen op design/code-niveau.
-- **Incidents en near-misses**: wat is er al gebeurd of bijna gebeurd? Hoogste-kwaliteit risk-data is altijd eigen historie.
-- **Threat intelligence**: ENISA threat landscape, MITRE ATT&CK, ISAC-feeds, vendor-advisories. Zie ook `ioc-hunter`.
-- **Workshops** met stakeholders over business-impact-scenario's.
-- **Frameworks**: NIS2 Art 21 / OWASP Top 10 / CIS Controls dienen als checklist voor "zijn we deze categorie vergeten".
-- **Supplier-register**: third-party risks raken vaak pas op deze laag zichtbaar.
+- **Threat modeling** (handoff to `threat-modeler`): technical threats at design/code level.
+- **Incidents and near misses**: what has already happened or nearly happened? The highest-quality risk data is always your own history.
+- **Threat intelligence**: ENISA threat landscape, MITRE ATT&CK, ISAC feeds, vendor advisories. See also `ioc-hunter`.
+- **Workshops** with stakeholders on business-impact scenarios.
+- **Frameworks**: NIS2 Art 21 / OWASP Top 10 / CIS Controls serve as a checklist for "have we forgotten this category".
+- **Supplier register**: third-party risks often only become visible at this layer.
 
-Kwaliteits-check: een goed-geformuleerd risk heeft **threat + vulnerability + consequence** in één zin. "Een ransomware-actor exploiteert een onverstookte RDP-endpoint en encrypt productie-data, wat X dagen downtime en ~€Y schade veroorzaakt" — niet "Ransomware".
+Quality check: a well-formulated risk has **threat + vulnerability + consequence** in one sentence. "A ransomware actor exploits an unpatched RDP endpoint and encrypts production data, causing X days of downtime and ~€Y damage" — not "Ransomware".
 
-### 3. Analyse: qualitative en quantitative
+### 3. Analysis: qualitative and quantitative
 
-**Qualitative** (ISO 27005-stijl): likelihood 1-5, impact 1-5, score = product.
+**Qualitative** (ISO 27005 style): likelihood 1-5, impact 1-5, score = product.
 
-Likelihood-criteria expliciet:
+Likelihood criteria explicit:
 
-- 1 Verwaarloosbaar: < 1× per 5 jaar, nooit eerder voorgekomen in vergelijkbare organisaties.
-- 2 Laag: < 1× per 2 jaar.
-- 3 Matig: 1× per jaar ballpark, voorgekomen in sector.
-- 4 Hoog: meer dan eens per jaar, bekend patroon.
-- 5 Zeker: elke maand of vaker, aanhoudend.
+- 1 Negligible: < 1× per 5 years, never seen in comparable organizations.
+- 2 Low: < 1× per 2 years.
+- 3 Moderate: 1× per year ballpark, has occurred in the sector.
+- 4 High: more than once per year, known pattern.
+- 5 Certain: every month or more often, ongoing.
 
-Impact-criteria expliciet (multi-dimensional, neem ernstigste):
+Impact criteria explicit (multi-dimensional, take the worst):
 
-- Financial: € bedragen met omvang-context.
-- Operational: downtime-uren met criticality.
-- Regulatory: boetes, enforcement-actie, consent decree.
-- Reputational: media-reach, klantverlies, trust-erosie.
-- Safety / human: fysieke of mentale schade (voor processen waar dat raakt).
+- Financial: € amounts with size context.
+- Operational: downtime hours with criticality.
+- Regulatory: fines, enforcement action, consent decree.
+- Reputational: media reach, customer loss, trust erosion.
+- Safety / human: physical or mental harm (for processes where that touches).
 
-**Quantitative** (FAIR): monetaire verwachtings-distributies. Loss Event Frequency × Loss Magnitude, waar elke variabele een range is met distributie (Beta-PERT of Monte Carlo). Uitkomst: "risico X tussen €A en €B met 90% confidence".
+**Quantitative** (FAIR): monetary expectation distributions. Loss Event Frequency × Loss Magnitude, where each variable is a range with a distribution (Beta-PERT or Monte Carlo). Outcome: "risk X between €A and €B with 90% confidence".
 
-Wanneer welke: qualitative default voor breed register, FAIR voor top-5 kritieke risks waar board-beslissing over treatment-budget speelt.
+When to use which: qualitative as default for the broad register, FAIR for the top-5 critical risks where a board decision on treatment budget is at stake.
 
-Inherent risk: zonder controls. Residual risk: met huidige controls. Beide documenteren; het verschil toont control-effectiviteit.
+Inherent risk: without controls. Residual risk: with current controls. Document both; the difference shows control effectiveness.
 
-### 4. Evaluatie: risk-appetite en tolerance
+### 4. Evaluation: risk appetite and tolerance
 
-Een risk-score is niet genoeg. Je moet een lijn hebben waarvoor hij wel of niet acceptabel is.
+A risk score is not enough. You must have a line at which it is or is not acceptable.
 
-- **Risk-appetite**: high-level statement van board — hoeveel risico acceptabel is per categorie. Voorbeeld: "Zero tolerance for regulatory non-compliance incidents that result in enforcement action; moderate tolerance for operational disruptions with <4 hour recovery."
-- **Risk-tolerance**: concrete numerieke drempels per dimensie. Bijvoorbeeld: "Operational risks with impact ≥ 4 require immediate treatment; impact 3 may be accepted with CISO sign-off."
-- **Risk-capacity**: maximaal absorbeerbaar risico (bedrijfs-kritiek, niet appetite). Typically much higher than appetite.
+- **Risk appetite**: a high-level statement from the board — how much risk is acceptable per category. Example: "Zero tolerance for regulatory non-compliance incidents that result in enforcement action; moderate tolerance for operational disruptions with <4 hour recovery."
+- **Risk tolerance**: concrete numerical thresholds per dimension. For example: "Operational risks with impact ≥ 4 require immediate treatment; impact 3 may be accepted with CISO sign-off."
+- **Risk capacity**: maximum risk that can be absorbed (business-critical, not appetite). Typically much higher than appetite.
 
-Risks boven tolerance moeten naar treatment (fase 5). Risks onder tolerance kunnen accepted of in het register blijven monitoring.
+Risks above tolerance must go to treatment (phase 5). Risks below tolerance can be accepted or stay in the register for monitoring.
 
-Bij ontbrekende appetite-statement: deze skill levert niet pas een rapport af, hij forceert een gesprek. Zonder appetite is elke risk-score los geld.
+If an appetite statement is missing: this skill does not deliver a report; it forces a conversation. Without appetite, every risk score is loose change.
 
 ### 5. Treatment
 
-Vier opties (ISO 31000, parallel aan `threat-modeler` fase 3):
+Four options (ISO 31000, parallel to `threat-modeler` phase 3):
 
-- **Avoid**: niet doen, feature schrappen, activiteit stoppen. Sterkst mitigerend, soms zakelijk onhaalbaar.
-- **Modify / Mitigate**: controls toevoegen om likelihood of impact te reduceren. Zie de technische skills voor implementatie.
-- **Share / Transfer**: contractueel (SLA, cyber-insurance, third-party-service) of operational (outsourcing). Transfer verplaatst risico, elimineert niet.
-- **Retain / Accept**: expliciete keuze om risico te lopen, met document en deadline voor re-review.
+- **Avoid**: don't do it, drop the feature, stop the activity. Most strongly mitigating, sometimes commercially infeasible.
+- **Modify / Mitigate**: add controls to reduce likelihood or impact. See the technical skills for implementation.
+- **Share / Transfer**: contractually (SLA, cyber insurance, third-party service) or operationally (outsourcing). Transfer relocates risk; it does not eliminate it.
+- **Retain / Accept**: an explicit choice to run the risk, with documentation and a deadline for re-review.
 
-**Per treatment-keuze**: eigenaar, deadline, budget, expected residual risk post-treatment, review-datum.
+**Per treatment choice**: owner, deadline, budget, expected residual risk post-treatment, review date.
 
-Treatment-plan is een levend document. Voortgang op elk treatment-pad tracken als project; resource-allocatie zichtbaar maken aan management.
+The treatment plan is a living document. Track progress on each treatment path as a project; make resource allocation visible to management.
 
-### 6. Monitoring en review
+### 6. Monitoring and review
 
-Risk-register is geen jaarlijkse exercitie maar een continu proces.
+The risk register is not an annual exercise but a continuous process.
 
-- **Review-cadens**: kwartaalreview van top risks met owners, jaarlijks volledige herziening, ad-hoc bij significant-event (nieuw product, incident, wetgeving-wijziging).
-- **Trending**: hoe zijn de top-10 risks veranderd over 4 kwartalen? Nieuwe risks erbij, oude weg, score-shifts?
-- **Heatmap**: 5x5-matrix likelihood × impact, telling per cel. Standaard-visualisatie richting board.
-- **KRIs (Key Risk Indicators)**: metrics die vroege signalen geven dat een risk bewegend is. Bijvoorbeeld: aantal high-severity-vulnerabilities open > 30 dagen als leading indicator voor "incident-waarschijnlijkheid stijgt".
-- **Post-incident review** koppelt gerealiseerde impact terug naar register: klopte de inschatting? Pas bij aan voor toekomst.
+- **Review cadence**: quarterly review of top risks with owners, an annual full review, ad-hoc on significant events (new product, incident, legislative change).
+- **Trending**: how have the top-10 risks shifted over 4 quarters? New risks added, old ones gone, score shifts?
+- **Heatmap**: 5x5 matrix of likelihood × impact, count per cell. Standard visualization for the board.
+- **KRIs (Key Risk Indicators)**: metrics that give early signals that a risk is moving. For example: number of high-severity vulnerabilities open > 30 days as a leading indicator that "incident likelihood is rising".
+- **Post-incident review** ties realized impact back to the register: was the estimate correct? Adjust for the future.
 
 ### 7. Verification-loop
 
-Laag 1: scope (alle categorieën dekken — strategic, operational, financial, compliance, infosec, reputational?), aannames (risk-appetite-statements bestaan, anders is evaluatie irrationeel), gaps (third-party / supply-chain apart meegenomen, of onzichtbaar afhankelijk van internals?), consistentie (treatment-plan-deadlines gaan nergens naartoe zonder eigenaarschap). Laag 2: methodologie-verwijzingen (ISO 31000, 27005, NIST 800-30, FAIR) correct geattribueerd, geen valse precisie (FAIR-uitkomsten zonder Monte Carlo-grond zijn geen FAIR), heatmaps vertonen geen 10-dimensionaal rapport gereduceerd tot 1 cel.
+Layer 1: scope (covers all categories — strategic, operational, financial, compliance, infosec, reputational?), assumptions (risk-appetite statements exist, otherwise evaluation is irrational), gaps (third-party / supply-chain considered separately, or invisibly dependent on internals?), consistency (treatment-plan deadlines lead nowhere without ownership). Layer 2: methodology references (ISO 31000, 27005, NIST 800-30, FAIR) correctly attributed, no false precision (FAIR outcomes without a Monte Carlo basis are not FAIR), heatmaps do not present a 10-dimensional report reduced to one cell.
 
 ## Output
 
 ```
-Risk-register — <entity/scope>
-Methodologie: <ISO 31000 + 27005 | NIST 800-30 | FAIR overlay>
-Schaal:       <3x3 | 5x5 | 10x10>
-Datum:        YYYY-MM-DD | Review-cyclus: <kwartaal/jaar>
+Risk register — <entity/scope>
+Methodology: <ISO 31000 + 27005 | NIST 800-30 | FAIR overlay>
+Scale:       <3x3 | 5x5 | 10x10>
+Date:        YYYY-MM-DD | Review cycle: <quarterly/yearly>
 
-Risk-appetite-statement:
-  <board-goedgekeurde tekst, per categorie>
+Risk-appetite statement:
+  <board-approved text, per category>
 
-Register-samenvatting:
-  Totaal:     N risks
-  Top 10:     gerangschikt op residual-risk-score
-  Verdeling:  per categorie + per treatment-keuze
+Register summary:
+  Total:      N risks
+  Top 10:     ranked by residual-risk score
+  Distribution: per category + per treatment choice
 
 Per risk:
   ID:           R-NNN
-  Titel:        <threat + vulnerability + consequence in één zin>
-  Eigenaar:     <naam + rol>
-  Categorie:    <strategic/operational/financial/compliance/infosec/reputational>
+  Title:        <threat + vulnerability + consequence in one sentence>
+  Owner:        <name + role>
+  Category:     <strategic/operational/financial/compliance/infosec/reputational>
   Inherent:     likelihood × impact = N
-  Controls:     <huidige controls met effectiviteit>
+  Controls:     <current controls with effectiveness>
   Residual:     likelihood × impact = N
   Treatment:    <avoid|modify|share|retain>
-  Actie-plan:   <eigenaar, deadline, budget>
-  Review:       <datum>
+  Action plan:  <owner, deadline, budget>
+  Review:       <date>
 
 Top-risks heatmap:
-  <5x5 matrix, cel-telling>
+  <5x5 matrix, cell counts>
 
-Trend (t.o.v. vorig kwartaal):
-  Nieuwe risks:   N
-  Geaccepteerde/geretireerde: N
-  Score-shifts:   <up/down met reden>
+Trend (vs. previous quarter):
+  New risks:                  N
+  Accepted/retired:           N
+  Score shifts:               <up/down with reason>
 
 KRIs:
-  <indicator: drempel: huidige waarde: trend>
+  <indicator: threshold: current value: trend>
 
 Verification-loop: ...
 ```
 
-## Referenties
+## References
 
 - **ISO 31000:2018** — [https://www.iso.org/standard/65694.html](https://www.iso.org/standard/65694.html). Risk management principles and guidelines, non-certifiable framework.
-- **ISO/IEC 27005:2022** — [https://www.iso.org/standard/80585.html](https://www.iso.org/standard/80585.html). Infosec-specifieke uitwerking van 27001-risk-management.
+- **ISO/IEC 27005:2022** — [https://www.iso.org/standard/80585.html](https://www.iso.org/standard/80585.html). Infosec-specific implementation of 27001 risk management.
 - **NIST SP 800-30 Rev. 1** — [https://csrc.nist.gov/pubs/sp/800/30/r1/final](https://csrc.nist.gov/pubs/sp/800/30/r1/final). Risk Assessment Guide.
 - **NIST SP 800-39** — [https://csrc.nist.gov/pubs/sp/800/39/final](https://csrc.nist.gov/pubs/sp/800/39/final). Managing Information Security Risk.
-- **FAIR Institute** — [https://www.fairinstitute.org/](https://www.fairinstitute.org/). Kwantitatieve risk-methodologie.
-- **The Open Group FAIR Standard** — [https://www.opengroup.org/fair](https://www.opengroup.org/fair). Officiële standaard voor FAIR.
-- **ENISA Threat Landscape** — [https://www.enisa.europa.eu/topics/cyber-threats/threats-and-trends](https://www.enisa.europa.eu/topics/cyber-threats/threats-and-trends). Jaarlijks rapport, nuttig voor risk-identification-input.
-- **COSO ERM Framework** — [https://www.coso.org/](https://www.coso.org/). Enterprise Risk Management framework, breder dan infosec.
+- **FAIR Institute** — [https://www.fairinstitute.org/](https://www.fairinstitute.org/). Quantitative risk methodology.
+- **The Open Group FAIR Standard** — [https://www.opengroup.org/fair](https://www.opengroup.org/fair). Official standard for FAIR.
+- **ENISA Threat Landscape** — [https://www.enisa.europa.eu/topics/cyber-threats/threats-and-trends](https://www.enisa.europa.eu/topics/cyber-threats/threats-and-trends). Annual report, useful for risk-identification input.
+- **COSO ERM Framework** — [https://www.coso.org/](https://www.coso.org/). Enterprise Risk Management framework, broader than infosec.
 
-## Categorieën
+## Categories
 
 - grc

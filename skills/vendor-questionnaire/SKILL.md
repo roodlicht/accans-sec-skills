@@ -1,169 +1,169 @@
 ---
 name: vendor-questionnaire
-description: Vendor security questionnaire workflow — vendor-tiering, gestandaardiseerde vragenlijsten (CAIQ, SIG-Lite/Core, VSA), custom-authoring, evidence-reuse tegen bestaande attestations (SOC 2, ISO 27001), en ongoing vendor-risk monitoring.
+description: Vendor security questionnaire workflow — vendor tiering, standardized questionnaires (CAIQ, SIG-Lite/Core, VSA), custom authoring, evidence reuse against existing attestations (SOC 2, ISO 27001), and ongoing vendor-risk monitoring.
 ---
 
 # Vendor Security Questionnaire
 
-> **Disclaimer**: deze skill ondersteunt security-inschatting van vendors. Contractuele en juridische review (data-processing-agreements, liability-clauses, jurisdictie) vereist legal. Deze skill vervangt geen contract-juridische expertise.
+> **Disclaimer**: this skill supports a security assessment of vendors. Contractual and legal review (data-processing agreements, liability clauses, jurisdiction) requires legal. This skill does not replace contract-legal expertise.
 
-## Wanneer gebruiken
+## When to use
 
-Vendor Security Questionnaires zijn het standaard-mechanisme waarmee organisaties de security-posture van hun third-party-providers beoordelen. Aan beide kanten: je stuurt ze (als afnemer) én ontvangt ze (als provider die aan B2B-klanten levert). Deze skill dekt beide rollen.
+Vendor Security Questionnaires are the standard mechanism organizations use to assess the security posture of their third-party providers. From both sides: you send them (as the buyer) AND receive them (as a provider serving B2B customers). This skill covers both roles.
 
-Activeert bij:
+Triggers on:
 
-- Een vraag als "welke questionnaire gebruiken we voor deze vendor", "vul deze SIG-Lite in voor klant X", "CAIQ-antwoorden opbouwen", "wat is een redelijke questionnaire voor een low-risk SaaS", "evidence-reuse tussen vragenlijsten".
-- Een nieuw vendor-onboarding-traject (sender-kant).
-- Een inkomende security-vragenlijst van een klant (receiver-kant).
-- Een handoff vanuit `supply-chain` (SBOM-kant), `dora` (Art 28-30 third-party risk), `nis2` (Art 21(4) supply-chain security), `policy-drafter` (vendor management policy).
-- Jaarlijkse her-review van bestaande vendors.
+- A question like "which questionnaire do we use for this vendor", "fill out this SIG-Lite for customer X", "build CAIQ answers", "what is a reasonable questionnaire for a low-risk SaaS", "evidence reuse across questionnaires".
+- A new vendor onboarding (sender side).
+- An incoming security questionnaire from a customer (receiver side).
+- A handoff from `supply-chain` (SBOM side), `dora` (Art 28-30 third-party risk), `nis2` (Art 21(4) supply-chain security), `policy-drafter` (vendor management policy).
+- Annual re-review of existing vendors.
 
-### Wanneer NIET (handoff)
+### When NOT (handoff)
 
-- Contract-drafting of legal-review → legal-team. Deze skill levert input voor contracten, geen contracten zelf.
-- Policy-laag van vendor management → `policy-drafter`.
-- Technische dep/supply-chain-evaluatie (SBOM, provenance) → `supply-chain`. Wel complementair.
-- Risk-scoring-methodologie → `risk-register`.
-- Compliance-specifieke attestation-productie → `iso27001`, `soc2`, `audit-evidence`.
-- Privacy-specifieke vendor-beoordeling (sub-processors onder AVG Art 28) → `gdpr-pia`-context plus DPA-review.
-- Fraud/financial-due-diligence → buiten scope, financial-controlling expertise.
+- Contract drafting or legal review → legal team. This skill provides input for contracts, not contracts themselves.
+- Policy layer of vendor management → `policy-drafter`.
+- Technical dep/supply-chain evaluation (SBOM, provenance) → `supply-chain`. Complementary.
+- Risk-scoring methodology → `risk-register`.
+- Compliance-specific attestation production → `iso27001`, `soc2`, `audit-evidence`.
+- Privacy-specific vendor assessment (sub-processors under AVG Art 28) → `gdpr-pia` context plus DPA review.
+- Fraud / financial due diligence → out of scope, financial-controlling expertise.
 
-## Aanpak
+## Approach
 
-Zeven fases. Fase 1 (tiering) bepaalt alle vervolgstappen; fase 4 (evidence-reuse) is waar efficiëntie-winst zit.
+Seven phases. Phase 1 (tiering) decides all subsequent steps; phase 4 (evidence reuse) is where efficiency gains live.
 
-### 1. Vendor-tiering
+### 1. Vendor tiering
 
-Niet elke vendor krijgt dezelfde aandacht. Tier bepaalt diepte van due-diligence.
+Not every vendor receives the same attention. Tier sets the depth of due diligence.
 
-**Tier-criteria** (meerdimensionaal):
+**Tier criteria** (multi-dimensional):
 
-- **Data-access**: welke data wordt verwerkt (PII? Financial? Gevoelige categorieën Art 9 AVG?)?
-- **System-access**: heeft vendor toegang tot productie-systemen, admin-rollen, source-code?
-- **Business-criticality**: hoe lang overleven we uitval van deze vendor?
-- **Regulatory-scope**: is deze vendor onderdeel van een NIS2/DORA-onderworpen keten?
+- **Data access**: which data is processed (PII? Financial? Special categories Art 9 AVG?)?
+- **System access**: does the vendor have access to production systems, admin roles, source code?
+- **Business criticality**: how long do we survive an outage of this vendor?
+- **Regulatory scope**: is this vendor part of a NIS2/DORA-subject chain?
 
-**Tier-definities** (voorbeeld 3-tier):
+**Tier definitions** (3-tier example):
 
-- **Tier-1 (critical)**: raakt PII of productie, essentieel voor core-operatie, regulatory-onderworpen. Full questionnaire + SOC 2/ISO 27001-evidence verplicht + annual review + on-site/remote audit-rechten.
-- **Tier-2 (moderate)**: beperkte data-exposure of moderate business-impact. Mid-size questionnaire (SIG-Lite of CAIQ-Lite), attestation-evidence voldoende, biennial review.
-- **Tier-3 (low)**: geen PII, geen productie-toegang, vervangbaar. Lightweight questionnaire (10-20 vragen), evidence-optional, triennial review.
+- **Tier 1 (critical)**: touches PII or production, essential for core operations, regulatory-subject. Full questionnaire + SOC 2/ISO 27001 evidence required + annual review + on-site/remote audit rights.
+- **Tier 2 (moderate)**: limited data exposure or moderate business impact. Mid-size questionnaire (SIG-Lite or CAIQ-Lite), attestation evidence sufficient, biennial review.
+- **Tier 3 (low)**: no PII, no production access, replaceable. Lightweight questionnaire (10-20 questions), evidence optional, triennial review.
 
-Tiering-criteria documenteren als onderdeel van Vendor Management Policy (zie `policy-drafter`).
+Document the tiering criteria as part of the Vendor Management Policy (see `policy-drafter`).
 
-### 2. Gestandaardiseerde frameworks
+### 2. Standardized frameworks
 
-Gebruik bestaande frameworks waar kan; custom bouwen is duur en dubbel werk.
+Use existing frameworks where possible; building custom is expensive and double work.
 
-- **CAIQ (Consensus Assessments Initiative Questionnaire)** — Cloud Security Alliance. 261 vragen (v4.0.3) gealigned met Cloud Controls Matrix (CCM). Sterkst voor cloud-service-providers. Vrij beschikbaar.
-- **SIG / SIG-Lite / SIG-Core (Standardized Information Gathering)** — Shared Assessments. SIG-Lite ~300 vragen, SIG-Core ~1500, full SIG ~3000. Breed toepasbaar, commercial licence voor volledige versie.
-- **VSA (Vendor Security Alliance)** — VSAQ (core) + VSAQ-full. Compact alternatief gericht op moderne SaaS.
-- **NIST SP 800-171 self-assessment** — voor vendors die met US-federal/DoD-data werken (CUI).
-- **CRA assessment** — verwachte rol van vendors onder EU Cyber Resilience Act voor software-product-security.
+- **CAIQ (Consensus Assessments Initiative Questionnaire)** — Cloud Security Alliance. 261 questions (v4.0.3) aligned with the Cloud Controls Matrix (CCM). Strongest for cloud service providers. Freely available.
+- **SIG / SIG-Lite / SIG-Core (Standardized Information Gathering)** — Shared Assessments. SIG-Lite ~300 questions, SIG-Core ~1500, full SIG ~3000. Broadly applicable, commercial license for the full version.
+- **VSA (Vendor Security Alliance)** — VSAQ (core) + VSAQ-full. Compact alternative aimed at modern SaaS.
+- **NIST SP 800-171 self-assessment** — for vendors handling US-federal/DoD data (CUI).
+- **CRA assessment** — expected role of vendors under the EU Cyber Resilience Act for software-product security.
 
-Selectie-heuristiek: als vendor zelf een framework aanbiedt ("hier is onze ingevulde CAIQ + SOC 2 report"), accepteer dat eerst. Custom-questionnaire pas als bestaande frameworks echt gaten hebben voor jouw context.
+Selection heuristic: if the vendor offers a framework themselves ("here is our completed CAIQ + SOC 2 report"), accept that first. Custom questionnaire only when existing frameworks really have gaps for your context.
 
-### 3. Custom-questionnaire authoring (alleen indien nodig)
+### 3. Custom-questionnaire authoring (only when needed)
 
-Voor organisatie-specifieke vragen buiten de standaard-frameworks. Houd het beperkt tot het écht-unieke.
+For organization-specific questions outside the standard frameworks. Keep it limited to the truly unique.
 
-- **Top-level clustering**: governance, identity/access, data-protection, ops/monitoring, incident-response, supply-chain, compliance, continuity.
-- **Vraag-formulering**: closed questions met evidence-request (bv. "Do you enforce MFA for admin access? [Y/N]. If yes, provide evidence screenshot/policy reference"), niet open essays ("Please describe your security").
-- **Lengte**: tier-afhankelijk. Tier-1 kan 100+ vragen; tier-3 niet meer dan 20. Vendor-fatigue is reëel.
-- **Language**: NL of EN, niet beide (zie `policy-drafter` fase 4).
+- **Top-level clustering**: governance, identity/access, data protection, ops/monitoring, incident response, supply chain, compliance, continuity.
+- **Question phrasing**: closed questions with an evidence request (e.g. "Do you enforce MFA for admin access? [Y/N]. If yes, provide evidence screenshot/policy reference"), not open essays ("Please describe your security").
+- **Length**: tier-dependent. Tier 1 can be 100+ questions; tier 3 not more than 20. Vendor fatigue is real.
+- **Language**: NL or EN, not both (see `policy-drafter` phase 4).
 
-Custom-questionnaires moeten een stable, versioned document zijn, niet elke vendor een ad-hoc-variant.
+Custom questionnaires must be a stable, versioned document, not an ad-hoc variant per vendor.
 
-### 4. Evidence-mapping en reuse
+### 4. Evidence mapping and reuse
 
-De meeste waarde in modern-day vendor-security zit in **niet opnieuw dezelfde vragen beantwoorden**.
+Most of the value in modern-day vendor security is in **not answering the same questions over and over**.
 
-- **Attestation-first**: als vendor SOC 2 Type II of ISO 27001 heeft, vraag die rapporten eerst. Mapping-tabel: CAIQ-vraag X mapt naar SOC 2 CC6.1-control. Antwoord: "See attached SOC 2 report, section CC6.1, evidence in Appendix".
+- **Attestation-first**: if a vendor has SOC 2 Type II or ISO 27001, ask for those reports first. Mapping table: CAIQ question X maps to SOC 2 CC6.1 control. Answer: "See attached SOC 2 report, section CC6.1, evidence in Appendix".
 - **Cross-walks**:
-  - CAIQ ↔ CCM ↔ ISO 27001 Annex A: CSA publiceert mappings.
-  - SIG ↔ ISO 27001: Shared Assessments publiceert.
-  - NIST CSF ↔ ISO 27001: veel cross-walks publiek beschikbaar.
-- **Evidence-library** (als receiver): maintain een gestructureerde repository met per control type evidence. Nieuw-inkomend questionnaire: 80% van antwoorden komt uit de library, 20% is queries-specifiek.
-- **Trust-centers / SafeBase / Whistic / VendorSPT**: publiek-toegankelijke portals waar je je attestations, SBOM's, en policy-overviews host voor klanten. Verlaagt inkomende-questionnaire-last. Voor mature B2B-SaaS standaard.
-- **CAIQ-based STAR** (CSA): publieke registry van CAIQ-ingevulde vendors. Check vóór je custom-questionnaire stuurt.
+  - CAIQ ↔ CCM ↔ ISO 27001 Annex A: CSA publishes the mappings.
+  - SIG ↔ ISO 27001: Shared Assessments publishes them.
+  - NIST CSF ↔ ISO 27001: many cross-walks publicly available.
+- **Evidence library** (as receiver): maintain a structured repository with evidence per control type. New incoming questionnaire: 80% of answers come from the library, 20% are query-specific.
+- **Trust centers / SafeBase / Whistic / VendorSPT**: publicly accessible portals where you host your attestations, SBOMs, and policy overviews for customers. Lowers incoming-questionnaire load. Standard for mature B2B SaaS.
+- **CAIQ-based STAR** (CSA): public registry of CAIQ-completed vendors. Check before sending a custom questionnaire.
 
-Ontbrekende evidence voor een specifieke vraag is op zich een finding: vendor claimt "ja" maar kan niet staven.
+Missing evidence for a specific question is itself a finding: the vendor claims "yes" but cannot back it up.
 
-### 5. Review + risk-acceptance
+### 5. Review + risk acceptance
 
-Na ontvangen antwoorden:
+After answers come in:
 
-- **Red-flag-pass**: auto-disqualifiers. Geen MFA op admin, geen encryption-at-rest voor PII, geen incident-response-plan, geen breach-notification-clause. Vendors die hier falen zijn niet onderhandelbaar tenzij de business-case enorm is en risk expliciet is geaccepteerd.
-- **Scoring**: tier-aangepast scoren. Tier-1 met gaps = ga terug naar vendor met remediation-request. Tier-3 met minor gaps = acceptabel met compensating controls.
-- **Risk-acceptance**: als gaps blijven, documenteer in `risk-register` met expliciete accept-beslissing, eigenaar, deadline voor her-review.
-- **Contract-clauses** die uit vragenlijst volgen: breach-notification-timeline, right-to-audit, data-residency-garantie, sub-processor-approval-keten, exit-procedure met data-return/destruction. Specifiek voor DORA Art 30 verplicht voor financial entities.
-- **Complementary User Entity Controls (CUECs)**: welke controls rekent vendor op aan jou? Documenteer en communiceer intern (zie `soc2` fase 5).
+- **Red-flag pass**: auto-disqualifiers. No MFA on admin, no encryption-at-rest for PII, no incident-response plan, no breach-notification clause. Vendors that fail here are not negotiable unless the business case is huge and the risk is explicitly accepted.
+- **Scoring**: tier-adjusted scoring. Tier 1 with gaps = go back to the vendor with a remediation request. Tier 3 with minor gaps = acceptable with compensating controls.
+- **Risk acceptance**: if gaps remain, document in `risk-register` with an explicit accept decision, owner, deadline for re-review.
+- **Contract clauses** that follow from the questionnaire: breach-notification timeline, right to audit, data-residency guarantee, sub-processor-approval chain, exit procedure with data return/destruction. Specifically required for DORA Art 30 for financial entities.
+- **Complementary User Entity Controls (CUECs)**: which controls does the vendor count on you for? Document and communicate internally (see `soc2` phase 5).
 
 ### 6. Ongoing monitoring
 
-Eén-shot vendor-assessment is onvoldoende. Vendors veranderen; risk-exposure ook.
+A one-shot vendor assessment is not enough. Vendors change; risk exposure with them.
 
-- **Re-assessment-cadens** per tier (annual tier-1, biennial tier-2, triennial tier-3).
-- **Event-triggers**: incident bij vendor (public breach), significant-organisational-change, contract-renewal, change in data-scope.
-- **Continuous-monitoring-tools**: BitSight, SecurityScorecard, Panorays, UpGuard. Leveren outside-in risk-ratings (DNS-config, cert-hygiene, leaked-credentials, patch-cadens). Geen vervanging voor questionnaire maar wel red-flag-detector tussen formele reviews in.
-- **Register**: aligned met DORA Art 28(3) register-of-information voor financial entities (ingediend bij DNB/AFM), of equivalent voor niet-financial.
+- **Re-assessment cadence** per tier (annual tier 1, biennial tier 2, triennial tier 3).
+- **Event triggers**: incident at the vendor (public breach), significant organizational change, contract renewal, change in data scope.
+- **Continuous monitoring tools**: BitSight, SecurityScorecard, Panorays, UpGuard. They produce outside-in risk ratings (DNS config, cert hygiene, leaked credentials, patch cadence). Not a replacement for the questionnaire but a red-flag detector between formal reviews.
+- **Register**: aligned with DORA Art 28(3) register of information for financial entities (filed with DNB/AFM), or equivalent for non-financial.
 
 ### 7. Verification-loop
 
-Laag 1: scope (alle tier-1-vendors geassessed, geen shadow-IT-vendors via P-card vergeten?), aannames (vendor-attestations nog geldig, niet verlopen?), gaps (sub-processors in kaart, niet alleen top-level vendor?). Laag 2: framework-versienummers (CAIQ v4.0.x, SIG-jaar) correct, cross-walk-claims onderbouwd met CSA/Shared-Assessments-publicaties, geen verzonnen SOC 2-mapping-codes, contract-clause-terminologie technisch en niet legally-overshooting.
+Layer 1: scope (all tier-1 vendors assessed, no shadow-IT vendors via P-card forgotten?), assumptions (vendor attestations still valid, not expired?), gaps (sub-processors mapped, not just the top-level vendor?). Layer 2: framework version numbers (CAIQ v4.0.x, SIG year) correct, cross-walk claims supported by CSA/Shared-Assessments publications, no invented SOC 2 mapping codes, contract-clause terminology technical and not legally over-reaching.
 
 ## Output
 
-Twee modes: sender (questionnaire uitsturen + antwoorden reviewen) of receiver (inkomende questionnaire beantwoorden).
+Two modes: sender (send a questionnaire + review answers) or receiver (answer an incoming questionnaire).
 
-**Sender-mode**:
+**Sender mode**:
 
 ```
 Vendor security assessment — <vendor>
-Tier: <1 | 2 | 3> | Onboarding-datum: <...> | Laatste review: <...>
+Tier: <1 | 2 | 3> | Onboarding date: <...> | Last review: <...>
 
 Questionnaire:
   Framework:          <CAIQ v4 | SIG-Lite | custom>
-  Verstuurd:          <datum>
-  Ontvangen:          <datum, N antwoorden>
+  Sent:               <date>
+  Received:           <date, N answers>
 
 Attestations:
-  SOC 2 Type II:      <aanwezig, periode, issuer>
-  ISO 27001:          <aanwezig, scope, vervaldatum>
-  Andere:             <DORA CTPP, FedRAMP, ...>
+  SOC 2 Type II:      <present, period, issuer>
+  ISO 27001:          <present, scope, expiry>
+  Other:              <DORA CTPP, FedRAMP, ...>
 
 Findings:
-  Red flags:          <lijst, blocker voor onboarding?>
-  Gaps (niet-blocker):<lijst met compensating controls of acceptance>
-  Evidence-gaps:      <claims zonder bewijs>
+  Red flags:          <list, blocker for onboarding?>
+  Gaps (non-blocker): <list with compensating controls or acceptance>
+  Evidence gaps:      <claims without evidence>
 
-Contract-clauses (aligned met findings):
-  Breach-notification:<timing>
-  Right-to-audit:     <scope>
-  Data-residency:     <regio-lock>
-  Sub-processor:      <approval-keten>
-  Exit:               <return/destruction-procedure>
+Contract clauses (aligned with findings):
+  Breach notification:<timing>
+  Right to audit:     <scope>
+  Data residency:     <region lock>
+  Sub-processor:      <approval chain>
+  Exit:               <return/destruction procedure>
 
 Decision:
-  Onboard:            <ja | met voorwaarden | nee>
+  Onboard:            <yes | with conditions | no>
   Risk accepted:      <register-ID in risk-register>
 
 Verification-loop: ...
 ```
 
-**Receiver-mode**: gestructureerde antwoord-package met verwijzingen naar evidence-library-items, cross-walked naar de gevraagde framework-codes.
+**Receiver mode**: a structured answer package with references to evidence-library items, cross-walked to the requested framework codes.
 
-## Referenties
+## References
 
-- **CSA CAIQ** — [https://cloudsecurityalliance.org/research/cloud-controls-matrix](https://cloudsecurityalliance.org/research/cloud-controls-matrix). CAIQ + CCM, vrij downloadbaar, cross-walks naar andere frameworks.
-- **CSA STAR Registry** — [https://cloudsecurityalliance.org/star/registry](https://cloudsecurityalliance.org/star/registry). Publiek register van CAIQ-ingevulde providers.
-- **Shared Assessments SIG** — [https://sharedassessments.org/sig/](https://sharedassessments.org/sig/). SIG-familie questionnaires, commercial.
-- **Vendor Security Alliance** — [https://www.vendorsecurityalliance.org/](https://www.vendorsecurityalliance.org/). VSAQ-core en VSAQ-full.
-- **NIST SP 800-171** — [https://csrc.nist.gov/pubs/sp/800/171/r3/final](https://csrc.nist.gov/pubs/sp/800/171/r3/final). Voor CUI-handling assessment.
-- **EU Cyber Resilience Act** — [https://digital-strategy.ec.europa.eu/en/policies/cyber-resilience-act](https://digital-strategy.ec.europa.eu/en/policies/cyber-resilience-act). Relevant voor vendor-assessment van software-products vanaf inwerkingtreding.
+- **CSA CAIQ** — [https://cloudsecurityalliance.org/research/cloud-controls-matrix](https://cloudsecurityalliance.org/research/cloud-controls-matrix). CAIQ + CCM, freely downloadable, cross-walks to other frameworks.
+- **CSA STAR Registry** — [https://cloudsecurityalliance.org/star/registry](https://cloudsecurityalliance.org/star/registry). Public registry of CAIQ-completed providers.
+- **Shared Assessments SIG** — [https://sharedassessments.org/sig/](https://sharedassessments.org/sig/). SIG family questionnaires, commercial.
+- **Vendor Security Alliance** — [https://www.vendorsecurityalliance.org/](https://www.vendorsecurityalliance.org/). VSAQ-core and VSAQ-full.
+- **NIST SP 800-171** — [https://csrc.nist.gov/pubs/sp/800/171/r3/final](https://csrc.nist.gov/pubs/sp/800/171/r3/final). For CUI-handling assessment.
+- **EU Cyber Resilience Act** — [https://digital-strategy.ec.europa.eu/en/policies/cyber-resilience-act](https://digital-strategy.ec.europa.eu/en/policies/cyber-resilience-act). Relevant for vendor assessment of software products once it enters into force.
 - **NIST SP 800-161 Rev. 1** — [https://csrc.nist.gov/pubs/sp/800/161/r1/final](https://csrc.nist.gov/pubs/sp/800/161/r1/final). Cybersecurity Supply Chain Risk Management practices.
 
-## Categorieën
+## Categories
 
 - grc

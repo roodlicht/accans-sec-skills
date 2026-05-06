@@ -5,177 +5,177 @@ description: EU NIS2 Directive (2022/2555) gap analysis — scope determination 
 
 # NIS2 Gap Analysis
 
-> **Disclaimer**: deze skill is geen juridisch advies. Hij helpt bij scoping en technische gap-analyse tegen de tekst van de richtlijn. Definitieve juridische kwalificatie (entity-classificatie, sancties-risico, contractuele gevolgen) vereist advies van een jurist met NIS2-ervaring, eventueel met compliance-afdeling of externe counsel.
+> **Disclaimer**: this skill is not legal advice. It helps with scoping and a technical gap analysis against the directive's text. Final legal qualification (entity classification, sanctions risk, contractual consequences) requires advice from a lawyer with NIS2 experience, possibly together with a compliance department or external counsel.
 
-## Wanneer gebruiken
+## When to use
 
-De NIS2-richtlijn (EU 2022/2555) verving NIS1 en is op 17 oktober 2024 van kracht geworden. Nederland implementeert via de Cyberbeveiligingswet (`[verify voor actuele status — wetstraject is in beweging geweest door 2024 en 2025]`). Deze skill dekt beide: EU-richtlijntekst als primaire bron, NL-implementatie als toepassing.
+The NIS2 directive (EU 2022/2555) replaces NIS1 and entered into force on 17 October 2024. The Netherlands implements it through the Cyberbeveiligingswet (`[verify current status — the legislative track has been in motion through 2024 and 2025]`). This skill covers both: the EU directive text as the primary source, the NL implementation as the application.
 
-Activeert bij:
+Triggers on:
 
-- Een vraag als "valt onze organisatie onder NIS2", "wat moeten we doen voor NIS2", "NIS2 gap-analyse", "hebben we een incident-meldingsplicht", "wat zijn de 10 maatregelen".
-- Een organisatie die overweegt of zij essential of important entity is (sectoren in bijlagen I en II), of wier leveranciers die status hebben (contractuele doorwerking).
-- Een handoff vanuit `iso27001` of `risk-register`: NIS2 Art 21 mapt op ISO 27001-Annex A en op NIST CSF.
-- Een incident waar de vraag "moeten we dit melden aan CSIRT-NL" opkomt.
+- A question like "is our organization in scope of NIS2", "what do we need to do for NIS2", "NIS2 gap analysis", "do we have an incident-reporting obligation", "what are the 10 measures".
+- An organization considering whether it is an essential or important entity (sectors in Annex I and II), or whose suppliers have that status (contractual carry-through).
+- A handoff from `iso27001` or `risk-register`: NIS2 Art 21 maps onto ISO 27001 Annex A and onto NIST CSF.
+- An incident where the question "must we report this to CSIRT-NL" comes up.
 
-### Wanneer NIET (handoff)
+### When NOT (handoff)
 
-- Technische implementatie van de 10 maatregelen op code/system-niveau → de betreffende security-skills (`secure-coding`, `sast-orchestrator`, `ir-runbook`, etc.). NIS2 vraagt dát je dingen doet; hoe je ze doet zit in die skills.
-- DORA-compliance voor financiële entiteiten → `dora`. DORA is lex specialis voor financial, NIS2 is horizontaal. Bij financiële organisaties kunnen beide tegelijk van toepassing zijn.
-- GDPR/AVG meldingen (datalekken) → `gdpr-pia` plus AVG Art 33/34. NIS2-incidentmelding is additief, niet vervangend.
-- ISO 27001-certificering als doel → `iso27001`. NIS2 eist geen certificering.
-- Contractuele supply-chain-verplichtingen met technische uitwerking → `vendor-questionnaire` en `supply-chain`.
-- Beleidsdocument-drafting → `policy-drafter`.
+- Technical implementation of the 10 measures at code/system level → the relevant security skills (`secure-coding`, `sast-orchestrator`, `ir-runbook`, etc.). NIS2 demands that you do things; how you do them lives in those skills.
+- DORA compliance for financial entities → `dora`. DORA is lex specialis for financial; NIS2 is horizontal. Both can apply at financial organizations.
+- GDPR/AVG notifications (data breaches) → `gdpr-pia` plus AVG Art 33/34. NIS2 incident reporting is additive, not a replacement.
+- ISO 27001 certification as a goal → `iso27001`. NIS2 does not require certification.
+- Contractual supply-chain obligations with technical implementation → `vendor-questionnaire` and `supply-chain`.
+- Policy-document drafting → `policy-drafter`.
 
-## Aanpak
+## Approach
 
-Zes fases. Fase 1 is wettelijk het zwaarst (scope-bepaling), fases 2–4 zijn de kern-verplichtingen, fase 5 vertaalt naar NL-implementatie, fase 6 is de verification-loop.
+Six phases. Phase 1 is the heaviest legally (scope determination), phases 2–4 are the core obligations, phase 5 translates into the NL implementation, phase 6 is the verification-loop.
 
-### 1. Scope-bepaling: essential vs important entity
+### 1. Scope determination: essential vs important entity
 
-NIS2 onderscheidt twee categorieën met verschillende toezichtsregimes:
+NIS2 distinguishes two categories with different supervisory regimes:
 
-- **Essential entities (Annex I)**: energie, transport, banken, financiële-marktinfrastructuur, gezondheid, drinkwater, afvalwater, digitale infrastructuur (DNS/TLD/IXP/data-centers/cloud), ICT service management business-to-business, publieke administratie, ruimtevaart.
-- **Important entities (Annex II)**: post en koerier, afvalbeheer, chemicaliën, voedsel, fabricage (geselecteerde sub-sectoren), digital providers (online marketplaces, search engines, social networking), research.
+- **Essential entities (Annex I)**: energy, transport, banks, financial-market infrastructure, health, drinking water, wastewater, digital infrastructure (DNS/TLD/IXP/data centers/cloud), ICT service management business-to-business, public administration, space.
+- **Important entities (Annex II)**: post and courier, waste management, chemicals, food, manufacturing (selected sub-sectors), digital providers (online marketplaces, search engines, social networking), research.
 
-Daarbinnen gelden **size-caps** (Art 2): in beginsel alleen medium- en large-sized organisaties (>50 FTE of >€10M omzet), met uitzonderingen voor kritieke kleine organisaties (DNS-providers, TLD-registries, trust service providers, etc. zijn in-scope ongeacht grootte).
+Within those, **size caps** apply (Art 2): in principle only medium and large organizations (>50 FTE or >€10M turnover), with exceptions for critical small organizations (DNS providers, TLD registries, trust service providers, etc. are in scope regardless of size).
 
-Reviewer-checks:
+Reviewer checks:
 
-- Welke sector (Annex I/II en sub-code)?
-- Size-criterium overschreden?
-- Gekwalificeerd als "providing services in de EU"? Non-EU vestiging kan nog steeds in-scope zijn als ze diensten levert aan EU-klanten.
-- Subsidiaries/holdings: NIS2 werkt op entity-niveau, niet group-niveau. Parent company kan buiten scope zijn terwijl een dochter in-scope is.
+- Which sector (Annex I/II and sub-code)?
+- Size criterion exceeded?
+- Qualifies as "providing services in the EU"? A non-EU establishment can still be in scope when it serves EU customers.
+- Subsidiaries/holdings: NIS2 works at entity level, not group level. The parent company can be out of scope while a subsidiary is in scope.
 
-Twijfelgevallen documenteren met verwijzing naar specifieke Annex-entries. Onduidelijkheid over essential vs important heeft reële consequenties (proactive vs reactive toezicht, hoogte boetes).
+Document edge cases with references to specific Annex entries. Ambiguity over essential vs important has real consequences (proactive vs reactive supervision, fine ceilings).
 
 ### 2. Governance (Art 20)
 
-Het management is aansprakelijk voor cybersecurity. Dit is een substantiële verschuiving ten opzichte van NIS1.
+Management is liable for cybersecurity. This is a substantial shift from NIS1.
 
-- **Art 20(1)**: het management-orgaan moet cybersecurity-risicomaatregelen goedkeuren én op naleving toezien.
-- **Art 20(2)**: management moet opleiding volgen en medewerkers moeten vergelijkbare training krijgen.
-- Aansprakelijkheid: directieleden kunnen persoonlijk worden aangesproken op grove nalatigheid in cybersecurity. In NL-implementatie wordt de exacte invulling via de Cyberbeveiligingswet bepaald.
+- **Art 20(1)**: the management body must approve cybersecurity risk measures and oversee their compliance.
+- **Art 20(2)**: management must take training and employees must receive comparable training.
+- Liability: directors can be held personally accountable for gross negligence in cybersecurity. In NL implementation, the exact substance is set via the Cyberbeveiligingswet.
 
-Document-eisen voor reviewer:
+Document requirements for the reviewer:
 
-- Risk-management charter dat aantoonbaar door board is goedgekeurd.
-- Minstens één jaarlijkse cyber-briefing aan board, met agenda-items en presentatie.
-- Security-awareness-training voor alle medewerkers, trainings-log bijhouden.
+- A risk-management charter demonstrably approved by the board.
+- At least one annual cyber briefing to the board, with agenda items and presentation.
+- Security-awareness training for all employees, with a training log.
 
-### 3. De tien baseline-maatregelen (Art 21)
+### 3. The ten baseline measures (Art 21)
 
-NIS2 Art 21(2) lijst tien categorieën minimum-maatregelen. Elke in-scope organisatie moet aantoonbaar deze tien geadresseerd hebben:
+NIS2 Art 21(2) lists ten categories of minimum measures. Every in-scope organization must demonstrably address these ten:
 
-1. **Beleid voor risico-analyse en informatiebeveiliging** (policy-drafter / risk-register).
-2. **Incident-afhandeling** (ir-runbook, detection-engineer).
-3. **Business continuity** — back-ups, disaster recovery, crisis management.
-4. **Supply-chain security** — inclusief relaties met directe leveranciers (vendor-questionnaire, supply-chain).
-5. **Security in netwerk- en informatiesystemen-acquisitie, -ontwikkeling en -onderhoud** — vulnerability handling (cve-triage, secure-coding, sast-orchestrator).
-6. **Beleid en procedures voor effectiviteits-evaluatie** van cybersecurity-maatregelen (audit-evidence).
-7. **Basale cyber-hygiëne** en security-awareness-training.
-8. **Beleid en procedures voor cryptografie**, indien toepasselijk ook encryption.
-9. **Personeel-security, toegangsbeleid, asset-management**.
-10. **MFA of continu-authenticatie, secure voice/video/text-communicatie, noodcommunicatie**.
+1. **Policies on risk analysis and information security** (policy-drafter / risk-register).
+2. **Incident handling** (ir-runbook, detection-engineer).
+3. **Business continuity** — backups, disaster recovery, crisis management.
+4. **Supply-chain security** — including relationships with direct suppliers (vendor-questionnaire, supply-chain).
+5. **Security in network and information system acquisition, development, and maintenance** — vulnerability handling (cve-triage, secure-coding, sast-orchestrator).
+6. **Policies and procedures for effectiveness evaluation** of cybersecurity measures (audit-evidence).
+7. **Basic cyber hygiene** and security-awareness training.
+8. **Policies and procedures regarding cryptography**, including encryption where applicable.
+9. **Personnel security, access policy, asset management**.
+10. **MFA or continuous authentication, secure voice/video/text communication, emergency communication**.
 
-Deze tien zijn opzettelijk framework-agnostisch geformuleerd. Mapping naar concrete frameworks:
+These ten are deliberately framework-agnostic. Mapping to concrete frameworks:
 
-- ISO 27001:2022 Annex A dekt alle tien.
-- NIST CSF 2.0 (Govern/Identify/Protect/Detect/Respond/Recover) dekt alle tien, met Govern-functie als extra dekking voor Art 20.
-- CIS Controls v8: 18 controls dekken de tien thema's.
+- ISO 27001:2022 Annex A covers all ten.
+- NIST CSF 2.0 (Govern/Identify/Protect/Detect/Respond/Recover) covers all ten, with the Govern function as additional coverage for Art 20.
+- CIS Controls v8: 18 controls cover the ten themes.
 
-Gap-analyse-workflow: per maatregel de huidige staat benoemen (beleid + bewijs + gaps), koppelen aan een framework-control-ID, eigenaar en deadline.
+Gap-analysis workflow: per measure name the current state (policy + evidence + gaps), tie to a framework control ID, owner, and deadline.
 
-### 4. Incident-rapportage (Art 23)
+### 4. Incident reporting (Art 23)
 
-Drie-fasen tijdlijn voor "significant incidents" (kennelijke impact op dienstverlening, of exploitatie van kwetsbaarheid van derde partij):
+A three-phase timeline for "significant incidents" (apparent impact on service delivery, or exploitation of a third-party vulnerability):
 
-- **24 uur**: early-warning naar CSIRT/competent authority. Vermeldt of er sprake is van malicious intent of grensoverschrijdende impact.
-- **72 uur**: incident-notification met severity + impact-assessment + indicators of compromise (voor zover bekend).
-- **1 maand**: final report met root-cause + getroffen maatregelen + impact.
+- **24 hours**: early-warning to CSIRT/competent authority. Says whether there is malicious intent or cross-border impact.
+- **72 hours**: incident notification with severity + impact assessment + indicators of compromise (as far as known).
+- **1 month**: final report with root cause + measures taken + impact.
 
-NL-specifiek: CSIRT-NL (Computer Security Incident Response Team, onder NCSC-NL / ministerie JenV). Competent authority verschilt per sector — voor de meeste niet-overheid valt toezicht onder de Rijksinspectie Digitale Infrastructuur (RDI) na inwerkingtreding Cyberbeveiligingswet. `[verify huidige competent authority per sector]`.
+NL-specific: CSIRT-NL (Computer Security Incident Response Team, under NCSC-NL / Ministerie JenV). Competent authority differs per sector — for most non-government entities supervision falls to the Rijksinspectie Digitale Infrastructuur (RDI) once the Cyberbeveiligingswet enters into force. `[verify the current competent authority per sector]`.
 
-Reviewer-workflow voor ir-runbooks:
+Reviewer workflow for IR runbooks:
 
-- Is er een procedure voor 24h early-warning? Wie besluit, wie stelt op?
-- Is er een template voor 72h-notification met verplichte velden?
-- Is er een follow-up discipline voor de 1-maand rapportage?
-- Wie traint medewerkers op "dit lijkt een NIS2-incident, escaleren"?
+- Is there a procedure for the 24h early-warning? Who decides, who drafts?
+- Is there a template for the 72h notification with required fields?
+- Is there a follow-up discipline for the 1-month report?
+- Who trains employees on "this looks like a NIS2 incident, escalate"?
 
-### 5. Nederlandse implementatie: Cyberbeveiligingswet (CBW)
+### 5. Dutch implementation: Cyberbeveiligingswet (CBW)
 
-De Cyberbeveiligingswet zet NIS2 om naar Nederlands recht. `[verify actuele status — per publicatie van deze skill was het wetstraject nog in beweging; check kamerstukken-overzicht bij tweedekamer.nl]`. Praktische gevolgen die je in de gaten houdt:
+The Cyberbeveiligingswet transposes NIS2 into Dutch law. `[verify current status — at the time this skill was published the legislative track was still in motion; check the parliamentary documents overview at tweedekamer.nl]`. Practical consequences to watch:
 
-- **Registratieplicht**: in-scope entities moeten zich registreren bij de RDI (voor de meeste sectoren) of sector-specifieke toezichthouder.
-- **Sancties**: Art 34 van de richtlijn noemt maximumboetes van €10M of 2% wereldwijde jaaromzet voor essential, €7M of 1.4% voor important. CBW operationaliseert deze.
-- **Toezicht-modaliteiten**: essential entities zijn onderworpen aan ex-ante toezicht (inspecties, audits), important entities ex-post (na aanleiding).
-- **Informatie-delen**: de CBW faciliteert deling van threat-intel via CSIRT-NL, met anonimiseringsoptie.
+- **Registration obligation**: in-scope entities must register with the RDI (for most sectors) or a sector-specific supervisor.
+- **Sanctions**: Art 34 of the directive names maximum fines of €10M or 2% of worldwide annual turnover for essential, €7M or 1.4% for important. The CBW operationalizes these.
+- **Supervision modes**: essential entities are subject to ex-ante supervision (inspections, audits), important entities ex-post (after a trigger).
+- **Information sharing**: the CBW facilitates threat-intel sharing via CSIRT-NL, with an anonymization option.
 
-Raadpleeg ter verificatie de actuele versie van de wet (wetten.overheid.nl zodra in werking) en parallel publicaties van NCTV/NCSC-NL over implementatie-guidance.
+For verification, consult the current version of the law (wetten.overheid.nl once in force) and, in parallel, NCTV/NCSC-NL publications on implementation guidance.
 
 ### 6. Verification-loop
 
-Laag 1: scope (alle relevante entities binnen organisatie meegenomen? Alle 10 maatregelen geadresseerd, geen stilzwijgende gaps?), aannames (status Cyberbeveiligingswet op datum van het rapport correct?), gap-analyse (welke maatregelen zouden een auditor het zwakst vinden?). Laag 2: article-nummers uit richtlijn 2022/2555 kloppen, geen verzonnen Annex-entries, NL-specifieke namen (RDI, CSIRT-NL, NCSC-NL, NCTV) correct gespeld en actueel gerolverdeeld, `[verify]`-markers geplaatst waar wetgeving in beweging is.
+Layer 1: scope (all relevant entities within the organization included? all 10 measures addressed, no silent gaps?), assumptions (Cyberbeveiligingswet status correct as of the report date?), gap analysis (which measures would an auditor consider weakest?). Layer 2: article numbers from directive 2022/2555 correct, no invented Annex entries, NL-specific names (RDI, CSIRT-NL, NCSC-NL, NCTV) correctly spelled and currently scoped, `[verify]` markers in place where legislation is in motion.
 
 ## Output
 
 ```
-NIS2 gap-analyse — <organisatie/entity>
-Datum: YYYY-MM-DD | NIS2-datum van kracht: 2024-10-17 | NL CBW-status: [verify]
+NIS2 gap analysis — <organization/entity>
+Date: YYYY-MM-DD | NIS2 entered into force: 2024-10-17 | NL CBW status: [verify]
 
 Scope:
   Sector (Annex I/II):    <sector + sub-code>
-  Size-criterium:         <medium | large | klein met uitzondering>
-  Classificatie:          <essential | important | buiten scope>
-  Rationale:              <1-3 zinnen, artikel-verwijzingen>
+  Size criterion:         <medium | large | small with exception>
+  Classification:         <essential | important | out of scope>
+  Rationale:              <1-3 sentences, article references>
 
 Governance (Art 20):
-  Board-approved cyber charter:    <ja/nee + datum>
-  Jaarlijkse board-briefing:       <ja/nee + laatste datum>
-  Awareness-training medewerkers:  <coverage%, log aanwezig>
+  Board-approved cyber charter:    <yes/no + date>
+  Annual board briefing:           <yes/no + last date>
+  Awareness training employees:    <coverage%, log present>
 
-Tien baseline-maatregelen (Art 21):
-  1. Risk-analyse + infosec-beleid:  <staat | bewijs | gap>
-  2. Incident-afhandeling:            ...
-  3. Business continuity:             ...
-  4. Supply-chain security:           ...
+Ten baseline measures (Art 21):
+  1. Risk analysis + infosec policy:  <state | evidence | gap>
+  2. Incident handling:                ...
+  3. Business continuity:              ...
+  4. Supply-chain security:            ...
   5. Acquisition/development/maintenance: ...
-  6. Effectiviteits-evaluatie:        ...
-  7. Cyber-hygiëne + training:        ...
-  8. Cryptografie:                    ...
-  9. Personeel + toegang + assets:    ...
- 10. MFA + secure comms:              ...
+  6. Effectiveness evaluation:         ...
+  7. Cyber hygiene + training:         ...
+  8. Cryptography:                     ...
+  9. Personnel + access + assets:      ...
+ 10. MFA + secure comms:               ...
 
-Incident-rapportage (Art 23):
-  24h-procedure:         <aanwezig | gap>
-  72h-notification:      <template aanwezig | gap>
-  1-maand final report:  <procedure aanwezig | gap>
-  CSIRT-NL-contact:      <geregistreerd | pending>
+Incident reporting (Art 23):
+  24h procedure:          <present | gap>
+  72h notification:       <template present | gap>
+  1-month final report:   <procedure present | gap>
+  CSIRT-NL contact:       <registered | pending>
 
-NL-implementatie:
-  RDI-registratie:       <verplicht + gedaan | n.v.t.>
-  Sector-toezichthouder: <welke>
-  Sancties-scope:        <max-boetes per categorie>
+NL implementation:
+  RDI registration:       <required + done | n/a>
+  Sector supervisor:      <which>
+  Sanctions scope:        <max fines per category>
 
-Prioriteiten (fix-now/fix-sprint/fix-quarter):
-  <lijst>
+Priorities (fix-now/fix-sprint/fix-quarter):
+  <list>
 
 Verification-loop: ...
 ```
 
-## Referenties
+## References
 
-- **EU Directive 2022/2555** (NIS2) — [https://eur-lex.europa.eu/eli/dir/2022/2555](https://eur-lex.europa.eu/eli/dir/2022/2555). Officiële tekst, NL-taalversie beschikbaar via taalselectie.
-- **ENISA NIS2** — [https://www.enisa.europa.eu/topics/nis-directive](https://www.enisa.europa.eu/topics/nis-directive). Guidance-publicaties en implementatie-toolkit.
-- **NCSC-NL** — [https://www.ncsc.nl/](https://www.ncsc.nl/). Nationaal CSIRT plus guidance.
-- **NCTV** — [https://www.nctv.nl/](https://www.nctv.nl/). Beleids-context voor NL-cybersecurity-wetgeving.
-- **Rijksinspectie Digitale Infrastructuur (RDI)** — [https://www.rdi.nl/](https://www.rdi.nl/). Toezichthouder voor meerdere NIS2-sectoren.
-- **Cyberbeveiligingswet — wetstraject** — [https://www.tweedekamer.nl/kamerstukken/wetsvoorstellen](https://www.tweedekamer.nl/kamerstukken/wetsvoorstellen). Zoek op "Cyberbeveiligingswet" voor de meest actuele versie.
-- **Europese Commissie — NIS2 overview** — [https://digital-strategy.ec.europa.eu/en/policies/nis2-directive](https://digital-strategy.ec.europa.eu/en/policies/nis2-directive).
-- **ISO/IEC 27001:2022** — [https://www.iso.org/standard/27001](https://www.iso.org/standard/27001). Mapping-doel voor Art 21-maatregelen.
-- **NIST Cybersecurity Framework 2.0** — [https://www.nist.gov/cyberframework](https://www.nist.gov/cyberframework). Alternatieve mapping-basis.
+- **EU Directive 2022/2555** (NIS2) — [https://eur-lex.europa.eu/eli/dir/2022/2555](https://eur-lex.europa.eu/eli/dir/2022/2555). Official text, NL language version available via the language selector.
+- **ENISA NIS2** — [https://www.enisa.europa.eu/topics/nis-directive](https://www.enisa.europa.eu/topics/nis-directive). Guidance publications and implementation toolkit.
+- **NCSC-NL** — [https://www.ncsc.nl/](https://www.ncsc.nl/). National CSIRT plus guidance.
+- **NCTV** — [https://www.nctv.nl/](https://www.nctv.nl/). Policy context for NL cybersecurity legislation.
+- **Rijksinspectie Digitale Infrastructuur (RDI)** — [https://www.rdi.nl/](https://www.rdi.nl/). Supervisor for several NIS2 sectors.
+- **Cyberbeveiligingswet — legislative track** — [https://www.tweedekamer.nl/kamerstukken/wetsvoorstellen](https://www.tweedekamer.nl/kamerstukken/wetsvoorstellen). Search for "Cyberbeveiligingswet" for the most current version.
+- **European Commission — NIS2 overview** — [https://digital-strategy.ec.europa.eu/en/policies/nis2-directive](https://digital-strategy.ec.europa.eu/en/policies/nis2-directive).
+- **ISO/IEC 27001:2022** — [https://www.iso.org/standard/27001](https://www.iso.org/standard/27001). Mapping target for Art 21 measures.
+- **NIST Cybersecurity Framework 2.0** — [https://www.nist.gov/cyberframework](https://www.nist.gov/cyberframework). Alternative mapping basis.
 
-## Categorieën
+## Categories
 
 - grc

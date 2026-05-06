@@ -20,16 +20,11 @@ Thanks for considering a contribution. This catalog grows by careful, specific a
 
 ## Working language
 
-The catalog is moving to English. Current state:
+The catalog is fully English across all 47 items. Bodies, front-matter `description` fields, and public-facing positioning (README, examples, smoke tests, this file, CLAUDE.md) are all English.
 
-- **Core (7 items): English** — fully translated.
-- **AppSec, Pentest, Blue, GRC (40 items): in transition**. Bodies are still in Dutch and being translated in profile-batches. Front-matter `description` fields are English everywhere, so the matcher behaves consistently.
-- **All public-facing positioning is in English**: README, examples, smoke tests, this file, CLAUDE.md.
-- **GRC items remain explicitly NL/EU-anchored** in their references and regulatory text — only the wrapping prose becomes English. NIS2 / DORA / AVG / Cyberbeveiligingswet / AP / RDI / DNB / AFM stay as primary sources.
+**GRC items remain explicitly NL/EU-anchored** in their references and regulatory text — only the wrapping prose is English. NIS2 / DORA / AVG / Cyberbeveiligingswet / AP / RDI / DNB / AFM stay as primary sources.
 
-If you submit a translation of a Dutch skill body, retain the structure (use the English equivalents: When to use / Approach / Output / References / Categories) and translate the entire body consistently — partial translations are harder to maintain than full ones.
-
-The translation roadmap (rough order): AppSec → Pentest → Blue → GRC. PRs that translate one full skill at a time are easiest to review.
+If you spot Dutch leftovers, infelicitous phrasings, or want to refine a translation, PRs are welcome. Section structure is fixed: `When to use` / `Approach` / `Output` / `References` / `Categories` — keep that across any rewrite.
 
 ## Process
 
