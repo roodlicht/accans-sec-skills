@@ -2,7 +2,7 @@
 
 What the catalog actually does, indexed by capability rather than by skill name. Use this to answer "can it do X?" — find the row, follow it to the skill that delivers.
 
-Skills are grouped into 11 capability domains. Each row shows a concrete capability and the primary skill or agent that primes Claude for it. Some capabilities span multiple skills via handoff (called out where relevant).
+Skills are grouped into 21 capability domains. Each row shows a concrete capability and the primary skill or agent that primes Claude for it. Some capabilities span multiple skills via handoff (called out where relevant).
 
 ## Code-level security
 
@@ -263,7 +263,7 @@ Skills are grouped into 11 capability domains. Each row shows a concrete capabil
 
 ## Coverage
 
-This index lists ~150 distinct capabilities across the 47 catalog items. It is intentionally not exhaustive — many skills carry sub-capabilities mentioned only in their phase descriptions or output blocks. When in doubt, read the underlying `SKILL.md`.
+This index lists ~150 distinct capabilities across 21 domains and the 47 catalog items. It is intentionally not exhaustive — many skills carry sub-capabilities mentioned only in their phase descriptions or output blocks. When in doubt, read the underlying `SKILL.md`.
 
 **What this catalog explicitly does NOT cover** (by design):
 

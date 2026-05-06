@@ -2,7 +2,7 @@
 
 # accans-sec-skills
 
-> **47 Claude skills, agents and commands across 5 disciplines** · ~8,600 lines of structured tradecraft · 41 ATT&CK techniques mapped · 19 ISO 27001 Annex-A controls referenced · 9 NL/EU regulatory frameworks anchored · 443 internal cross-references · 426 primary-source URLs · pattern-level discipline for every offensive item.
+> **47 Claude skills, agents and commands across 5 disciplines** · ~8,600 lines of structured tradecraft · 41 ATT&CK techniques mapped · 19 ISO 27001 Annex-A controls referenced · NL/EU regulatory-anchored (NIS2, DORA, AVG/GDPR, Cyberbeveiligingswet, TIBER-NL) · 443 internal cross-references · 426 primary-source URLs · pattern-level discipline for every offensive item.
 
 A catalog of structured `SKILL.md` files that prime Claude with security tradecraft across the full SDLC: AppSec & DevSecOps, Pentest & Red Team, Blue Team & IR, GRC & Compliance, plus a Core layer of cross-cutting essentials. Drop a profile-bundle into `~/.claude/` (or build your own selection in the browser) and Claude routes to the right item when you ask.
 
@@ -35,10 +35,10 @@ flowchart TB
 
     Root --> Core["core · 7<br/><i>secure-coding, security-review,<br/>verification-loop, secrets-scanner,<br/>cve-triage, threat-modeler, security-gate</i>"]
 
-    Core --> AppSec["appsec · 19<br/><i>SAST/DAST · IaC · container · k8s ·<br/>API · supply-chain · Django · Spring ·<br/>Rails · Next.js · CI/CD</i>"]
-    Core --> Pentest["pentest · 12<br/><i>recon · exploit-chain · payload-crafter ·<br/>AD-attacks · web-exploit-triage ·<br/>C2-hygiene · phishing-sim · post-exploit ·<br/>pentest-reporter · purple-ops</i>"]
-    Core --> Blue["blue · 11<br/><i>IR-runbook · detection-engineer ·<br/>log-triage · siem-query · ioc-hunter ·<br/>malware-triage · forensics-assist ·<br/>alert-tuning · purple-ops · threat-hunt</i>"]
-    Core --> GRC["grc · 10<br/><i>NIS2 · DORA · AVG/GDPR · ISO 27001 ·<br/>SOC 2 · risk-register · policy-drafter ·<br/>vendor-questionnaire · audit-evidence</i>"]
+    Core ==>|"all 7"| AppSec["appsec · 19<br/><i>SAST/DAST · IaC · container · k8s ·<br/>API · supply-chain · Django · Spring ·<br/>Rails · Next.js · CI/CD</i>"]
+    Core -.->|"verification-loop<br/>+ security-review"| Pentest["pentest · 12<br/><i>recon · exploit-chain · payload-crafter ·<br/>AD-attacks · web-exploit-triage ·<br/>C2-hygiene · phishing-sim · post-exploit ·<br/>pentest-reporter · purple-ops</i>"]
+    Core -.->|"verification-loop"| Blue["blue · 11<br/><i>IR-runbook · detection-engineer ·<br/>log-triage · siem-query · ioc-hunter ·<br/>malware-triage · forensics-assist ·<br/>alert-tuning · purple-ops · threat-hunt</i>"]
+    Core -.->|"verification-loop"| GRC["grc · 10<br/><i>NIS2 · DORA · AVG/GDPR · ISO 27001 ·<br/>SOC 2 · risk-register · policy-drafter ·<br/>vendor-questionnaire · audit-evidence</i>"]
 
     Pentest -. dual-cat .- Blue
 
@@ -50,7 +50,7 @@ flowchart TB
     style GRC fill:#11182d,stroke:#5b6584,color:#cdd5e8
 ```
 
-`core` is the substrate — every other profile pulls it. `purple-ops` is dual-cat (lives in both `pentest` and `blue`); the dotted line marks the bridge.
+Inheritance is asymmetric. `appsec` pulls all 7 core items (thick arrow). `pentest` pulls `verification-loop` + `security-review`. `blue` and `grc` pull only `verification-loop` — that one is the universal self-review pass that ships in every profile. `purple-ops` is dual-cat (lives in both `pentest` and `blue`); the horizontal dotted line marks the bridge. `full` is everything (47).
 
 ## How it differs from a generic "all-in-one" security AI bundle
 
@@ -129,7 +129,7 @@ flowchart LR
     S1 --> S2["iso27001<br/><i>Annex A mapping</i>"]
     S2 --> S3["risk-register<br/><i>ISO 27005 register</i>"]
     S3 --> S4["policy-drafter<br/><i>Tier-1/2 policy stack</i>"]
-    S4 --> S5["vendor-questionnaire<br/><i>supply-chain Art 21(4)</i>"]
+    S4 --> S5["vendor-questionnaire<br/><i>supply-chain Art 21(2)(d)</i>"]
     S5 --> S6["audit-evidence<br/><i>collection cadence</i>"]
     S6 --> Out["Submission to RDI<br/>+ continuous-compliance plan"]
 
