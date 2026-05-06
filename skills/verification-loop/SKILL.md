@@ -5,102 +5,102 @@ description: Structured red-team pass over your own output — surface assumptio
 
 # Verification Loop
 
-## Wanneer gebruiken
+## When to use
 
-De skill triggert voor Claude zelf, niet voor de eindgebruiker. Activeer 'm als je op het punt staat non-triviale output af te leveren en er nog één pass in zit. Activeert bij:
+This skill triggers for Claude itself, not for the end user. Activate it when you're about to deliver non-trivial output and there's still room for one more pass. It activates when:
 
-- Een geschreven analyse, review, rapport, patch, threat-model, runbook of beleidsstuk waarvan je op het punt staat hem aan de gebruiker aan te bieden.
-- Een expliciete vraag om een second-pass: "check je eigen werk", "zeker weten?", "zijn er gaten?", "red-team dit", "speel advocaat van de duivel".
-- Een andere security-skill (bv. `security-review`, `threat-modeler`, `pentest-reporter`, `ir-runbook`, `gdpr-pia`) die zojuist output heeft geproduceerd. Deze loop is dan de laatste stap vóór levering.
-- Je eigen redenering bevat passages die beginnen met "waarschijnlijk", "normaal gezien", "in praktijk" of "ik neem aan". Dat zijn aannames die in deze loop aan het licht moeten komen.
+- You've written an analysis, review, report, patch, threat model, runbook, or policy document and are about to hand it to the user.
+- The user explicitly asks for a second pass: "check your own work", "are you sure?", "are there gaps?", "red-team this", "play devil's advocate".
+- Another security skill (e.g. `security-review`, `threat-modeler`, `pentest-reporter`, `ir-runbook`, `gdpr-pia`) has just produced output. This loop is the last step before delivery.
+- Your own reasoning contains passages starting with "probably", "normally", "in practice", or "I assume". Those are assumptions that this loop should bring to the surface.
 
-De pass gaat over wat Claude zojuist heeft geproduceerd, niet over input van de gebruiker. Deze skill is een meta-skill. Hij reviewt geen code of spec van derden, maar je eigen werk.
+The pass is over what Claude has just produced, not over user input. This is a meta-skill. It does not review code or specs from third parties; it reviews your own work.
 
-## Aanpak
+## Approach
 
-De loop heeft twee lagen. **Laag 1** is universeel en staat op zichzelf. **Laag 2** voegt security-specifieke checks toe en is als zelfstandig blok verwijderbaar. In een niet-security-context kun je de hele sectie schrappen zonder dat Laag 1 breekt.
+The loop has two layers. **Layer 1** is universal and stands on its own. **Layer 2** adds security-specific checks and is removable as a self-contained block. In a non-security context you can drop the entire section without breaking Layer 1.
 
-Werk sequentieel door de stappen. Verzamel bevindingen terwijl je doorloopt, en formuleer pas een verdict als alle stappen gedaan zijn. Geen stap overslaan omdat hij "niet van toepassing lijkt". De stappen die je wil overslaan zijn vaak precies waar de gaten zitten.
+Work through the steps sequentially. Collect findings as you go; only formulate a verdict once every step has been done. Don't skip a step because it "doesn't seem to apply". The steps you want to skip are often exactly where the gaps are.
 
-### Laag 1 — Universele self-review pass
+### Layer 1 — Universal self-review pass
 
-1. **Scope-check.** Leg de oorspronkelijke vraag naast je output. Wat was gevraagd, wat heb je geleverd? Markeer elke passage die buiten scope uitwaaiert (scope-creep) en elke sub-vraag die onbeantwoord is gebleven (scope-gap). Een geleverde paragraaf die niet in directe dienst staat van de vraag is kandidaat voor schrappen, niet voor behouden.
+1. **Scope check.** Place the original question next to your output. What was asked, what did you deliver? Mark every passage that drifts outside scope (scope creep) and every sub-question that went unanswered (scope gap). A delivered paragraph that doesn't directly serve the question is a candidate for cutting, not for keeping.
 
-2. **Aannames expliciteren.** Zoek in je output naar "waarschijnlijk", "normaal", "in de meeste gevallen", "ervan uitgaande dat", "vermoedelijk". Zet voor elke aanname op een rij: (a) welke aanname, (b) welke bron of check zou hem bevestigen, (c) wat breekt als hij fout is. Aannames waar (c) niets kritisch oplevert mogen blijven, mits ze als aanname gemarkeerd zijn. Aannames waar iets kritisch breekt zijn blockers tot ze geverifieerd zijn of expliciet gelabeld als "niet geverifieerd, risico X".
+2. **Make assumptions explicit.** Search your output for "probably", "usually", "in most cases", "assuming that", "presumably". For each assumption, line up: (a) what's the assumption, (b) which source or check would confirm it, (c) what breaks if it's wrong. Assumptions where (c) yields nothing critical may stay as long as they're marked as assumptions. Assumptions where something critical breaks are blockers until they're verified or explicitly labelled "not verified, risk X".
 
-3. **Gap-analyse.** Bedenk drie vragen die een kritische lezer zou stellen waar je geen antwoord op geeft. Denk expliciet aan edge cases (lege input, zeer grote input, ontbrekende rechten), niet-happy paths (timeouts, partial failures, concurrent writes), en interacties met systemen die je niet hebt gezien (externe services, caches, middleware, auth-lagen). Als je geen drie vragen kunt bedenken, heb je nog niet hard genoeg gekeken.
+3. **Gap analysis.** Think of three questions a critical reader would ask that you didn't answer. Think explicitly about edge cases (empty input, very large input, missing privileges), unhappy paths (timeouts, partial failures, concurrent writes), and interactions with systems you haven't seen (external services, caches, middleware, auth layers). If you can't come up with three questions, you haven't looked hard enough.
 
-4. **Adversariële lezer.** Lees je output één keer vanuit het perspectief van iemand die het oneens is met je conclusie. Welke formulering is het zwakst? Welke redeneerstap heeft de minste onderbouwing? Welke bron zou iemand afwijzen als niet-primair of niet-actueel? Noteer de drie zwakste punten en versterk of schrap ze voor levering.
+4. **Adversarial reader.** Read your output once from the perspective of someone who disagrees with your conclusion. Which phrasing is weakest? Which step in your reasoning has the least support? Which source would someone reject as non-primary or out of date? Note the three weakest points and either reinforce or cut them before delivery.
 
-5. **Faalmodi.** Als je output instructies, een patch of een runbook is: wat gebeurt er als iemand dit stap-voor-stap uitvoert en halverwege faalt? Is er een recovery-pad? Is de ordering reversibel, of wordt er werk vernietigd bij een afgebroken run? Als je output een analyse is: onder welke omstandigheden klopt de analyse niet?
+5. **Failure modes.** If your output is instructions, a patch, or a runbook: what happens when someone follows it step by step and fails halfway through? Is there a recovery path? Is the ordering reversible, or does an aborted run destroy work? If your output is an analysis: under what circumstances does the analysis not hold?
 
-6. **Interne consistentie.** Staan er twee uitspraken in je output die elkaar tegenspreken? Komen verwijzingen (naar files, line-numbers, secties, versies, bronnen) overeen met wat er daadwerkelijk staat? Als je eerder in het stuk een keuze maakte, volgt de rest die keuze ook?
+6. **Internal consistency.** Are there two statements in your output that contradict each other? Do references (to files, line numbers, sections, versions, sources) match what's actually there? If you made a choice earlier in the document, does the rest of the document follow that choice?
 
-7. **Verdict.** Kies één van:
-   - **pass**: geen blockers, hoogstens kleine nuances.
-   - **revise**: er zijn blockers die je zelf kunt oplossen vóór levering.
-   - **rewrite**: scope klopt niet of de kernredenering is wankel. Opnieuw beginnen is goedkoper dan repareren.
+7. **Verdict.** Pick one of:
+   - **pass**: no blockers, at most small nuances.
+   - **revise**: there are blockers you can resolve yourself before delivery.
+   - **rewrite**: scope is wrong or core reasoning is shaky. Starting over is cheaper than patching.
 
-### Laag 2 — Security red flags (optioneel, security-context)
+### Layer 2 — Security red flags (optional, security context)
 
-> Deze sectie is additief en zelfstandig afpelbaar. In een niet-security-repo kan hij zonder consequenties voor Laag 1 worden verwijderd. De verdict-logica van Laag 1 blijft intact.
+> This section is additive and removable as a self-contained block. In a non-security repo it can be deleted without consequences for Layer 1. The verdict logic in Layer 1 stays intact.
 
-Pas deze checks toe bovenop Laag 1 wanneer de output security-claims bevat: CVE-verwijzingen, CVSS-scores, payloads, threat-modellen, compliance-interpretaties, exploit-stappen, risico-inschattingen, incident-response-instructies.
+Apply these checks on top of Layer 1 when the output contains security claims: CVE references, CVSS scores, payloads, threat models, compliance interpretations, exploit steps, risk assessments, incident-response instructions.
 
-1. **CVE- en CVSS-verificatie.** Voor elke CVE-ID die je noemt: staat die daadwerkelijk in de NVD? Klopt het jaartal met de timing van je verhaal? Past de beschrijving bij de context waarin je hem aanhaalt? Voor elke CVSS-score: heb je die geverifieerd via de NVD of FIRST-calculator, of aangenomen op basis van "klinkt plausibel"? Als je niet zeker bent, vervang "CVE-2023-12345 (CVSS 9.8)" door `[verify: CVE-ID en CVSS]` of laat de claim weg. Een niet-bestaande CVE is schadelijker dan geen CVE noemen, want hij ondermijnt het vertrouwen in de rest van je output.
+1. **CVE and CVSS verification.** For every CVE-ID you mention: does it actually exist in the NVD? Does the year match the timeline of your story? Does the description fit the context where you're citing it? For every CVSS score: did you verify it via the NVD or the FIRST calculator, or did you assume it because "it sounds plausible"? When in doubt, replace "CVE-2023-12345 (CVSS 9.8)" with `[verify: CVE-ID and CVSS]` or remove the claim. A non-existent CVE is more harmful than no CVE at all — it undermines trust in the rest of your output.
 
-2. **Payload-niveau.** Onderscheid patroon-payloads (illustratief, gericht op de klasse van kwetsbaarheid) van versie-specifieke exploits (kant-en-klaar inzetbaar tegen benoemde software-builds). Patroon-niveau (`<img src=x onerror=alert(1)>`, `{{7*7}}`, `../../etc/passwd`, `' OR 1=1 --`) is prima. Versie-specifieke exploit-chains tegen production-targets alleen in expliciet afgesproken sandbox- of labcontext. Zonder die context terugbrengen naar patroon-niveau met een `[lab: versie-specifiek uit te werken]` marker.
+2. **Payload level.** Distinguish pattern-level payloads (illustrative, focused on the vulnerability class) from version-specific exploits (ready to fire against named software builds). Pattern-level (`<img src=x onerror=alert(1)>`, `{{7*7}}`, `../../etc/passwd`, `' OR 1=1 --`) is fine. Version-specific exploit chains against production targets only in explicitly agreed sandbox or lab context. Without that context, walk back to pattern-level with a `[lab: version-specific to be developed]` marker.
 
-3. **Ongesubstantieerde praktijkclaims.** Scan je output op "in praktijk blijkt", "meestal zien we", "in de meeste engagements", "veel organisaties", "vaak vergeten teams". Elke dergelijke claim zonder primaire bron moet óf onderbouwd worden met een verwijzing (OWASP, NIST, MITRE, ENISA, vendor-advisory, recent publiek rapport), óf herformuleerd als hypothese ("een aannemelijk scenario is..."), óf geschrapt. Anekdote zonder bron is wegstrepen.
+3. **Unsubstantiated practice claims.** Scan your output for "in practice we see", "most teams", "in most engagements", "many organizations", "teams often forget". Every such claim without a primary source must be either backed up by a reference (OWASP, NIST, MITRE, ENISA, vendor advisory, recent public report), reformulated as a hypothesis ("a plausible scenario is..."), or cut. Anecdote without source is for striking.
 
-4. **Bron-kwaliteit.** Controleer of referenties naar primaire bronnen wijzen. OWASP cheat-sheets rechtstreeks, niet via medium-posts. Vendor-advisories rechtstreeks, niet via news-sites. ATT&CK-technieken met T-nummer, niet "ATT&CK zegt". Voor NL/EU-compliance (AVG, NIS2, DORA, Cyberbeveiligingswet): officiële wetstekst of toezichthouder (Autoriteit Persoonsgegevens, RDI, DNB), niet consultancy-samenvattingen.
+4. **Source quality.** Verify that references point to primary sources. OWASP cheat sheets directly, not via Medium posts. Vendor advisories directly, not via news sites. ATT&CK techniques with the T-number, not "ATT&CK says". For NL/EU compliance (AVG, NIS2, DORA, Cyberbeveiligingswet): the official text or supervising authority (Autoriteit Persoonsgegevens, RDI, DNB), not a consultancy summary.
 
-5. **Scope-afbakening security vs. juridisch/operationeel.** Bevat de output compliance- of juridische interpretaties? Dan moet er een disclaimer staan dat het geen juridisch advies is. Bevat de output operationele IR-stappen of offensive techniques? Dan hoort er een "binnen geautoriseerde scope"-markering bij. Security-skills informeren, ze fungeren niet als eindoordeel voor juridisch advies of incident-commando.
+5. **Scope demarcation: security vs legal/operational.** Does the output contain compliance or legal interpretations? Then a disclaimer must state that this is not legal advice. Does the output contain operational IR steps or offensive techniques? Then it needs a "within authorized scope" marker. Security skills inform; they don't act as the final ruling for legal advice or incident command.
 
-6. **Security-verdict.** Bovenop het Laag-1-verdict, flag één van:
-   - **geen red flags**: Laag 2 levert niets extra op.
-   - **red flag — oplosbaar**: concrete security-issues die je nu kunt fixen voor levering (meestal CVE/CVSS-markers plaatsen, payload herformuleren, claim onderbouwen of schrappen).
-   - **red flag — blokkerend**: de output kan niet zonder wijziging of goedkeuring worden geleverd (bv. een exploit-chain buiten afgesproken scope, of een feitelijke claim waarvan je de juistheid niet kunt garanderen en die materieel is voor de conclusie).
+6. **Security verdict.** On top of the Layer 1 verdict, flag one of:
+   - **no red flags**: Layer 2 doesn't add anything.
+   - **red flag — solvable**: concrete security issues you can fix now before delivery (typically: CVE/CVSS markers placed, payload reformulated, claim substantiated or cut).
+   - **red flag — blocking**: the output cannot be delivered without changes or sign-off (e.g. an exploit chain outside agreed scope, or a factual claim whose accuracy you can't guarantee and which is material to the conclusion).
 
 ## Output
 
-Het resultaat is geen nieuwe tekst voor de eindgebruiker, maar een intern rapport aan jezelf dat bepaalt wát je lévert. Structuur:
+The result is not new text for the end user, but an internal report to yourself that determines what you deliver. Structure:
 
 ```
 Verification-loop verdict: <pass | revise | rewrite>
-[Security-verdict: <n.v.t. | geen red flags | red flag — oplosbaar | red flag — blokkerend>]
+[Security verdict: <n/a | no red flags | red flag — solvable | red flag — blocking>]
 
-Laag 1:
-- Scope: <samenvatting — wat binnen, wat creep, wat gap>
-- Aannames: <lijst met risico-niveau per aanname>
-- Gaps: <drie vragen die een kritische lezer zou stellen>
-- Zwakste punten: <top 3 uit adversariële pass>
-- Faalmodi: <lijst, of "n.v.t." bij pure analyse>
-- Consistentie: <ok | conflicten: ...>
+Layer 1:
+- Scope: <summary — what's in, what's creep, what's gap>
+- Assumptions: <list with risk level per assumption>
+- Gaps: <three questions a critical reader would ask>
+- Weakest points: <top 3 from adversarial pass>
+- Failure modes: <list, or "n/a" for pure analysis>
+- Consistency: <ok | conflicts: ...>
 
-Laag 2 (indien van toepassing):
-- CVE/CVSS: <geverifieerd | markers geplaatst | geen CVE's genoemd>
-- Payloads: <patroon-niveau | versie-specifiek + context | n.v.t.>
-- Praktijkclaims: <onderbouwd | herformuleerd | geschrapt | n.v.t.>
-- Bronnen: <primair | gecorrigeerd | n.v.t.>
-- Scope/disclaimer: <ok | toegevoegd | n.v.t.>
+Layer 2 (where applicable):
+- CVE/CVSS: <verified | markers placed | no CVEs cited>
+- Payloads: <pattern-level | version-specific + context | n/a>
+- Practice claims: <substantiated | reformulated | cut | n/a>
+- Sources: <primary | corrected | n/a>
+- Scope/disclaimer: <ok | added | n/a>
 
-Acties voor levering:
+Actions before delivery:
 1. ...
 2. ...
 ```
 
-Bij **pass** (en indien relevant **geen red flags**): lever de output zonder wijziging. Bij **revise**: voer de acties uit en lever daarna. Bij **rewrite**: lever niets. Herstart de taak met het scope-inzicht uit de loop als uitgangspunt.
+On **pass** (and where applicable **no red flags**): deliver the output unchanged. On **revise**: execute the actions, then deliver. On **rewrite**: deliver nothing. Restart the task using the scope insight from the loop as your starting point.
 
-Het rapport blijft intern tenzij de gebruiker er expliciet om vraagt. Geen verification-loop-output als onderdeel van normale deliverables plakken, dat is ruis voor de lezer.
+The report stays internal unless the user explicitly asks for it. Don't paste verification-loop output as part of normal deliverables; that's noise to the reader.
 
-## Referenties
+## References
 
 - NIST SP 800-115 — [Technical Guide to Information Security Testing and Assessment](https://csrc.nist.gov/pubs/sp/800/115/final), §6 (post-testing activities, validation).
-- NVD — [https://nvd.nist.gov/](https://nvd.nist.gov/). Primaire bron voor CVE-verificatie (Laag 2).
-- FIRST CVSS v3.1 calculator — [https://www.first.org/cvss/calculator/3.1](https://www.first.org/cvss/calculator/3.1). Primaire bron voor score-verificatie (Laag 2).
-- MITRE ATT&CK — [https://attack.mitre.org/](https://attack.mitre.org/). Primaire bron voor TTP-nomenclatuur als de output naar technieken verwijst (Laag 2).
+- NVD — [https://nvd.nist.gov/](https://nvd.nist.gov/). Primary source for CVE verification (Layer 2).
+- FIRST CVSS v3.1 calculator — [https://www.first.org/cvss/calculator/3.1](https://www.first.org/cvss/calculator/3.1). Primary source for score verification (Layer 2).
+- MITRE ATT&CK — [https://attack.mitre.org/](https://attack.mitre.org/). Primary source for TTP nomenclature when output references techniques (Layer 2).
 
-## Categorieën
+## Categories
 
 - core

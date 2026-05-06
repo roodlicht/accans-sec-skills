@@ -19,13 +19,13 @@ A "pass" means: Claude routes to the expected item within the first or second me
 
 | # | Prompt | Expected trigger |
 |---|---|---|
-| 1 | "Doe een security review op de PR-diff van branch `feature/upload`." | `security-review` |
-| 2 | "Is deze SQL-query veilig: `cursor.execute(f'SELECT * FROM users WHERE id = {user_id}')`?" | `secure-coding` (fase 2) |
-| 3 | "We hebben 500 Dependabot alerts. Hoe prioriteren we?" | `cve-triage` |
-| 4 | "Iemand heeft per ongeluk een AWS access key naar de repo gepusht — wat nu?" | `secrets-scanner` (fase 1: incident-mode) |
-| 5 | "Voer een red-team pass uit op je vorige antwoord; check op aannames en gaps." | `verification-loop` |
-| 6 | "Threat-model deze nieuwe payment-service met Stripe-integratie." | `threat-modeler` (agent) |
-| 7 | "/security-gate" (slash-command) | `security-gate` (command) |
+| 1 | "Run a security review on the PR diff of branch `feature/upload`." | `security-review` |
+| 2 | "Is this SQL query safe: `cursor.execute(f'SELECT * FROM users WHERE id = {user_id}')`?" | `secure-coding` (phase 2) |
+| 3 | "We have 500 Dependabot alerts. How do we prioritize?" | `cve-triage` |
+| 4 | "Someone accidentally pushed an AWS access key into the repo — what now?" | `secrets-scanner` (phase 1: incident mode) |
+| 5 | "Do a red-team pass over your previous answer; check assumptions and gaps." | `verification-loop` |
+| 6 | "Threat-model this new payment service with Stripe integration." | `threat-modeler` (agent) |
+| 7 | "/security-gate" (slash command) | `security-gate` (command) |
 
 ### AppSec (12 items, plus core)
 

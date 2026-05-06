@@ -5,82 +5,82 @@ argument-hint: "[base-ref] [--strict] [--skip=<gate>] [--full-deps]"
 
 # /security-gate
 
-Pre-merge blocker. Draait drie gates (secrets, SAST, dep-vulns) op de changed-code van de huidige branch en levert een pass/fail-verdict met blockers erbij. Dit is geen review (`security-review` is de workflow met patterns en rapport), dit commando beslist: mag deze branch de merge in, ja of nee?
+Pre-merge blocker. Runs three gates (secrets, SAST, dep-vulns) on the changed code of the current branch and returns a pass/fail verdict with the blockers attached. This is not a review (`security-review` is the workflow with patterns and a report); this command decides: may this branch merge, yes or no?
 
-Het commando orchestreert. De onderliggende skills (`secrets-scanner`, `sast-orchestrator`, `cve-triage`) doen het werk.
+The command orchestrates. The underlying skills (`secrets-scanner`, `sast-orchestrator`, `cve-triage`) do the work.
 
-## Stappen
+## Steps
 
-1. **Scope bepalen.** Diff tegen de base-ref (default `origin/main`):
+1. **Determine scope.** Diff against the base ref (default `origin/main`):
    ```bash
    git fetch origin main --quiet
    git diff --name-only origin/main...HEAD
    git log --oneline origin/main..HEAD
    ```
-   Noteer de lijst gewijzigde files. Secrets- en SAST-gates draaien op deze lijst. De dep-gate draait op elke gewijzigde lockfile, of op de volledige graph bij `--full-deps`.
+   Note the list of changed files. Secrets and SAST gates run on this list. The dep gate runs on every changed lockfile, or on the full graph with `--full-deps`.
 
-2. **Secrets-gate.** Roep `secrets-scanner` aan, scope = changed files + commit-delta op deze branch. Tooling: `gitleaks detect --source . --log-opts="origin/main..HEAD"` of equivalent. Verified hit is een blocker, geen uitzondering.
+2. **Secrets gate.** Call `secrets-scanner`, scope = changed files + commit delta on this branch. Tooling: `gitleaks detect --source . --log-opts="origin/main..HEAD"` or equivalent. A verified hit is a blocker, no exceptions.
 
-3. **SAST-gate.** Roep `sast-orchestrator` aan op de changed files. Blocker-threshold: elke High/Critical finding in de diff, of Medium-findings binnen auth/crypto/IO/deserialisatie-paden (die heb je uit `security-review` fase 2-recon als context).
+3. **SAST gate.** Call `sast-orchestrator` on the changed files. Blocker threshold: every High/Critical finding in the diff, or Medium findings within auth/crypto/IO/deserialization paths (you have those from `security-review` phase 2 recon as context).
 
-4. **Dep-vuln-gate.** Roep `cve-triage` aan op de gewijzigde lockfiles. Blocker wanneer: CVE op CISA KEV, of reachable pre-auth RCE (zie `cve-triage` fase 3). Bij `--full-deps` check je de complete dep-graph, niet alleen wat de diff toevoegt.
+4. **Dep-vuln gate.** Call `cve-triage` on the changed lockfiles. Blocker when: CVE on CISA KEV, or reachable pre-auth RCE (see `cve-triage` phase 3). With `--full-deps` you check the complete dep graph, not just what the diff adds.
 
-5. **Policy-uitzonderingen honoreren.** Twee bronnen, in deze volgorde:
-   - Repo-level: `.security-gate.yaml` met `allow:` entries die elk `id` (CVE/rule-id/secret-hash), `reason` en `expires` (YYYY-MM-DD) moeten bevatten. Missend `reason` of verlopen `expires` betekent dat de uitzondering niet telt.
-   - PR-level: een regel in de PR-description in de vorm `security-gate: allow <id> reason: <...> expires: <YYYY-MM-DD>`.
+5. **Honor policy exceptions.** Two sources, in this order:
+   - Repo-level: `.security-gate.yaml` with `allow:` entries, each carrying `id` (CVE/rule-id/secret-hash), `reason`, and `expires` (YYYY-MM-DD). Missing `reason` or expired `expires` means the exception doesn't count.
+   - PR-level: a line in the PR description in the form `security-gate: allow <id> reason: <...> expires: <YYYY-MM-DD>`.
 
-   Elke toegepaste uitzondering noemen in het rapport, met reden en expiry. Zonder transparantie is het geen gate meer.
+   Mention every applied exception in the report, with reason and expiry. Without transparency it's no longer a gate.
 
-6. **Verification-loop.** Pas `verification-loop` toe op het gate-resultaat vóór het verdict. Laag 1 scope ("alle changed files langs alle drie gates gegaan?"), Laag 2 vooral op onderbouwing: geen verzonnen CVE/CWE-ID's, geen "waarschijnlijk niet reachable" zonder tool-output, EPSS-cijfer met datum.
+6. **Verification-loop.** Run `verification-loop` over the gate result before the verdict. Layer 1 scope ("did all changed files go through all three gates?"), Layer 2 especially on substantiation: no fabricated CVE/CWE-IDs, no "probably not reachable" without tool output, EPSS number with a date.
 
-7. **Verdict formuleren.** Eén van:
-   - **PASS**: alle gates groen, of alleen allowlist-hits binnen geldige policy-uitzonderingen.
-   - **PASS-WITH-WARNINGS**: geen blockers, wel niet-blokkerende findings (medium/low buiten kritieke paden). Met `--strict` wordt dit FAIL.
-   - **FAIL**: ≥ 1 blocker in een van de gates, of een ongeldige policy-uitzondering op een blocker-finding.
+7. **Formulate verdict.** One of:
+   - **PASS**: all gates green, or only allowlist hits within valid policy exceptions.
+   - **PASS-WITH-WARNINGS**: no blockers, but non-blocking findings (medium/low outside critical paths). With `--strict` this becomes FAIL.
+   - **FAIL**: ≥ 1 blocker in any gate, or an invalid policy exception on a blocker finding.
 
-## Argumenten
+## Arguments
 
-- `<base-ref>` (optioneel, positioneel). Ref om tegen te diffen. Default `origin/main`. Gebruik bijvoorbeeld `origin/release-2026-Q2` wanneer je op een release-branch zit.
-- `--strict`. Promoveer medium-findings tot blocker. Resultaat wordt FAIL als er iets boven low staat.
-- `--skip=<gate>`. Sla één gate over (`secrets`, `sast`, of `deps`). Vereist dat de aanroeper een reden in de begeleidende boodschap meegeeft, anders faalt het commando met reason-required. Uitzonderingen worden sowieso in het rapport genoemd.
-- `--full-deps`. Dep-gate over de volledige dep-graph in plaats van alleen de diff. Gebruik bij release-branches of periodieke audits.
+- `<base-ref>` (optional, positional). Ref to diff against. Default `origin/main`. Use e.g. `origin/release-2026-Q2` when you're on a release branch.
+- `--strict`. Promote medium findings to blocker. Result becomes FAIL if anything above low exists.
+- `--skip=<gate>`. Skip one gate (`secrets`, `sast`, or `deps`). Requires the caller to give a reason in the accompanying message; otherwise the command fails with reason-required. Exceptions get listed in the report regardless.
+- `--full-deps`. Dep gate over the full dep graph instead of just the diff. Use for release branches or periodic audits.
 
-Zonder argumenten: `origin/main` als base, alle drie gates, non-strict, diff-scope voor deps.
+Without arguments: `origin/main` as base, all three gates, non-strict, diff scope for deps.
 
 ## Output
 
-Kort en actionable. Geen tool-dumps. Voor diepte verwijs door naar de onderliggende skills.
+Short and actionable. No tool dumps; for depth, link out to the underlying skills.
 
 ```
 security-gate — base: origin/main | modified: 7 files | flags: <none | --strict | --full-deps>
 
 Secrets (secrets-scanner):   PASS — 0 verified hits
-SAST   (sast-orchestrator):  FAIL — 1 High, 2 Medium (zie blockers)
-Deps   (cve-triage):         PASS — 0 blockers, 2 fix-sprint (niet-blokkerend)
-Policy-uitzonderingen:       1 toegepast (CVE-2024-xxxx, expires 2026-09-30)
+SAST   (sast-orchestrator):  FAIL — 1 High, 2 Medium (see blockers)
+Deps   (cve-triage):         PASS — 0 blockers, 2 fix-sprint (non-blocking)
+Policy exceptions:           1 applied (CVE-2024-xxxx, expires 2026-09-30)
 
 Verification-loop:
   Verdict:          <pass | revise | rewrite>
-  Security-verdict: <geen red flags | red flag — ...>
+  Security verdict: <no red flags | red flag — ...>
 
 VERDICT: FAIL
 
 Blockers:
 - SAST [src/auth/session.py:42] CWE-285 Improper Authorization
-  Check ownership vóór document-return. Detail: `security-review`.
+  Check ownership before document-return. Detail: `security-review`.
 - SAST [src/api/upload.py:88] CWE-434 Unrestricted File Upload
-  MIME- en magic-byte-check toevoegen.
+  Add MIME and magic-byte validation.
 
-Niet-blokkerende findings (2):
-- Deps CVE-2025-yyyy in axios@1.6.2 — fix-sprint (EPSS 0.03, niet reachable)
+Non-blocking findings (2):
+- Deps CVE-2025-yyyy in axios@1.6.2 — fix-sprint (EPSS 0.03, not reachable)
 - Deps CVE-2025-zzzz in lodash@4.17.20 — fix-quarter
 ```
 
-Regel `VERDICT: …` staat altijd aanwezig en is de canonieke signal-regel voor automation (zoek op die prefix). Zonder een `VERDICT:`-regel is het commando niet afgerond.
+The line `VERDICT: …` is always present and is the canonical signal line for automation (search for the prefix). Without a `VERDICT:` line the command isn't done.
 
-## Wanneer NIET
+## When NOT to use
 
-- Voor een inhoudelijke review → `security-review` (workflow met rapport). Dit commando beslist, het rationaliseert niet dieper dan nodig om te beslissen.
-- Voor design-/architectuur-analyse → `threat-modeler` (agent).
-- Voor incident-response als er daadwerkelijk iets gelekt of geëxploiteerd is → `ir-runbook`.
-- Als er geen base-ref te vinden is (detached HEAD, orphan branch): commando faalt met duidelijke foutmelding. Fix eerst de git-state.
+- For a substantive review → `security-review` (workflow with a report). This command decides; it doesn't reason deeper than required to decide.
+- For design or architecture analysis → `threat-modeler` (agent).
+- For incident response when something has actually leaked or been exploited → `ir-runbook`.
+- When there's no base-ref to find (detached HEAD, orphan branch): the command fails with a clear error message. Fix the git state first.

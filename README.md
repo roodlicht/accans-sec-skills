@@ -61,12 +61,15 @@ cd accans-sec-skills
 
 ## Working language
 
-- **Skill bodies are written in Dutch** (the maintainer's working language: informeel-professioneel).
-- **Front-matter `description` fields are in English** — the Claude matcher relies on these, and English keeps the matcher predictable across language environments.
-- **All public-facing positioning is in English**: this README, the examples in `examples/`, the smoke-tests in `tests/`, the contributor docs.
-- **GRC items remain explicitly NL/EU-anchored** in their references and regulatory text. That is the catalog's positioning, not an accident — and is preserved regardless of any future translation work.
+The catalog is moving to English to be globally accessible. State per profile:
 
-If you'd like to contribute English translations of `core` and `appsec` skill bodies, see [CONTRIBUTING.md](CONTRIBUTING.md). GRC items are intentionally retained in their NL/EU framing.
+- **Core (7 items): English** — fully translated.
+- **AppSec, Pentest, Blue, GRC (40 items): translation in progress.** Bodies currently in Dutch; English versions land in subsequent releases. Front-matter descriptions are already English across the whole catalog, so the Claude matcher behaves the same way today regardless of body language.
+- **Front-matter `description` fields**: English (always).
+- **Public-facing positioning** (this README, examples, smoke-tests, contributor docs): English.
+- **GRC items remain explicitly NL/EU-anchored** in their references and regulatory text. That is the catalog's positioning — preserved across the translation work. NIS2, DORA, AVG, Cyberbeveiligingswet, AP, RDI, DNB, AFM stay as primary sources. Only the wrapping prose becomes English.
+
+If you'd like to contribute English translations, see [CONTRIBUTING.md](CONTRIBUTING.md). The roadmap is roughly: AppSec → Pentest → Blue → GRC.
 
 ## Disclaimers
 

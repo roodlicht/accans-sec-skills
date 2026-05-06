@@ -5,192 +5,192 @@ description: Security review workflow for a PR, feature or codebase — scope, a
 
 # Security Review
 
-## Wanneer gebruiken
+## When to use
 
-Gebruik deze skill als er een afgebakend stuk code op security wordt nagelopen en er een rapport uit moet komen. Hij is de workflow; de patterns zelf zitten in `secure-coding`, waar fase 4 naartoe gaat.
+Use this skill when a bounded chunk of code is being checked systematically for security and a report is the deliverable. It is the workflow; the patterns themselves live in `secure-coding`, where phase 4 hands off.
 
-Activeert bij:
+Activates on:
 
-- Een vraag als "doe een security review op <PR/branch/feature/service>", "review deze code op security issues", "audit tegen OWASP Top 10", "is dit veilig om te mergen", "security-audit vóór productie".
-- Een PR die auth, crypto, user-input handling, session-beheer, PII-opslag, deserialisatie, file-upload of externe integraties raakt. Dan is reviewen niet optioneel.
-- Een nieuwe service voor ze live gaat, of een bestaande die na een incident weer is aangeraakt.
-- Een kwartaal- of release-audit op high-risk subsystems van een oudere codebase.
+- A request like "do a security review on <PR/branch/feature/service>", "review this code for security issues", "audit against OWASP Top 10", "is this safe to merge", "security audit before production".
+- A PR that touches auth, crypto, user-input handling, session management, PII storage, deserialization, file upload, or external integrations. Then reviewing is not optional.
+- A new service before it goes live, or an existing one touched again after an incident.
+- A quarterly or release-cycle audit of high-risk subsystems on an older codebase.
 
-### Wanneer NIET (handoff)
+### When NOT to use (handoff)
 
-- Automated pre-merge gate → `security-gate` (command). Dat is een blocker met beleid. Deze skill is de inhoudelijke review erachter.
-- Design-niveau dreigingen vóór code bestaat → `threat-modeler` (agent). STRIDE, attack trees en trust-boundary-diagrammen horen daar.
-- Offensive assessment met actieve exploitation → pentest-skills (`web-exploit-triage`, `recon-agent`, `payload-crafter`). Deze skill exploit niet, hij signaleert.
-- Framework-deep review → eerst de framework-skill (`django-security`, `spring-security`, `rails-security`, `nextjs-security`, `api-security`), dan terug naar deze skill voor het overkoepelende rapport.
-- Losse code-pattern-vraag ("is deze query veilig?") → direct naar `secure-coding`. Deze skill is het proces rondom, niet de patterns zelf.
-- Alleen dep-vuln-triage → `cve-triage`. Die weegt exploitability (reachable path, EPSS) fijner dan deze skill.
-- Alleen secrets in git-history → `secrets-scanner`. Deze skill roept hem aan, niet andersom.
+- Automated pre-merge gate → `security-gate` (command). That's a blocker with a policy. This skill is the substantive review behind it.
+- Design-level threats before code exists → `threat-modeler` (agent). STRIDE, attack trees, and trust-boundary diagrams belong there.
+- Offensive assessment with active exploitation → pentest skills (`web-exploit-triage`, `recon-agent`, `payload-crafter`). This skill flags; it does not exploit.
+- Framework-deep review → start with the framework skill (`django-security`, `spring-security`, `rails-security`, `nextjs-security`, `api-security`), then come back here for the umbrella report.
+- Standalone code-pattern question ("is this query safe?") → straight to `secure-coding`. This skill is the process around the patterns, not the patterns themselves.
+- Dep-vuln triage only → `cve-triage`. It weighs exploitability (reachable path, EPSS) more finely than this skill.
+- Secrets in git history only → `secrets-scanner`. This skill calls it, not the other way around.
 
-Deze skill roept achter elkaar `secrets-scanner`, `sast-orchestrator`, `cve-triage` aan in fase 3, en `verification-loop` als laatste stap vóór het rapport de deur uitgaat.
+This skill calls `secrets-scanner`, `sast-orchestrator`, `cve-triage` in phase 3, and `verification-loop` as the final step before the report ships.
 
-## Aanpak
+## Approach
 
-Zeven fases. Sla er geen over. Fases die "niet van toepassing lijken" zijn vaak precies waar issues onopgemerkt blijven. Bij zeer kleine PR-scope mag fase 2 kort zijn en fase 5 beperkt, maar de fase-structuur blijft.
+Seven phases. Don't skip them. Phases that "don't seem to apply" are often exactly where issues stay invisible. For a very small PR scope phase 2 may be brief and phase 5 limited, but the phase structure stays.
 
-### 1. Scope vastleggen
+### 1. Set scope
 
-Vóór je ook maar één file opent: weet wat je reviewt en waarom.
+Before opening a single file: know what you're reviewing and why.
 
-- **Object van review.** PR-diff, branch-delta, specifieke directory, volledige service, een flow-doorsnede (bv. "alle code in het login-pad"). Noteer exact welke files/ranges in scope zijn.
-- **Aanleiding.** Pre-merge, periodieke audit, post-incident, compliance-prep (ISO/SOC2/DORA). Dit bepaalt welke severities blockers zijn.
-- **Diepte.** *Light* is alleen de diff-hunks en wat ze direct aanroepen. *Medium* is diff plus eerste-orde callers plus gerelateerde tests en config. *Deep* is hele subsystem met control/data-flow analysis. Licht is OK voor kleine, geïsoleerde PRs. Alles wat auth, crypto of untrusted input raakt is minimaal medium.
-- **Out-of-scope expliciet.** Infra/IaC buiten deze skill (handoff), UI-text changes, docs-only changes, third-party code buiten directe consumption-path.
-- **Deadline.** Beïnvloedt hoeveel diepgang en of er een tweede reviewer bij moet.
+- **Object of review.** PR diff, branch delta, specific directory, full service, a flow cross-section (e.g. "all code in the login path"). Note exactly which files/ranges are in scope.
+- **Trigger.** Pre-merge, periodic audit, post-incident, compliance prep (ISO/SOC2/DORA). This determines which severities are blockers.
+- **Depth.** *Light* = only the diff hunks plus what they directly call. *Medium* = diff plus first-order callers plus related tests and config. *Deep* = entire subsystem with control/data-flow analysis. Light is fine for small, isolated PRs. Anything touching auth, crypto, or untrusted input is at least medium.
+- **Out-of-scope explicitly.** Infra/IaC outside this skill (handoff), UI-text changes, docs-only changes, third-party code outside the direct consumption path.
+- **Deadline.** Influences how much depth, and whether a second reviewer is needed.
 
-Als de scope na deze fase niet op één regel samen te vatten is, is hij te breed. Smal maken of opsplitsen.
+If scope after this phase doesn't summarize in one line, it's too broad. Narrow it or split it.
 
-### 2. Recon: begrijp wat je bekijkt
+### 2. Recon: understand what you're looking at
 
-Een review zonder mentaal model van het systeem is symptoom-zoeken. Bouw eerst het model.
+A review without a mental model of the system is symptom-hunting. Build the model first.
 
-- **Docs doorlopen.** README, architectuur-diagrammen, ADRs, API-docs. Vaak staat daar welke claims het systeem maakt (welke threats in scope zijn).
-- **Entry points lokaliseren.** HTTP routes (`grep` op route-decorators, middleware-chain), CLI handlers, message-consumers, webhooks, scheduled jobs, event-triggers. Lijst ze op, dit zijn je trust-boundaries.
-- **Sensitive call-sites markeren.** Zoek op common foot-gun patterns: `eval`, `exec`, `subprocess.*shell=True`, `pickle.loads`, `yaml.load` zonder SafeLoader, `ObjectInputStream`, `innerHTML`, `dangerouslySetInnerHTML`, `verify=False`, `disable-ssl`, hardcoded AWS/GitHub-token-formaten. Ze zijn niet per se fout, maar elk vraagt aandacht.
-- **Config en secrets-hantering.** Waar komen credentials vandaan? Env-vars? Vault? Hardcoded? Config-file? Roteer-schema bekend?
-- **Auth-model.** Wie is een gebruiker? Hoe wordt identiteit bewezen? Welke rollen en permissies? Waar wordt autorisatie gecheckt: middleware, per-endpoint, per-resource?
+- **Read the docs.** README, architecture diagrams, ADRs, API docs. They often state which claims the system makes (which threats are in scope).
+- **Locate entry points.** HTTP routes (`grep` on route decorators, middleware chain), CLI handlers, message consumers, webhooks, scheduled jobs, event triggers. List them — these are your trust boundaries.
+- **Mark sensitive call-sites.** Search for common foot-gun patterns: `eval`, `exec`, `subprocess.*shell=True`, `pickle.loads`, `yaml.load` without SafeLoader, `ObjectInputStream`, `innerHTML`, `dangerouslySetInnerHTML`, `verify=False`, `disable-ssl`, hardcoded AWS/GitHub token formats. They are not necessarily wrong, but each warrants attention.
+- **Config and secrets handling.** Where do credentials come from? Env vars? Vault? Hardcoded? Config file? Rotation schedule known?
+- **Auth model.** Who is a user? How is identity proven? Which roles and permissions? Where is authorization checked: middleware, per endpoint, per resource?
 
-Uitkomst van deze fase: een bullet-lijst met entry points, trust boundaries, sensitive call-sites en auth-model-samenvatting. Dat is je kaart voor fases 4–5.
+Output of this phase: a bullet list of entry points, trust boundaries, sensitive call-sites, and an auth-model summary. That's your map for phases 4–5.
 
-### 3. Automated scan: wat tools je gratis geven
+### 3. Automated scan: what tools give you for free
 
-Laat de machine de platte patronen vangen voordat je zelf gaat lezen. Handoffs:
+Let the machine catch the flat patterns before you read by hand. Handoffs:
 
-- **Secrets** → `secrets-scanner` (gitleaks, trufflehog, detect-secrets). Scan zowel working-tree als git-history. Elke match is serieus tot tegendeel bewezen, want een key uit git-history blijft gelekt ook als hij nu weg is.
-- **SAST** → `sast-orchestrator` (Semgrep met community-ruleset + language-specific, CodeQL voor dieptecontrole, SonarQube voor trend). Draai minimaal Semgrep, CodeQL bij deep-mode reviews.
-- **SCA / dep-vulns** → `cve-triage` (osv-scanner, grype, Dependabot/Renovate-alerts). Filter op reachable-path en EPSS voordat je ze als finding opvoert.
-- **IaC/container/k8s indien in scope** → `iac-security`, `container-hardening`, `k8s-security`.
+- **Secrets** → `secrets-scanner` (gitleaks, trufflehog, detect-secrets). Scan both working tree and git history. Every match is serious until proven otherwise — a key from git history stays leaked even when it's gone now.
+- **SAST** → `sast-orchestrator` (Semgrep with community + language-specific rulesets, CodeQL for depth, SonarQube for trend). Run Semgrep at minimum; CodeQL on deep-mode reviews.
+- **SCA / dep-vulns** → `cve-triage` (osv-scanner, grype, Dependabot/Renovate alerts). Filter for reachable path and EPSS before raising as a finding.
+- **IaC/container/k8s if in scope** → `iac-security`, `container-hardening`, `k8s-security`.
 
-Triageer de ruwe tool-output meteen: false-positives wegstrepen met reden, real findings doorzetten naar fase 6. Geen volledige tool-output in het rapport plakken, dat is lui en onleesbaar.
+Triage the raw tool output immediately: false positives written off with a reason; real findings forwarded to phase 6. Don't paste full tool dumps in the report — that's lazy and unreadable.
 
-### 4. Handmatige pattern-review
+### 4. Manual pattern review
 
-Loop de in fase 2 gemarkeerde call-sites na met de zes-fases-walk uit `secure-coding`: trust boundaries → input/output → identity → secrets/crypto → robuustheid → dependencies. Voor elke finding noteer je file, line, classificatie en een korte beschrijving.
+Walk the call-sites you marked in phase 2 through the six-phase walk from `secure-coding`: trust boundaries → input/output → identity → secrets/crypto → robustness → dependencies. For each finding note file, line, classification, and a short description.
 
-Wat deze fase toevoegt bovenop fase 3: context. SAST weet niet dat `get_document(id)` door een admin-endpoint wordt aangeroepen zonder ownership-check. Jij wel, want fase 2 heeft het auth-model uitgewerkt.
+What this phase adds on top of phase 3: context. SAST doesn't know that `get_document(id)` is called from an admin endpoint without an ownership check. You do, because phase 2 worked out the auth model.
 
-Aandachtspunten die SAST zelden vangt:
+Things SAST rarely catches:
 
-- **Autorisatie-gaps (IDOR).** Endpoint checkt authenticatie maar niet of de actor de resource mag zien of aanpassen. Klassiek bij `/api/<resource>/<id>` routes.
-- **Auth-logica bugs.** Race-condition tussen `check` en `act`, login-side-channels (timing, error-verschil tussen "user niet" en "password fout"), password-reset flow die account-enumeratie toelaat.
-- **Sessie-management.** Session niet geroteerd na privilege-change, logout invalidateert geen server-side state, cookie-flags (HttpOnly/Secure/SameSite) niet gezet.
-- **Rate-limiting en abuse.** Login, password-reset, 2FA-verify, payment-retry: elk zonder rate-limit is een gratis bruteforce of abuse-target.
-- **JWT-misconfig.** `alg: none` geaccepteerd, algorithm-confusion (HS256 met RSA-pubkey als secret), verlooptijd oneindig, geen `kid`-rotatie.
-- **Deserialisatie en file-upload.** Pickle/YAML/Java-serialization op user-path, file-upload zonder MIME/magic-byte validatie, path-traversal in file-naam.
+- **Authorization gaps (IDOR).** Endpoint checks authentication but not whether the actor may see or modify the resource. Classic on `/api/<resource>/<id>` routes.
+- **Auth-logic bugs.** Race condition between `check` and `act`, login side-channels (timing, error difference between "user doesn't exist" and "wrong password"), password-reset flow that allows account enumeration.
+- **Session management.** Session not rotated after privilege change, logout that doesn't invalidate server-side state, cookie flags (HttpOnly/Secure/SameSite) not set.
+- **Rate limiting and abuse.** Login, password reset, 2FA verify, payment retry: each without rate limit is a free brute-force or abuse target.
+- **JWT misconfig.** `alg: none` accepted, algorithm confusion (HS256 with RSA pubkey as secret), expiry infinite, no `kid` rotation.
+- **Deserialization and file upload.** Pickle/YAML/Java serialization on user paths, file upload without MIME / magic-byte validation, path traversal in filename.
 
-### 5. Design- en business-logic review
+### 5. Design and business-logic review
 
-Issues die pas zichtbaar worden als je systeem-niveau denkt. Niet alle reviews halen deze fase. Licht/medium-scope mag dit overslaan mits fase 1 dat expliciet vastlegt.
+Issues that only become visible with system-level thinking. Not every review reaches this phase. Light/medium scope may skip it as long as phase 1 records the choice.
 
-- **Authorization-model holistisch.** Zijn er privilege-escalation-paden? Kan een gebruiker van tenant A data van tenant B raken via een indirect endpoint? Zijn admin-functies bereikbaar via een niet-admin route (cross-role pollution)?
-- **Business-logic flaws.** Workflow-bypass (direct naar stap 5 zonder 1–4 te doorlopen), negatieve bedragen, coupon-stacking, dubbele refunds, replay op idempotency-keys.
-- **Race conditions en TOCTOU.** Check-then-act op resource-state (bv. "is user nog premium" → "voer premium-actie uit"), concurrent writes zonder locking, double-spend-achtige patronen in financial flows.
-- **State-machine gaten.** Welke transities zijn afgedwongen? Wat gebeurt bij een API-call in een state waarin die niet verwacht wordt?
-- **Trust-boundary scheiding.** Draait per-user code in dezelfde process-space als cross-tenant admin-code? Welke config-waardes zijn tenant-scoped, welke globaal?
+- **Holistic authorization model.** Are there privilege-escalation paths? Can a tenant-A user reach tenant-B data via an indirect endpoint? Are admin functions reachable via a non-admin route (cross-role pollution)?
+- **Business-logic flaws.** Workflow bypass (jump to step 5 without going through 1–4), negative amounts, coupon stacking, double refunds, replay on idempotency keys.
+- **Race conditions and TOCTOU.** Check-then-act on resource state (e.g. "is user still premium" → "execute premium action"), concurrent writes without locking, double-spend-style patterns in financial flows.
+- **State-machine gaps.** Which transitions are enforced? What happens on an API call in a state that doesn't expect it?
+- **Trust-boundary separation.** Does per-user code run in the same process space as cross-tenant admin code? Which config values are tenant-scoped, which are global?
 
-Als design-diepte echt nodig is (bv. nieuwe architectuur, nieuwe integratie met externe systemen): handoff naar `threat-modeler` voor een STRIDE-pass. Deze skill noteert dan in het rapport "threat-model aanbevolen voor X, uitgevoerd door <agent/persoon>".
+If design depth is genuinely needed (e.g. new architecture, new external integration): hand off to `threat-modeler` for a STRIDE pass. This skill then notes in the report "threat model recommended for X, performed by <agent/person>".
 
-### 6. Prioriteren
+### 6. Prioritize
 
-Severity bepaal je op basis van impact × likelihood × compenserende controls. CVSS v3.1 is het formele systeem, maar voor dev-teams werkt een blocker/high/medium/low-label vaak sneller. Gebruik beide als het rapport naar zowel engineering als compliance gaat.
+Severity is impact × likelihood × compensating controls. CVSS v3.1 is the formal system, but a blocker/high/medium/low label is often faster for dev teams. Use both when the report goes to engineering and to compliance.
 
-**Severity-matrix:**
+**Severity matrix:**
 
-- **Blocker.** Pre-auth RCE, authenticatie-bypass, secret/credential-exposure die systeemtoegang geeft, mass PII-leak, SQLi met OS-command reach, reachable dep-vuln met publieke exploit op een externally-exposed pad. **Niet mergen, niet deployen.**
-- **High.** Authenticated RCE, IDOR op PII of financiële data, stored XSS in admin-context, SSRF naar cloud-metadata-endpoint, hardcoded productie-credential, JWT signature-verification uit, deserialisatie van user-controlled input in een kritiek pad. **Merge geblokkeerd tot fix.**
-- **Medium.** Reflected XSS buiten admin-context, self-XSS, missing rate-limit op auth-endpoint, verbose errors met interne paden, weak-but-not-broken crypto-keuze, outdated lib zonder reachable exploit, missing security-headers in sensitive routes. **Fix in deze of de volgende sprint.**
-- **Low.** Missing HSTS/CSP/X-Content-Type-Options, version-disclosure, verbose logging zonder PII, ontbrekende best-practice zonder directe risico-verhoging. **Backlog-ticket, geen merge-blocker.**
+- **Blocker.** Pre-auth RCE, authentication bypass, secret/credential exposure that grants system access, mass PII leak, SQLi with OS-command reach, reachable dep-vuln with public exploit on an externally-exposed path. **Don't merge, don't deploy.**
+- **High.** Authenticated RCE, IDOR on PII or financial data, stored XSS in admin context, SSRF to cloud-metadata endpoint, hardcoded production credential, JWT signature verification off, deserialization of user-controlled input on a critical path. **Merge blocked until fixed.**
+- **Medium.** Reflected XSS outside admin context, self-XSS, missing rate limit on auth endpoint, verbose errors with internal paths, weak-but-not-broken crypto choice, outdated lib without reachable exploit, missing security headers in sensitive routes. **Fix this sprint or next.**
+- **Low.** Missing HSTS/CSP/X-Content-Type-Options, version disclosure, verbose logging without PII, missing best practice without direct risk increase. **Backlog ticket; not a merge blocker.**
 
-Exploitability weegt mee: een blocker die achter een non-routeable intern netwerk zit kan tot high zakken, een medium die publiek bereikbaar en ongeauthenticeerd is kan tot high stijgen. Documenteer de weging, anders is het onverdedigbaar.
+Exploitability weights in: a blocker behind a non-routable internal network can drop to high; a medium that's publicly reachable and unauthenticated can rise to high. Document the weighting — otherwise it's indefensible.
 
-CVE-ID of CWE-ID altijd erbij als je kunt. Zie `verification-loop` Laag 2 voor CVE/CVSS-verificatie, geen verzonnen ID's.
+CVE-ID or CWE-ID always present where you can. See `verification-loop` Layer 2 for CVE/CVSS verification — no fabricated IDs.
 
-### 7. Rapporteren + verification-loop
+### 7. Report + verification-loop
 
-Bouw het concept-rapport in de structuur hieronder. Draai dan `verification-loop` erover:
+Build the draft report in the structure below. Then run `verification-loop` over it:
 
-- **Laag 1**: scope-check (matcht rapport de in fase 1 afgesproken scope?), aannames (elke claim "reachable" of "exploitable" onderbouwd?), gap-analyse (welke entry points uit fase 2 zijn onbesproken?), adversariële lezer (wat zou de indiener als zwakste finding aanvallen?), faalmodi (werken je fix-suggesties?), consistentie (severities intern coherent?).
-- **Laag 2**: CVE/CVSS-verificatie tegen NVD/FIRST, payload-niveau (geen kant-en-klare exploits voor productie-targets in het rapport), claims onderbouwen, primaire bronnen.
+- **Layer 1**: scope check (does the report match the scope agreed in phase 1?), assumptions (every "reachable" or "exploitable" claim substantiated?), gap analysis (which entry points from phase 2 are unaddressed?), adversarial reader (what would the submitter attack as the weakest finding?), failure modes (do your fix suggestions work?), consistency (severities internally coherent?).
+- **Layer 2**: CVE/CVSS verification against NVD/FIRST, payload-level (no ready-to-fire exploits for production targets in the report), substantiated claims, primary sources.
 
-Pas aan. Lever pas wanneer verdict pass (of revise met fixes toegepast).
+Adjust. Deliver only when verdict is pass (or revise with fixes applied).
 
 ## Output
 
-Rapport-template:
+Report template:
 
 ```
 Security review — <scope>
-Datum: YYYY-MM-DD | Reviewer: <naam/tool> | Diepte: <light|medium|deep>
+Date: YYYY-MM-DD | Reviewer: <name/tool> | Depth: <light|medium|deep>
 
 Scope:
   In: <files, ranges, flow>
-  Uit: <expliciet out-of-scope>
-  Aanleiding: <pre-merge | periodic | post-incident | compliance>
+  Out: <explicitly out-of-scope>
+  Trigger: <pre-merge | periodic | post-incident | compliance>
 
-Executive summary (3–5 regels):
-  <status in één zin>
+Executive summary (3–5 lines):
+  <status in one sentence>
   Blockers: N | High: N | Medium: N | Low: N
-  Advies: <merge | merge-na-fixes | niet mergen | bredere scope nodig>
+  Recommendation: <merge | merge-after-fixes | don't merge | wider scope needed>
 
-Automated scan (samenvatting, geen dumps):
-  Secrets (secrets-scanner): <N findings, X bevestigd>
-  SAST (sast-orchestrator): <N findings na triage>
-  SCA (cve-triage): <N reachable, EPSS-gewogen>
-  IaC/container/k8s (indien): <N findings>
+Automated scan (summary, no dumps):
+  Secrets (secrets-scanner): <N findings, X confirmed>
+  SAST (sast-orchestrator): <N findings after triage>
+  SCA (cve-triage): <N reachable, EPSS-weighted>
+  IaC/container/k8s (if applicable): <N findings>
 
-Findings (gesorteerd op severity, blockers eerst):
+Findings (severity-sorted, blockers first):
 
-## [BLOCKER] <korte titel>
-  Locatie: <file:line[–line]>
-  Classificatie: CWE-<N> | OWASP A0<x> | CVSS v3.1 <score> (<vector>)
-  Patroon: <naam, bv. "pickle.loads op user-body">
-  Impact: <wat kan aanvaller concreet?>
-  Reproductie: <stappen of curl-voorbeeld; geen versie-specifieke exploit>
-  Fix: <concrete patch-richting, liefst code-alternatief>
-  Compenserend: <bestaande controls die impact beperken, indien van toepassing>
-  Handoff: <indien specialist nodig: threat-modeler, sast-orchestrator, etc.>
+## [BLOCKER] <short title>
+  Location: <file:line[–line]>
+  Classification: CWE-<N> | OWASP A0<x> | CVSS v3.1 <score> (<vector>)
+  Pattern: <name, e.g. "pickle.loads on user-body">
+  Impact: <what can the attacker do?>
+  Reproduction: <steps or curl example; no version-specific exploit>
+  Fix: <concrete patch direction, ideally with code alternative>
+  Compensating: <existing controls limiting impact, where applicable>
+  Handoff: <if specialist needed: threat-modeler, sast-orchestrator, etc.>
 
 ## [HIGH] ...
 ## [MEDIUM] ...
 ## [LOW] ...
 
-Open vragen voor indiener:
-  - <vraag over intentie/context>
-  - <verificatie-verzoek dat reviewer niet zelf kan uitvoeren>
+Open questions for submitter:
+  - <intent/context question>
+  - <verification request the reviewer can't perform alone>
 
-Niet-bevindingen expliciet:
-  - <patroon dat opviel maar geen finding is, met reden — voorkomt dat de
-    volgende reviewer er weer over valt>
+Non-findings explicitly:
+  - <pattern that stood out but is not a finding, with reason — saves the
+    next reviewer the same time>
 
 Verification-loop:
   Verdict: <pass | revise | rewrite>
-  Security-verdict: <geen red flags | red flag — oplosbaar | red flag — blokkerend>
+  Security verdict: <no red flags | red flag — solvable | red flag — blocking>
 ```
 
-Richtlijnen voor het rapport zelf:
+Guidance for the report itself:
 
-- Findings zijn actionable of ze zijn ruis. Elke finding heeft een locatie en een fix-richting.
-- Reproductie moet werken binnen de afgesproken scope, geen publieke 0-day-chains voor productie-targets; zie `verification-loop` Laag 2.
-- "Niet-bevindingen" expliciet noemen voorkomt dat de volgende reviewer dezelfde tijd kwijt is. Twee regels per stuk is genoeg.
-- Geen lange theoretische uitleg over "wat is XSS", link naar OWASP Cheat Sheets en ga door.
+- Findings are actionable or they're noise. Every finding has a location and a fix direction.
+- Reproduction must work within the agreed scope; no public 0-day chains for production targets — see `verification-loop` Layer 2.
+- "Non-findings explicit" prevents the next reviewer spending the same time. Two lines per item is enough.
+- No long theoretical XSS lecture; link to OWASP cheat sheets and move on.
 
-Het rapport gaat naar de PR-auteur of service-owner, niet naar "stakeholders in het algemeen". Schrijf ervoor.
+The report goes to the PR author or service owner, not to "stakeholders in general". Write for them.
 
-## Referenties
+## References
 
-- OWASP Top 10 2021 — [https://owasp.org/Top10/](https://owasp.org/Top10/). Primaire categorieën, elke finding mapt naar een A0x.
-- OWASP API Security Top 10 — [https://owasp.org/API-Security/editions/2023/en/0x11-t10/](https://owasp.org/API-Security/editions/2023/en/0x11-t10/). Voor API-scope reviews parallel aan of in plaats van Top 10.
-- OWASP ASVS v4 — [https://owasp.org/www-project-application-security-verification-standard/](https://owasp.org/www-project-application-security-verification-standard/). Gebruik als requirement-checklist bij deep-mode reviews.
-- OWASP Code Review Guide v2 — [https://owasp.org/www-project-code-review-guide/](https://owasp.org/www-project-code-review-guide/). Methodologie-basis voor deze workflow.
-- CWE Top 25 — [https://cwe.mitre.org/top25/](https://cwe.mitre.org/top25/). Voor CWE-classificatie van findings.
-- NIST SP 800-53r5 — [https://csrc.nist.gov/pubs/sp/800/53/r5/upd1/final](https://csrc.nist.gov/pubs/sp/800/53/r5/upd1/final). Control-families (AC, SI, SC) voor finding-mapping bij compliance-context.
-- FIRST CVSS v3.1 — [https://www.first.org/cvss/v3-1/specification-document](https://www.first.org/cvss/v3-1/specification-document) en calculator [https://www.first.org/cvss/calculator/3.1](https://www.first.org/cvss/calculator/3.1).
+- OWASP Top 10 2021 — [https://owasp.org/Top10/](https://owasp.org/Top10/). Primary categories; every finding maps to an A0x.
+- OWASP API Security Top 10 — [https://owasp.org/API-Security/editions/2023/en/0x11-t10/](https://owasp.org/API-Security/editions/2023/en/0x11-t10/). For API-scope reviews alongside or instead of Top 10.
+- OWASP ASVS v4 — [https://owasp.org/www-project-application-security-verification-standard/](https://owasp.org/www-project-application-security-verification-standard/). Use as a requirement checklist on deep-mode reviews.
+- OWASP Code Review Guide v2 — [https://owasp.org/www-project-code-review-guide/](https://owasp.org/www-project-code-review-guide/). Methodology basis for this workflow.
+- CWE Top 25 — [https://cwe.mitre.org/top25/](https://cwe.mitre.org/top25/). For CWE classification of findings.
+- NIST SP 800-53r5 — [https://csrc.nist.gov/pubs/sp/800/53/r5/upd1/final](https://csrc.nist.gov/pubs/sp/800/53/r5/upd1/final). Control families (AC, SI, SC) for finding mapping in compliance contexts.
+- FIRST CVSS v3.1 — [https://www.first.org/cvss/v3-1/specification-document](https://www.first.org/cvss/v3-1/specification-document) and calculator [https://www.first.org/cvss/calculator/3.1](https://www.first.org/cvss/calculator/3.1).
 
-## Categorieën
+## Categories
 
 - core
 - appsec

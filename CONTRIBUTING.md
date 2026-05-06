@@ -20,12 +20,16 @@ Thanks for considering a contribution. This catalog grows by careful, specific a
 
 ## Working language
 
-- **Skill bodies are in Dutch** (Accans's working language; informeel-professioneel).
-- **Frontmatter `description` fields are in English** — the Claude skill matcher reads these, and English keeps the matcher predictable across language environments.
-- **All public-facing positioning is in English**: README, examples, smoke tests, this file.
-- **GRC items remain explicitly NL/EU-anchored** in their references and regulatory text, regardless of language. That is the catalog's positioning and not negotiable.
+The catalog is moving to English. Current state:
 
-If you submit an English translation of a non-GRC skill body, retain the structure (Wanneer gebruiken / Aanpak / Output / Referenties / Categorieën) and translate consistently — partial translations are harder to maintain than full ones. We will likely accept full English translations of `core` and `appsec` items first, since those are most language-independent.
+- **Core (7 items): English** — fully translated.
+- **AppSec, Pentest, Blue, GRC (40 items): in transition**. Bodies are still in Dutch and being translated in profile-batches. Front-matter `description` fields are English everywhere, so the matcher behaves consistently.
+- **All public-facing positioning is in English**: README, examples, smoke tests, this file, CLAUDE.md.
+- **GRC items remain explicitly NL/EU-anchored** in their references and regulatory text — only the wrapping prose becomes English. NIS2 / DORA / AVG / Cyberbeveiligingswet / AP / RDI / DNB / AFM stay as primary sources.
+
+If you submit a translation of a Dutch skill body, retain the structure (use the English equivalents: When to use / Approach / Output / References / Categories) and translate the entire body consistently — partial translations are harder to maintain than full ones.
+
+The translation roadmap (rough order): AppSec → Pentest → Blue → GRC. PRs that translate one full skill at a time are easiest to review.
 
 ## Process
 
