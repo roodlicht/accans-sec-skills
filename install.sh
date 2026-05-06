@@ -3,9 +3,9 @@
 # Accans Sec Skills — remote installer (curl-pipeable)
 #
 # Quick start:
-#   curl -sSL https://security.accans.com/install.sh | bash -s -- --profile core
-#   curl -sSL https://security.accans.com/install.sh | bash -s -- security-review threat-modeler
-#   curl -sSL https://security.accans.com/install.sh | bash -s -- --list-profiles
+#   curl -sSL https://accans.com/skills/install.sh | bash -s -- --profile core
+#   curl -sSL https://accans.com/skills/install.sh | bash -s -- security-review threat-modeler
+#   curl -sSL https://accans.com/skills/install.sh | bash -s -- --list-profiles
 #
 # Override base URL (e.g. for staging):
 #   curl -sSL https://other.example.com/install.sh | bash -s -- \
@@ -15,7 +15,7 @@
 
 set -euo pipefail
 
-BASE_URL="${SEC_INSTALL_BASE_URL:-https://security.accans.com}"
+BASE_URL="${SEC_INSTALL_BASE_URL:-https://accans.com/skills}"
 DEST="${HOME}/.claude"
 DRY_RUN=0
 SELECTED=()

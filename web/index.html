@@ -1085,9 +1085,12 @@ function renderFooter(){
   // Auto-detect: when served over http(s) from a host, render a curl-pipeable
   // install command. When opened from disk (file://) fall back to the local
   // ./bin/sec-install command for repo-local use.
+  // baseUrl handles both subdomain (security.example.com) and path-based
+  // (example.com/skills) deploys by resolving the directory of the page.
   const isHosted = location.protocol === "http:" || location.protocol === "https:";
+  const baseUrl = new URL(".", location.href).href.replace(/\/$/, "");
   const localCmd = "./bin/sec-install";
-  const remoteCmd = `curl -sSL ${location.origin}/install.sh | bash -s --`;
+  const remoteCmd = `curl -sSL ${baseUrl}/install.sh | bash -s --`;
   const prefix = isHosted ? remoteCmd : localCmd;
 
   let cmd;
@@ -1117,7 +1120,8 @@ function hasCustomDeviations(){
 
 function fullCommand(){
   const isHosted = location.protocol === "http:" || location.protocol === "https:";
-  const prefix = isHosted ? `curl -sSL ${location.origin}/install.sh | bash -s --` : "./bin/sec-install";
+  const baseUrl = new URL(".", location.href).href.replace(/\/$/, "");
+  const prefix = isHosted ? `curl -sSL ${baseUrl}/install.sh | bash -s --` : "./bin/sec-install";
   if (state.selected.size === 0) return `${prefix} --help`;
   if (state.profile && !hasCustomDeviations()) return `${prefix} --profile ${state.profile}`;
   return `${prefix} ${[...state.selected].sort().join(" ")}`;
