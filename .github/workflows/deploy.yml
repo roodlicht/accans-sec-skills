@@ -17,12 +17,28 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Check secrets are configured
+        id: check
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
+          REMOTE_TARGET: ${{ secrets.REMOTE_TARGET }}
+        run: |
+          if [ -z "$SSH_PRIVATE_KEY" ] || [ -z "$REMOTE_HOST" ] || [ -z "$REMOTE_TARGET" ]; then
+            echo "::warning::Deploy secrets (SSH_PRIVATE_KEY, REMOTE_HOST, REMOTE_TARGET) not configured. Skipping deploy. Set them in repo Settings → Secrets and variables → Actions to enable."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build + validate + package
+        if: steps.check.outputs.skip != 'true'
         run: |
           npm run check
           npm run package
 
       - name: Deploy via rsync over SSH
+        if: steps.check.outputs.skip != 'true'
         uses: easingthemes/ssh-deploy@v5.1.2
         with:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}

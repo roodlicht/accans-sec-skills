@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 320" width="1200" height="320" role="img" aria-label="accans-sec-skills banner">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1020"/>
+      <stop offset="1" stop-color="#11182a"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.85" cy="0.15" r="0.7">
+      <stop offset="0" stop-color="#4f7df9" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#4f7df9" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1200" height="320" fill="url(#bg)"/>
+  <rect width="1200" height="320" fill="url(#glow)"/>
+
+  <!-- Brand line -->
+  <g transform="translate(80,82)" font-family="-apple-system, system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" fill="#ffffff">
+    <text x="0" y="0" font-size="22" font-weight="500" letter-spacing="2.2" fill="#9aa3b8">ACCANS<tspan fill="#4f7df9">.</tspan> &#8201; SEC SKILLS</text>
+    <text x="0" y="78" font-size="64" font-weight="800" letter-spacing="-1.5">47 skills<tspan fill="#4f7df9">.</tspan></text>
+    <text x="0" y="120" font-size="64" font-weight="800" letter-spacing="-1.5" fill="#3d4760">Five profiles<tspan fill="#4f7df9">.</tspan></text>
+    <text x="0" y="162" font-size="64" font-weight="800" letter-spacing="-1.5">One catalog<tspan fill="#4f7df9">.</tspan></text>
+  </g>
+
+  <!-- Tagline -->
+  <g transform="translate(80,275)" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#6b7385">
+    <text font-size="13" letter-spacing="1.2">CORE · APPSEC · PENTEST · BLUE · GRC &#8194;|&#8194; NL/EU REGULATORY-ANCHORED &#8194;|&#8194; CLAUDE SKILLS SYSTEM</text>
+  </g>
+
+  <!-- Right-side accent ring -->
+  <circle cx="1080" cy="160" r="110" fill="none" stroke="#4f7df9" stroke-opacity="0.18" stroke-width="1"/>
+  <circle cx="1080" cy="160" r="60"  fill="none" stroke="#4f7df9" stroke-opacity="0.30" stroke-width="1"/>
+  <circle cx="1080" cy="160" r="6"   fill="#4f7df9"/>
+</svg>
