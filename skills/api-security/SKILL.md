@@ -5,102 +5,102 @@ description: API security review against OWASP API Top 10 2023. Covers auth (OAu
 
 # API Security
 
-## Wanneer gebruiken
+## When to use
 
-Deze skill is de API-specifieke lens: REST en GraphQL endpoints, hun auth, hun contract, hun abuse-oppervlak. Hij vult `security-review` aan wanneer de code een API-laag is, en wordt door framework-skills (`django-security`, `spring-security`, `rails-security`, `nextjs-security`) aangeroepen voor de API-specifieke regels.
+This skill is the API-specific lens: REST and GraphQL endpoints, their auth, their contract, their abuse surface. It complements `security-review` when the code is an API layer, and it is invoked by framework skills (`django-security`, `spring-security`, `rails-security`, `nextjs-security`) for the API-specific rules.
 
-Activeert bij:
+Triggers on:
 
-- Een vraag als "review deze API op security issues", "is de auth op deze endpoint OK", "doen we OWASP API Top 10", "hebben we genoeg rate-limiting", "hoe gaan we om met CORS".
-- Nieuwe of gewijzigde OpenAPI/Swagger/GraphQL schema's.
-- Code die aan een externe API wordt blootgesteld: REST-controllers, GraphQL resolvers, gRPC-handlers, webhook-endpoints, service-mesh-routes.
-- Een PR die auth-middleware, rate-limiting, schema-validatie of CORS-config raakt.
-- Een handoff vanuit `security-review` of een framework-skill die naar API-specifieke diepgang verwijst.
+- A question like "review this API for security issues", "is the auth on this endpoint OK", "do we cover OWASP API Top 10", "do we have enough rate-limiting", "how do we handle CORS".
+- New or changed OpenAPI/Swagger/GraphQL schemas.
+- Code exposed as an external API: REST controllers, GraphQL resolvers, gRPC handlers, webhook endpoints, service-mesh routes.
+- A PR touching auth middleware, rate-limiting, schema validation, or CORS config.
+- A handoff from `security-review` or a framework skill that points to API-specific depth.
 
-### Wanneer NIET (handoff)
+### When NOT (handoff)
 
-- Framework-specifieke API-config (Django REST Framework, Spring MVC, Rails API-only, Next.js route-handlers) → de betreffende framework-skill eerst. Die kennen hun eigen defaults en foot-guns beter.
-- Pure code-pattern-vraag zonder API-context ("is deze query veilig") → `secure-coding`.
-- Actieve API-pentest met exploitation → `web-exploit-triage` en `payload-crafter`.
-- Dependency-vulns in API-libraries → `cve-triage`.
-- API-gateway-config in de cloud (WAF-regels, AWS API Gateway resource-policies) → `iac-security`.
-- Runtime WAF-tuning op bestaande productie ligt buiten scope, dat is ops-werk.
+- Framework-specific API config (Django REST Framework, Spring MVC, Rails API-only, Next.js route handlers) → the relevant framework skill first. They know their own defaults and foot-guns better.
+- Pure code-pattern question without API context ("is this query safe") → `secure-coding`.
+- Active API pentesting with exploitation → `web-exploit-triage` and `payload-crafter`.
+- Dependency vulns in API libraries → `cve-triage`.
+- API-gateway config in the cloud (WAF rules, AWS API Gateway resource policies) → `iac-security`.
+- Runtime WAF tuning on existing production is out of scope; that is ops work.
 
-## Aanpak
+## Approach
 
-Zeven fases georganiseerd rond OWASP API Security Top 10 2023 (API1–API10). Elke fase dekt één of meerdere API-categorieën.
+Seven phases organized around OWASP API Security Top 10 2023 (API1–API10). Each phase covers one or more API categories.
 
-### 1. Inventaris: endpoints en contract (API9)
+### 1. Inventory: endpoints and contract (API9)
 
-Wat niet gedocumenteerd is, kan niet geaudit worden. Start altijd met de inventaris.
+What is not documented cannot be audited. Always start with the inventory.
 
-- **Endpoint-lijst.** Uit code (route-decorators, router-definitions), uit schema (OpenAPI, GraphQL SDL), of via een spider. Compleet betekent: publieke endpoints, admin-endpoints, interne of debug-endpoints, webhook-receivers, oude versies die nog live zijn.
-- **API9 Improper Inventory Management.** Oude v1-endpoints die nog draaien, staging-endpoints op dezelfde host, debug-endpoints in productie. Documenteer wat leeft, wat deprecated is, en wat per direct uit moet.
-- **Contract-check.** Is er een machine-leesbaar contract (OpenAPI 3.x, GraphQL schema)? Zo nee: leggen voor je verder gaat. Zonder contract is schema-validatie (fase 3) niet afdwingbaar.
+- **Endpoint list.** From code (route decorators, router definitions), from a schema (OpenAPI, GraphQL SDL), or via a spider. Complete means: public endpoints, admin endpoints, internal or debug endpoints, webhook receivers, old versions still live.
+- **API9 Improper Inventory Management.** Old v1 endpoints still running, staging endpoints on the same host, debug endpoints in production. Document what is alive, what is deprecated, and what must be turned off immediately.
+- **Contract check.** Is there a machine-readable contract (OpenAPI 3.x, GraphQL schema)? If not: get one before going further. Without a contract, schema validation (phase 3) is not enforceable.
 
-### 2. Authenticatie (API2)
+### 2. Authentication (API2)
 
-- **Mechanisme.** OAuth 2.0 / OIDC, API-keys, JWT, session-cookies, mTLS. Elk heeft z'n eigen failure-modes.
-- **OAuth 2.0.** PKCE verplicht voor public clients (mobile, SPA). Geen Implicit flow meer (deprecated in OAuth 2.1). Redirect-URI strict matchen, geen wildcards. State-parameter gebruiken tegen CSRF op de callback.
-- **JWT.** `alg: none` geweigerd. Algorithm-confusion voorkomen (RS256-key niet als HS256-secret accepteren). Expiry (`exp`) en not-before (`nbf`) gecheckt. `kid` in header moet tegen een whitelist, niet gebruikt voor key-lookup zonder validatie.
-- **API-keys.** Scoped per client, niet één master-key voor alles. Roterabel. Niet in URL-query (komt in logs), wel in `Authorization: Bearer` of een custom header. Rate-limit per key (zie fase 4).
-- **Session-cookies.** HttpOnly, Secure, SameSite=Lax/Strict. Server-side sessie-invalidatie bij logout. Roteren bij privilege-change.
-- **mTLS** voor service-to-service in een zero-trust setup. Certificaat-validatie altijd aan, geen fallback op plain TLS.
+- **Mechanism.** OAuth 2.0 / OIDC, API keys, JWT, session cookies, mTLS. Each has its own failure modes.
+- **OAuth 2.0.** PKCE required for public clients (mobile, SPA). No more Implicit flow (deprecated in OAuth 2.1). Strict redirect-URI matching, no wildcards. Use the state parameter against CSRF on the callback.
+- **JWT.** `alg: none` rejected. Prevent algorithm confusion (do not accept an RS256 key as an HS256 secret). Expiry (`exp`) and not-before (`nbf`) checked. `kid` in the header must hit a whitelist, not be used for unvalidated key lookup.
+- **API keys.** Scoped per client, not one master key for everything. Rotatable. Not in the URL query (ends up in logs); use `Authorization: Bearer` or a custom header. Rate-limit per key (see phase 4).
+- **Session cookies.** HttpOnly, Secure, SameSite=Lax/Strict. Server-side session invalidation on logout. Rotate on privilege change.
+- **mTLS** for service-to-service in a zero-trust setup. Certificate validation always on, no fallback to plain TLS.
 
-Multi-factor voor admin- en privileged-flows. Recovery-flows (password-reset, e-mail-verandering, MFA-reset) zijn aparte auth-paden met eigen zwakheden, review ze apart.
+Multi-factor for admin and privileged flows. Recovery flows (password reset, e-mail change, MFA reset) are separate auth paths with their own weaknesses; review them separately.
 
-### 3. Autorisatie (API1, API3, API5)
+### 3. Authorization (API1, API3, API5)
 
-De drie autorisatie-categorieën uit OWASP API Top 10 samen. Dit is waar de meeste production-bugs zitten.
+The three authorization categories from the OWASP API Top 10 together. This is where most production bugs live.
 
-- **API1 Broken Object Level Authorization (BOLA / IDOR).** Endpoint `/api/documents/{id}` checkt authenticatie maar niet of de actor `{id}` mag zien. Fix: eigendoms-check op elk lookup-pad. Niet op route-niveau, op resource-niveau. Query zoals `SELECT * FROM documents WHERE id = :id AND (owner = :user OR :user IN shared_with)`.
-- **API3 Broken Object Property Level Authorization.** De klassieke mass-assignment: client stuurt `{"id": 1, "role": "admin"}` en de API accepteert `role` klakkeloos. Fix: input-schema dat alleen geaccepteerde velden whitelistet. Output-schema dat gevoelige velden (bv. `password_hash`, `internal_notes`) niet teruggeeft. Framework-primitives: DRF Serializers, Spring `@JsonIgnore`, Rails `strong_parameters`, Pydantic `model_dump(include=...)`.
-- **API5 Broken Function Level Authorization.** Admin-endpoints bereikbaar voor niet-admins, meestal omdat de authZ-check per route gebeurt in plaats van centraal afgedwongen. Fix: een centraal policy-enforcement-punt (middleware of decorator), deny-by-default voor routes zonder expliciete role-claim. Test: probeer elke admin-endpoint als gewone user.
+- **API1 Broken Object Level Authorization (BOLA / IDOR).** Endpoint `/api/documents/{id}` checks authentication but not whether the actor is allowed to see `{id}`. Fix: ownership check on every lookup path. Not at the route level, at the resource level. Query like `SELECT * FROM documents WHERE id = :id AND (owner = :user OR :user IN shared_with)`.
+- **API3 Broken Object Property Level Authorization.** The classic mass-assignment: client sends `{"id": 1, "role": "admin"}` and the API accepts `role` blindly. Fix: input schema that whitelists only accepted fields. Output schema that does not return sensitive fields (e.g. `password_hash`, `internal_notes`). Framework primitives: DRF Serializers, Spring `@JsonIgnore`, Rails `strong_parameters`, Pydantic `model_dump(include=...)`.
+- **API5 Broken Function Level Authorization.** Admin endpoints reachable for non-admins, usually because the authZ check happens per route instead of being centrally enforced. Fix: a central policy-enforcement point (middleware or decorator), deny-by-default for routes without an explicit role claim. Test: try every admin endpoint as a regular user.
 
-Autorisatie-tests horen in de integration-suite, niet alleen in de code-review.
+Authorization tests belong in the integration suite, not only in the code review.
 
-### 4. Resource-limits en business-flow-abuse (API4, API6)
+### 4. Resource limits and business-flow abuse (API4, API6)
 
-- **API4 Unrestricted Resource Consumption.** Rate-limiting per IP én per authenticated identity (API-key/user). Verschillende limits per endpoint-klasse: auth-endpoints strakker (bv. 5/minuut) dan read-endpoints (60/minuut) dan write-endpoints (20/minuut). Paginering verplicht op list-endpoints met een max page-size. Body-size limits (bv. 1 MB tenzij file-upload). Query-complexiteit voor GraphQL (zie fase 6).
-- **API6 Unrestricted Access to Sensitive Business Flows.** Ticket-resale-bots, credit-farming, coupon-stacking, bulk-signup voor fraud. Fix: CAPTCHA of proof-of-work op high-value flows, device-fingerprinting voor detection, velocity-checks (N transacties per minuut per account), en anomalie-detectie in monitoring. Dit overlapt met fraud-engineering, niet puur security, maar de API is het aanvalsoppervlak.
+- **API4 Unrestricted Resource Consumption.** Rate-limiting per IP and per authenticated identity (API key/user). Different limits per endpoint class: auth endpoints stricter (e.g. 5/minute) than read endpoints (60/minute) than write endpoints (20/minute). Pagination required on list endpoints with a max page size. Body-size limits (e.g. 1 MB unless file upload). Query complexity for GraphQL (see phase 6).
+- **API6 Unrestricted Access to Sensitive Business Flows.** Ticket-resale bots, credit farming, coupon stacking, bulk signup for fraud. Fix: CAPTCHA or proof-of-work on high-value flows, device fingerprinting for detection, velocity checks (N transactions per minute per account), and anomaly detection in monitoring. This overlaps with fraud engineering, not pure security, but the API is the attack surface.
 
-Rate-limit-responses: HTTP 429 met `Retry-After`-header, niet 503 of timeout. Logs moeten rate-limit-hits vastleggen met identity, endpoint en window.
+Rate-limit responses: HTTP 429 with `Retry-After` header, not 503 or timeout. Logs must record rate-limit hits with identity, endpoint, and window.
 
-### 5. SSRF en configuratie (API7, API8)
+### 5. SSRF and configuration (API7, API8)
 
-- **API7 Server Side Request Forgery.** Endpoints die op basis van user-input een outbound HTTP-call doen (webhook-dispatch, URL-preview, image-proxy, PDF-rendering, OAuth-redirect). Fix: allowlist van toegestane hosts. Blokkeer private-IP-ranges (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 127.0.0.0/8, 169.254.169.254 voor cloud-metadata) inclusief DNS-resolution (voorkom rebinding). Timeouts en redirect-limits. Gebruik libraries met SSRF-checks (bv. `SafeRequests` in Python, `safe-request` in Node).
-- **API8 Security Misconfiguration.** CORS-config zonder wildcards (`Access-Control-Allow-Origin: *` mag alleen op expliciet publieke, non-auth-endpoints). Security-headers: HSTS, CSP, X-Content-Type-Options: nosniff, X-Frame-Options, Referrer-Policy. Default error-pages die geen stack-traces of framework-info lekken. Verbose API-errors terug naar client alleen in non-prod.
+- **API7 Server Side Request Forgery.** Endpoints that make an outbound HTTP call based on user input (webhook dispatch, URL preview, image proxy, PDF rendering, OAuth redirect). Fix: allowlist of permitted hosts. Block private IP ranges (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 127.0.0.0/8, 169.254.169.254 for cloud metadata) including DNS resolution (prevent rebinding). Timeouts and redirect limits. Use libraries with SSRF checks (e.g. `SafeRequests` in Python, `safe-request` in Node).
+- **API8 Security Misconfiguration.** CORS config without wildcards (`Access-Control-Allow-Origin: *` is acceptable only on explicitly public, non-auth endpoints). Security headers: HSTS, CSP, X-Content-Type-Options: nosniff, X-Frame-Options, Referrer-Policy. Default error pages that do not leak stack traces or framework info. Verbose API errors back to the client only in non-prod.
 
-CORS-specifiek: `Access-Control-Allow-Credentials: true` met `Origin: *` is onmogelijk en sommige browsers blokkeren het, maar de misconfiguration-poging is het signaal dat het auth-model niet doordacht is.
+CORS-specific: `Access-Control-Allow-Credentials: true` with `Origin: *` is impossible and some browsers block it, but the misconfiguration attempt itself signals that the auth model has not been thought through.
 
-### 6. GraphQL-specifiek (indien van toepassing)
+### 6. GraphQL-specific (where applicable)
 
-REST-checks hierboven gelden grotendeels ook voor GraphQL, plus:
+REST checks above largely apply to GraphQL too, plus:
 
-- **Introspection.** In productie uitzetten (`introspection: false` in Apollo, `GraphQLSchema` zonder `__schema`-resolver). Reduceert reconnaissance-oppervlak. Alternatief voor devs: schema als file committen en lokaal serveren.
-- **Query-depth-limit.** Limiteer nesting-diepte om exponentiële queries te voorkomen. Libraries: `graphql-depth-limit` (Node), `graphql-core` query-complexity (Python).
-- **Query-complexity-scoring.** Kosten per field (bv. list-fields 10 punten, scalar 1 punt), totaal-budget per request. Voorkomt dat één query via batching een DB-nightmare wordt.
-- **Batching-limit.** Alias-based batching (N queries in één request) limiteren, anders ondermijnt het rate-limits-per-request.
-- **Persisted queries.** In high-stakes setups alleen server-known queries accepteren (hash-gebaseerd). Client stuurt hash, server kent de query. Schermt af tegen willekeurige queries van een gecompromitteerde client.
-- **Authorization in resolvers.** Per resolver de actor-check doen. GraphQL-fields kunnen elk hun eigen authZ-regels hebben, en een blanket check op de root levert IDOR op in nested queries.
+- **Introspection.** Turn off in production (`introspection: false` in Apollo, `GraphQLSchema` without `__schema` resolver). Reduces the recon surface. Alternative for devs: commit the schema as a file and serve it locally.
+- **Query-depth limit.** Limit nesting depth to prevent exponential queries. Libraries: `graphql-depth-limit` (Node), `graphql-core` query-complexity (Python).
+- **Query-complexity scoring.** Cost per field (e.g. list fields 10 points, scalar 1 point), total budget per request. Stops a single batched query from becoming a DB nightmare.
+- **Batching limit.** Cap alias-based batching (N queries in one request); otherwise it undermines per-request rate limits.
+- **Persisted queries.** In high-stakes setups, only accept server-known queries (hash-based). Client sends a hash, server knows the query. Shields against arbitrary queries from a compromised client.
+- **Authorization in resolvers.** Do the actor check per resolver. GraphQL fields can each have their own authZ rules, and a blanket check at the root produces IDOR in nested queries.
 
-### 7. Downstream API-consumption (API10)
+### 7. Downstream API consumption (API10)
 
-Als je API zelf andere APIs consumeert (third-party, interne services), ben je ook de aanvaller's doel-surface via transitive trust.
+If your API itself consumes other APIs (third-party, internal services), you are also the attacker's target surface via transitive trust.
 
-- **Input van upstream valideren als user-input.** Een JSON-response van een third-party API is geen vertrouwde bron. Schema-valideren bij ontvangst.
-- **TLS-validatie aan** op outbound calls, geen `verify=False`.
-- **Timeout en retry-strategie.** Onbounded retries op 5xx = DoS-amplificatie. Circuit-breakers bij aanhoudende fouten.
-- **Secret-hygiëne op outbound auth.** API-keys voor externe providers in de vault, geen hardcoded credentials. Zie `secrets-scanner`.
+- **Treat upstream input as user input.** A JSON response from a third-party API is not a trusted source. Validate the schema on receipt.
+- **TLS validation on** for outbound calls, no `verify=False`.
+- **Timeout and retry strategy.** Unbounded retries on 5xx = DoS amplification. Circuit breakers on persistent failures.
+- **Secret hygiene on outbound auth.** API keys for external providers in the vault, no hardcoded credentials. See `secrets-scanner`.
 
 ## Output
 
-Rapport-structuur (aansluitend op `security-review`-rapport-format):
+Report structure (compatible with the `security-review` report format):
 
 ```
 API security review — <service/scope>
-Contract: <OpenAPI 3.x file | GraphQL SDL | geen (blocker)>
-Endpoints in scope: N | Getest: M
+Contract: <OpenAPI 3.x file | GraphQL SDL | none (blocker)>
+Endpoints in scope: N | Tested: M
 
 OWASP API Top 10 2023 pass:
   API1 BOLA:                 <clean | findings: ...>
@@ -114,35 +114,35 @@ OWASP API Top 10 2023 pass:
   API9 Inventory:            <...>
   API10 Downstream APIs:     <...>
 
-GraphQL-specifiek (indien):
-  Introspection prod:        <uit | aan - finding>
-  Depth-limit:               <n | geen - finding>
-  Complexity-scoring:        <aan | geen - finding>
-  Batching-limit:            <n | onbeperkt - finding>
+GraphQL-specific (if applicable):
+  Introspection in prod:     <off | on - finding>
+  Depth limit:               <n | none - finding>
+  Complexity scoring:        <on | none - finding>
+  Batching limit:            <n | unlimited - finding>
 
-Findings (severity-gesorteerd, blockers eerst, volg security-review-format)
+Findings (severity-sorted, blockers first, follow security-review format)
 
 Verification-loop:
   Verdict: ...
-  Security-verdict: ...
+  Security verdict: ...
 ```
 
-Findings zelf als in `security-review`: locatie, CWE/API-categorie, severity, reproductie, fix-richting. Reproductie liefst als curl-voorbeeld tegen een test-endpoint, niet tegen productie.
+Findings themselves as in `security-review`: location, CWE/API category, severity, reproduction, fix direction. Reproduction preferably as a curl example against a test endpoint, not against production.
 
-## Referenties
+## References
 
-- OWASP API Security Top 10 2023 — [https://owasp.org/API-Security/editions/2023/en/0x11-t10/](https://owasp.org/API-Security/editions/2023/en/0x11-t10/). Canonieke categorisatie.
-- OWASP API Security Project — [https://owasp.org/www-project-api-security/](https://owasp.org/www-project-api-security/). Bredere context plus cheat-sheets per categorie.
-- OpenAPI Specification 3.1 — [https://spec.openapis.org/oas/v3.1.0](https://spec.openapis.org/oas/v3.1.0). Schema-basis voor validatie.
-- OAuth 2.0 RFC 6749 — [https://datatracker.ietf.org/doc/html/rfc6749](https://datatracker.ietf.org/doc/html/rfc6749). Originele spec.
-- OAuth 2.0 Security Best Current Practice — [https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics). Actuele guidance (PKCE, verboden flows).
-- OAuth 2.1 draft — [https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1). Consolidatie van OAuth 2.0 plus BCP.
-- JWT BCP RFC 8725 — [https://datatracker.ietf.org/doc/html/rfc8725](https://datatracker.ietf.org/doc/html/rfc8725). JWT-specifieke security-gotchas.
-- CORS / Fetch Standard — [https://fetch.spec.whatwg.org/#cors-protocol](https://fetch.spec.whatwg.org/#cors-protocol). Primaire CORS-bron.
+- OWASP API Security Top 10 2023 — [https://owasp.org/API-Security/editions/2023/en/0x11-t10/](https://owasp.org/API-Security/editions/2023/en/0x11-t10/). Canonical categorization.
+- OWASP API Security Project — [https://owasp.org/www-project-api-security/](https://owasp.org/www-project-api-security/). Broader context plus cheat sheets per category.
+- OpenAPI Specification 3.1 — [https://spec.openapis.org/oas/v3.1.0](https://spec.openapis.org/oas/v3.1.0). Schema basis for validation.
+- OAuth 2.0 RFC 6749 — [https://datatracker.ietf.org/doc/html/rfc6749](https://datatracker.ietf.org/doc/html/rfc6749). Original spec.
+- OAuth 2.0 Security Best Current Practice — [https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics). Current guidance (PKCE, forbidden flows).
+- OAuth 2.1 draft — [https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1). Consolidation of OAuth 2.0 plus BCP.
+- JWT BCP RFC 8725 — [https://datatracker.ietf.org/doc/html/rfc8725](https://datatracker.ietf.org/doc/html/rfc8725). JWT-specific security gotchas.
+- CORS / Fetch Standard — [https://fetch.spec.whatwg.org/#cors-protocol](https://fetch.spec.whatwg.org/#cors-protocol). Primary CORS source.
 - GraphQL Specification — [https://spec.graphql.org/](https://spec.graphql.org/).
 - OWASP GraphQL Cheat Sheet — [https://cheatsheetseries.owasp.org/cheatsheets/GraphQL_Cheat_Sheet.html](https://cheatsheetseries.owasp.org/cheatsheets/GraphQL_Cheat_Sheet.html). Introspection, depth, batching.
-- NIST SP 800-204 — [https://csrc.nist.gov/pubs/sp/800/204/final](https://csrc.nist.gov/pubs/sp/800/204/final). Microservices-security.
+- NIST SP 800-204 — [https://csrc.nist.gov/pubs/sp/800/204/final](https://csrc.nist.gov/pubs/sp/800/204/final). Microservices security.
 
-## Categorieën
+## Categories
 
 - appsec

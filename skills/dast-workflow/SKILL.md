@@ -5,179 +5,179 @@ description: Dynamic Application Security Testing workflow — OWASP ZAP automat
 
 # DAST Workflow
 
-## Wanneer gebruiken
+## When to use
 
-DAST test een draaiende applicatie van buitenaf. Waar `sast-orchestrator` code leest, stuurt DAST HTTP-requests en kijkt naar response-patronen. Dat dekt runtime-behavior dat SAST niet ziet (auth-flows, session-handling, header-config, misconfig van reverse-proxy, DoS-gevoeligheid).
+DAST tests a running application from the outside. Where `sast-orchestrator` reads code, DAST sends HTTP requests and looks at response patterns. That covers runtime behaviour SAST doesn't see (auth flows, session handling, header config, reverse-proxy misconfig, DoS sensitivity).
 
-Activeert bij:
+Activates on:
 
-- Een vraag als "zet ZAP op onze staging", "draai een baseline-scan", "review deze Burp-output", "hoe logt de scanner in", "DAST in CI".
-- Een nieuw deploy-bare omgeving (staging, QA, security-sandbox) die security-getest moet worden voor production-promotion.
-- Een periodieke scan op staging of een pre-release regressie-run.
-- Een handoff vanuit `security-review` waar runtime-gedrag moet worden geverifieerd (bv. zijn de security-headers daadwerkelijk aanwezig in response?).
-- Een bug-bounty-voorbereiding: scan eerst met DAST om het laaghangende fruit uit te roeien vóór je betalende hunters aanzet.
+- A request like "set up ZAP against our staging", "run a baseline scan", "review this Burp output", "how does the scanner log in", "DAST in CI".
+- A new deployable environment (staging, QA, security sandbox) that needs security testing before promotion to production.
+- A periodic scan against staging, or a pre-release regression run.
+- A handoff from `security-review` where runtime behaviour needs to be verified (e.g. are the security headers actually present in the response?).
+- Bug-bounty preparation: scan with DAST first to clear out the low-hanging fruit before paying hunters look at it.
 
-### Wanneer NIET (handoff)
+### When NOT to use (handoff)
 
-- Statische code-analyse → `sast-orchestrator`. DAST ziet geen source.
-- Infrastructuur (Terraform/K8s/Docker) → `iac-security` / `k8s-security` / `container-hardening`.
-- Pre-deploy threat-model op design-niveau → `threat-modeler`.
-- OWASP API Top 10 als inhoudelijk raamwerk → `api-security`. DAST-tools dekken API-scans, deze skill orchestreert, die skill levert de inhoudelijke checklist.
-- Actieve offensive pentest met exploitation → `web-exploit-triage` + `payload-crafter` + `recon-agent`. DAST signaleert, pentest exploiteert.
-- Triage van dep-vulns uit een runtime-scan → `cve-triage`.
-- Productie-scans: deze skill stuurt expliciet naar staging-achtige omgevingen. Production-DAST vereist extra controls en ops-afstemming (zie fase 1).
+- Static code analysis → `sast-orchestrator`. DAST doesn't see source.
+- Infrastructure (Terraform/K8s/Docker) → `iac-security` / `k8s-security` / `container-hardening`.
+- Pre-deploy threat model at design level → `threat-modeler`.
+- OWASP API Top 10 as the substantive framework → `api-security`. DAST tools cover API scans; this skill orchestrates, that one provides the substantive checklist.
+- Active offensive pentest with exploitation → `web-exploit-triage` + `payload-crafter` + `recon-agent`. DAST flags; pentest exploits.
+- Triage of dep-vulns from a runtime scan → `cve-triage`.
+- Production scans: this skill explicitly targets staging-style environments. Production DAST requires extra controls and ops alignment (see phase 1).
 
-## Aanpak
+## Approach
 
-Zeven fases. Fase 1 (scope + environment) en fase 3 (auth-state) zijn het hart. Beide zijn de plekken waar DAST-projecten stranden.
+Seven phases. Phase 1 (scope + environment) and phase 3 (auth-state) are the heart. Both are where DAST projects fail.
 
-### 1. Scope en environment
+### 1. Scope and environment
 
-DAST scans hebben reële blast-radius: ze vuren duizenden-tot-miljoenen requests, raken side-effects (emails verzonden, betalingen getriggerd, notifications), en kunnen de target-app DoS-en. Scope vastleggen is geen formaliteit.
+DAST scans have real blast-radius: they fire thousands to millions of requests, hit side-effects (emails sent, payments triggered, notifications), and can DoS the target app. Setting scope is not a formality.
 
-- **Environment**: staging met productie-like data-schema maar geen echte klantdata is de sweet spot. Production-DAST alleen met: expliciete ops-goedkeuring, off-peak window, rate-limiting op de scanner, en een kill-switch.
-- **In-scope hosts**: expliciet allowlist (`*.staging.example.com` beter dan `example.com` wildcard). DAST-tools zullen anders naar externe hosts spideren die niet van jou zijn.
-- **Out-of-scope paden**: logout (veroorzaakt sessie-teardown mid-scan), destructive actions (`DELETE /users/{id}`, `POST /admin/wipe-data`), third-party-embedded content, rate-limited auth-endpoints (tenzij je ze gericht test).
-- **Data-effect**: welke actions hebben side-effects? Email-dispatch, payment-creation, webhook-triggers. Zet test-accounts klaar met eigen e-mail-adressen en gebruik sandbox-mode van payment-providers.
-- **Rate-limiting**: scanner-concurrency op 5–10 threads, delay tussen requests, respecteer 429-responses. Een DAST-scan die je test-env platlegt is niet het doel.
+- **Environment**: staging with a production-like data schema but no real customer data is the sweet spot. Production DAST only with: explicit ops sign-off, off-peak window, scanner rate-limiting, and a kill-switch.
+- **In-scope hosts**: explicit allowlist (`*.staging.example.com` is better than the `example.com` wildcard). DAST tools will otherwise spider out to external hosts that aren't yours.
+- **Out-of-scope paths**: logout (causes session teardown mid-scan), destructive actions (`DELETE /users/{id}`, `POST /admin/wipe-data`), third-party-embedded content, rate-limited auth endpoints (unless you're testing them deliberately).
+- **Data effects**: which actions have side effects? Email dispatch, payment creation, webhook triggers. Set up test accounts with your own email addresses and use the sandbox mode of payment providers.
+- **Rate limiting**: scanner concurrency at 5–10 threads, delay between requests, respect 429 responses. A DAST scan that knocks your test environment over is not the goal.
 
-Schriftelijke scope-spec met deze velden is vereist vóór scan-start, vergelijkbaar met een pentest-RoE. Voor interne scans kan dat een commit-comment zijn, voor shared staging liefst expliciet signed-off.
+A written scope spec with these fields is required before scan start, comparable to a pentest RoE. For internal scans this can be a commit comment; for shared staging, prefer explicit sign-off.
 
-### 2. Tool-keuze: ZAP, Burp, andere
+### 2. Tool choice: ZAP, Burp, alternatives
 
-Twee dominante tools voor web-DAST; kies op basis van context.
+Two dominant tools for web DAST; choose by context.
 
-- **OWASP ZAP** (Apache-2, OSS). Default-keuze voor CI-integratie en open-source workflows. Headless-mode via `zap-cli` of Automation Framework, volledig scriptbaar. Three scan-modes: baseline (passive only, ~2 min), full (passive + active, ~30–60 min), API (op basis van OpenAPI/Swagger-import).
-- **Burp Suite Professional** (PortSwigger, commercial). Sterker in interactive testing en exploratory work. Burp Collaborator voor out-of-band (OOB) detection — essentieel voor blind SSRF, blind XSS, blind SQL-injection. Minder geschikt voor headless CI (Burp Enterprise is daar de variant voor).
-- **Burp Suite Enterprise** (commercial). CI-integratie, dashboards. Prijziger maar schaalt beter dan ZAP in grote orgs.
-- **Other**: Nuclei (template-based, goed voor vuln-specifiek scannen op basis van CVE-templates), Acunetix/Invicti/Netsparker (commercial enterprise, minder Rails/Node-gericht), Arachni (maintenance).
+- **OWASP ZAP** (Apache-2, OSS). Default choice for CI integration and open-source workflows. Headless mode via `zap-cli` or the Automation Framework, fully scriptable. Three scan modes: baseline (passive only, ~2 min), full (passive + active, ~30–60 min), API (driven by an OpenAPI/Swagger import).
+- **Burp Suite Professional** (PortSwigger, commercial). Stronger in interactive testing and exploratory work. Burp Collaborator for out-of-band (OOB) detection — essential for blind SSRF, blind XSS, blind SQL injection. Less suitable for headless CI (Burp Enterprise is the variant for that).
+- **Burp Suite Enterprise** (commercial). CI integration, dashboards. More expensive but scales better than ZAP in large orgs.
+- **Other**: Nuclei (template-based, good for vuln-specific scanning driven by CVE templates), Acunetix/Invicti/Netsparker (commercial enterprise, less Rails/Node-oriented), Arachni (in maintenance).
 
-**Heuristiek**: begin met ZAP in CI voor baseline-passive per PR. Draai ZAP full-scan op een schema tegen staging. Burp Professional voor diepgaand werk door security-engineer op specifieke features. Enterprise-variant als je 20+ apps te scannen hebt.
+**Heuristic**: start with ZAP in CI for a baseline-passive per PR. Schedule ZAP full-scan against staging. Burp Professional for in-depth work by a security engineer on specific features. The Enterprise variant when you have 20+ apps to scan.
 
 ### 3. Auth-state orchestration
 
-De grootste DAST-faal-mode: scanner raakt onauth-gebied en mist alles wat achter de login zit. Auth-state opzetten is per app-specifiek maar volgt patterns.
+The biggest DAST failure mode: the scanner only hits unauthenticated surface and misses everything behind the login. Setting up auth-state is per-app specific but follows patterns.
 
-**ZAP-auth-modes** (in volgorde van bruikbaarheid):
+**ZAP auth modes** (in order of usefulness):
 
-- **Script-based auth** (Zest of JavaScript) — definieer login-flow stap voor stap. Voor complexe flows (CSRF-token-refresh, multi-step).
-- **Form-based auth** — standaard login-pagina met username+password fields. Snel op te zetten.
-- **JSON auth** — voor SPAs die via JSON posten. Geef endpoint + request-body + response-field voor token.
-- **HTTP auth** (Basic/Digest/NTLM) — zeldzaam in moderne apps.
-- **Manual / export van browser-state** — Burp heeft sessiemanagement-rules, ZAP kan cookies importeren. Voor cases waar je login niet scriptable krijgt.
+- **Script-based auth** (Zest or JavaScript) — define the login flow step by step. For complex flows (CSRF token refresh, multi-step).
+- **Form-based auth** — a standard login page with username + password fields. Quick to set up.
+- **JSON auth** — for SPAs that POST JSON. Provide endpoint + request body + response field for the token.
+- **HTTP auth** (Basic/Digest/NTLM) — rare in modern apps.
+- **Manual / browser-state export** — Burp has session-management rules; ZAP can import cookies. For cases where you can't get login scripted.
 
-**Logged-in-indicator** — hoe weet de scanner dat de sessie nog actief is? Regex op een header (`X-User-ID`), op body-content (`Logout`), of een probe-URL die 200 geeft bij auth en 401 bij niet-auth. Zonder indicator loopt de scanner door met verlopen sessie en produceert nonsens.
+**Logged-in indicator** — how does the scanner know the session is still active? Regex on a header (`X-User-ID`), on body content (`Logout`), or a probe URL that returns 200 when authenticated and 401 otherwise. Without an indicator the scanner runs with an expired session and produces nonsense.
 
-**Logged-out-indicator** — redirect naar `/login`, 401, of body-tekst. Trigger voor auto-reauth.
+**Logged-out indicator** — redirect to `/login`, 401, or body text. Trigger for auto-reauth.
 
-**Token-refresh** — OAuth2/JWT sessies verlopen. Script die refresh-token uitwisselt voor nieuwe access-token. ZAP's auth-script kan dit; Burp via session-handling-rules.
+**Token refresh** — OAuth2/JWT sessions expire. A script that exchanges a refresh token for a new access token. ZAP's auth script can do this; Burp via session-handling rules.
 
-**Exclude-set uitbreiden** — als logout in scope blijft wordt je sessie vernietigd mid-scan. Markeer expliciet: `/logout`, `/signout`, alles met `logout` in pad.
+**Extend the exclude set** — if logout stays in scope your session gets destroyed mid-scan. Mark explicitly: `/logout`, `/signout`, anything with `logout` in the path.
 
-Test je auth-setup handmatig met één request voor je de scan start. Scanner-logs die zeggen "2000 URLs gescand" zeggen niets als ze allemaal 302-redirect-naar-login zijn.
+Test your auth setup manually with a single request before starting the scan. Scanner logs that say "2000 URLs scanned" mean nothing if they're all 302 redirects to login.
 
-### 4. Scan-strategie
+### 4. Scan strategy
 
-Niet elke scan is dezelfde scan. Kies bewust wat je doet.
+Not every scan is the same scan. Choose deliberately.
 
-- **Baseline (passive only)** — ZAP fetch + passive analyze zonder actief payloaden. Vangt: security-headers ontbrekend, cookie-flags fout, verbose error-pages, informatie-disclosure. Snel (~2 min), veilig voor CI per PR. Dit is de CI-default.
-- **Full scan (passive + active)** — ZAP active-scan stuurt XSS/SQLi/path-traversal-payloads. Langer (30–90 min, afhankelijk van app-grootte), zwaarder op target. Schedule weekend/nightly op staging.
-- **API scan** — OpenAPI-spec import, doorloop elke endpoint. Combineert met fase 3 auth-state voor geauthenticeerde API-tests.
-- **Targeted** — specifiek endpoint of flow na een nieuwe feature. Handmatig configureren in Burp of via ZAP Automation Framework.
+- **Baseline (passive only)** — ZAP fetch + passive analyze without active payloading. Catches: missing security headers, wrong cookie flags, verbose error pages, information disclosure. Fast (~2 min), safe for per-PR CI. This is the CI default.
+- **Full scan (passive + active)** — ZAP active-scan sends XSS/SQLi/path-traversal payloads. Longer (30–90 min, depending on app size), heavier on the target. Schedule weekend / nightly against staging.
+- **API scan** — OpenAPI spec import, walk every endpoint. Combine with phase 3 auth-state for authenticated API tests.
+- **Targeted** — specific endpoint or flow after a new feature. Configure manually in Burp or via the ZAP Automation Framework.
 
-Payloads vooraf kalibreren:
+Calibrate payloads upfront:
 
-- **Safe actives**: reflected XSS, basic SQLi, path-traversal, command-injection, open redirect. Standaard ZAP-set is OK voor deze.
-- **Potentially destructive**: het `postgresql` en `mysql`-injection-pakket kan unintentioneel data wijzigen als de app prepared-statements mist. Uitzetten tegen omgevingen die je niet kunt herstellen.
-- **DoS-class**: slowloris, buffer-overflow-probes. Niet actief zonder expliciete afspraak.
+- **Safe actives**: reflected XSS, basic SQLi, path-traversal, command-injection, open redirect. The default ZAP set is fine for these.
+- **Potentially destructive**: the `postgresql` and `mysql` injection package can unintentionally modify data when the app lacks prepared statements. Disable against environments you cannot restore.
+- **DoS class**: slowloris, buffer-overflow probes. Not active without explicit agreement.
 
-### 5. Triage van findings
+### 5. Triage of findings
 
-DAST-scans genereren veel findings waarvan de meerderheid false-positive is.
+DAST scans produce many findings, most of them false positives.
 
-- **Baseline-hygiëne**: na eerste scan een baseline-file (ZAP `--report-file` met daarna `-z "-config json.report.file=<file>"` of Burp-equivalent). Volgende runs: diff tegen baseline, alleen nieuwe findings surface-en.
-- **False-positive-patterns**: reflected-XSS-claims op endpoints die het payload terugsturen in een JSON-body met `Content-Type: application/json` — browser rendert het niet als HTML. SQLi-claims op endpoints die 500-error geven op alle input, niet alleen SQL-syntax. Server-header-based version-disclosures op endpoints die bewust een version-header teruggeven.
-- **Verify-by-hand**: voor elke ernstige finding: reproduce handmatig met curl of Burp Repeater. Een DAST-tool die `High: SQL Injection` zegt zonder dat je een werkend payload hebt, is een speculatie.
-- **Koppel aan CWE + OWASP**: findings in het rapport mappen naar bekende categorieën (zie `security-review` fase 6). DAST-tools doen dit meestal automatisch; verifieer de mapping klopt.
+- **Baseline hygiene**: after the first scan create a baseline file (ZAP `--report-file` then `-z "-config json.report.file=<file>"`, or Burp equivalent). Subsequent runs: diff against baseline, surface only new findings.
+- **False-positive patterns**: reflected-XSS claims on endpoints that echo the payload back in a JSON body with `Content-Type: application/json` — the browser doesn't render it as HTML. SQLi claims on endpoints that 500 on every input, not just SQL syntax. Server-header-based version disclosure on endpoints that deliberately return a version header.
+- **Verify by hand**: for every serious finding, reproduce manually with curl or Burp Repeater. A DAST tool that says `High: SQL Injection` without a working payload is speculation.
+- **Tie to CWE + OWASP**: map findings in the report to known categories (see `security-review` phase 6). DAST tools usually do this automatically; verify the mapping is correct.
 
-### 6. CI-integratie
+### 6. CI integration
 
-- **Per PR**: ZAP baseline-scan tegen een ephemeral preview-environment (Vercel preview, Heroku review-app, ephemeral K8s namespace). Fail op nieuwe High-findings in de diff-scope.
+- **Per PR**: ZAP baseline scan against an ephemeral preview environment (Vercel preview, Heroku review-app, ephemeral K8s namespace). Fail on new High findings within the diff scope.
   ```yaml
-  # GitHub Actions voorbeeld
+  # GitHub Actions example
   - uses: zaproxy/action-baseline@v0.13.0
     with:
       target: ${{ env.PREVIEW_URL }}
       rules_file_name: .zap/rules.tsv
       cmd_options: '-a'
   ```
-- **Nightly of weekly**: ZAP full-scan of Burp Enterprise tegen staging. Findings naar security-issue-tracker, niet naar PR-comments (te veel ruis).
-- **Rules-file** (`.zap/rules.tsv`) om false-positive-rule-IDs te suppressen met rationale per entry.
-- **Auth-state in CI**: een test-user dedicated voor scans, credentials in CI-secret (zie `cicd-hardening` fase 3). Rotatie na incident, niet op schema.
-- **SLA op findings**: koppel output aan `cve-triage`-achtige triage-matrix — nieuwe High in production-relevante endpoint is fix-sprint, baseline-hygiene (bv. missing HSTS) is fix-quarter.
+- **Nightly or weekly**: ZAP full-scan or Burp Enterprise against staging. Findings to a security issue tracker, not to PR comments (too noisy).
+- **Rules file** (`.zap/rules.tsv`) for suppressing false-positive rule IDs with a rationale per entry.
+- **Auth state in CI**: a test user dedicated to scans, credentials in CI secrets (see `cicd-hardening` phase 3). Rotation on incident, not on schedule.
+- **SLA on findings**: tie output to a `cve-triage`-style triage matrix — a new High in a production-relevant endpoint is fix-sprint; baseline-hygiene (e.g. missing HSTS) is fix-quarter.
 
 ### 7. Verification-loop
 
-Laag 1: scope (alle in-scope hosts gescand, geen out-of-scope onbedoeld geraakt, auth-state werkte tijdens de scan?), aannames ("we zijn authenticated" alleen als logged-in-indicator daadwerkelijk matcht), gaps (welke pages werden níet gecrawld en waarom, zitten daar unmet assumptions?), consistentie (findings-severities matchen tussen DAST-rapport en security-review-taxonomie?).
+Layer 1: scope (every in-scope host scanned, no out-of-scope hosts hit accidentally, auth-state worked during the scan?), assumptions ("we are authenticated" only when the logged-in indicator actually matches), gaps (which pages were not crawled and why; are there unmet assumptions there?), consistency (do finding severities match between DAST report and security-review taxonomy?).
 
-Laag 2: geen verzonnen CVE-IDs uit scan-output, payloads op patroon-niveau in het rapport (geen kant-en-klare exploits voor productie-targets), false-positive-claims onderbouwd met concrete herhaal-test (de "we hebben het handmatig geverifieerd"-claim moet waar zijn).
+Layer 2: no fabricated CVE-IDs from scan output, payloads at pattern-level in the report (no ready-to-fire exploits for production targets), false-positive claims backed by a concrete repro test (the "we verified by hand" claim has to be true).
 
 ## Output
 
 ```
-DAST-scan — <app>, <environment>
-Tool:            <ZAP x.y | Burp Pro | Burp Enterprise | Nuclei>
-Scan-type:       <baseline | full | API | targeted>
-Duur:            <HH:MM>, requests verstuurd: <N>
+DAST scan — <app>, <environment>
+Tool:           <ZAP x.y | Burp Pro | Burp Enterprise | Nuclei>
+Scan type:      <baseline | full | API | targeted>
+Duration:       <HH:MM>, requests sent: <N>
 
 Scope:
-  In:            <host(s)>
-  Uit:           <paden, bv. /logout, /admin/wipe-*>
-  Auth:          <mode, test-user, logged-in-indicator geverifieerd>
+  In:           <host(s)>
+  Out:          <paths, e.g. /logout, /admin/wipe-*>
+  Auth:         <mode, test user, logged-in indicator verified>
 
-Findings (pre-triage totaal):
-  High:          N    (bevestigd: X, FP: Y, verify pending: Z)
+Findings (pre-triage total):
+  High:          N    (confirmed: X, FP: Y, verify pending: Z)
   Medium:        N
   Low:           N
-  Informational: N (niet rapporteren tenzij opvallend)
+  Informational: N (don't report unless notable)
 
-Bevestigd voor delivery (handmatig geverifieerd):
-## [HIGH] <korte titel>
-  Locatie:       <URL + method>
-  Classificatie: CWE-<N> | OWASP A0<x>
-  Reproductie:   <curl of Burp-Repeater-request>
-  Impact:        <wat kan aanvaller>
-  Fix:           <concrete richting; handoff naar framework-skill of secure-coding>
+Confirmed for delivery (manually verified):
+## [HIGH] <short title>
+  Location:      <URL + method>
+  Classification: CWE-<N> | OWASP A0<x>
+  Reproduction:   <curl or Burp Repeater request>
+  Impact:        <what can the attacker do>
+  Fix:           <concrete direction; handoff to framework skill or secure-coding>
 
 ## [MEDIUM] ...
 
-Baseline-hygiene (security-headers e.d.):
+Baseline hygiene (security headers, etc.):
   HSTS: <present/absent>
   CSP:  <present + strictness>
   etc.
 
 Handoffs:
-  Dep-vulns gedetecteerd via runtime: <cve-triage>
-  Vermoedelijke design-issue:         <threat-modeler>
-  Exploitation-depth nodig:           <web-exploit-triage>
+  Dep-vulns detected via runtime: <cve-triage>
+  Suspected design issue:         <threat-modeler>
+  Exploitation depth needed:      <web-exploit-triage>
 
 Verification-loop: ...
 ```
 
-Ruwe tool-rapport (ZAP-HTML, Burp-XML) als bijlage, niet inline. Reviewer leest de samenvatting, klikt door voor detail.
+Raw tool report (ZAP HTML, Burp XML) as an attachment, not inline. The reviewer reads the summary and clicks through for detail.
 
-## Referenties
+## References
 
 - OWASP ZAP — [https://www.zaproxy.org/](https://www.zaproxy.org/). Tool, docs, Automation Framework.
-- ZAP Automation Framework — [https://www.zaproxy.org/docs/automate/automation-framework/](https://www.zaproxy.org/docs/automate/automation-framework/). YAML-based CI-scan-configuratie.
-- PortSwigger Burp Suite — [https://portswigger.net/burp](https://portswigger.net/burp). Professional en Enterprise docs.
-- Burp Collaborator — [https://portswigger.net/burp/documentation/collaborator](https://portswigger.net/burp/documentation/collaborator). Out-of-band detection voor blind-injection-klasses.
-- OWASP Web Security Testing Guide (WSTG) — [https://owasp.org/www-project-web-security-testing-guide/](https://owasp.org/www-project-web-security-testing-guide/). Methodologie-backbone voor web-testing.
-- OWASP Automated Threat Handbook — [https://owasp.org/www-project-automated-threats-to-web-applications/](https://owasp.org/www-project-automated-threats-to-web-applications/). Referentie voor scan-gerelateerde threat-klasses.
+- ZAP Automation Framework — [https://www.zaproxy.org/docs/automate/automation-framework/](https://www.zaproxy.org/docs/automate/automation-framework/). YAML-based CI scan configuration.
+- PortSwigger Burp Suite — [https://portswigger.net/burp](https://portswigger.net/burp). Professional and Enterprise docs.
+- Burp Collaborator — [https://portswigger.net/burp/documentation/collaborator](https://portswigger.net/burp/documentation/collaborator). Out-of-band detection for blind-injection classes.
+- OWASP Web Security Testing Guide (WSTG) — [https://owasp.org/www-project-web-security-testing-guide/](https://owasp.org/www-project-web-security-testing-guide/). Methodology backbone for web testing.
+- OWASP Automated Threat Handbook — [https://owasp.org/www-project-automated-threats-to-web-applications/](https://owasp.org/www-project-automated-threats-to-web-applications/). Reference for scan-related threat classes.
 - NIST SP 800-115 — [https://csrc.nist.gov/pubs/sp/800/115/final](https://csrc.nist.gov/pubs/sp/800/115/final). Technical Guide to Information Security Testing; §5 covers dynamic testing.
-- Nuclei — [https://github.com/projectdiscovery/nuclei](https://github.com/projectdiscovery/nuclei). Template-based scanner, complement aan ZAP/Burp.
-- zaproxy/action-baseline — [https://github.com/marketplace/actions/zap-baseline-scan](https://github.com/marketplace/actions/zap-baseline-scan). Kant-en-klare GitHub Actions voor CI.
+- Nuclei — [https://github.com/projectdiscovery/nuclei](https://github.com/projectdiscovery/nuclei). Template-based scanner, complement to ZAP/Burp.
+- zaproxy/action-baseline — [https://github.com/marketplace/actions/zap-baseline-scan](https://github.com/marketplace/actions/zap-baseline-scan). Out-of-the-box GitHub Action for CI.
 
-## Categorieën
+## Categories
 
 - appsec

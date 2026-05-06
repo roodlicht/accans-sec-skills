@@ -5,85 +5,85 @@ description: Software supply-chain defense — SBOM generation (CycloneDX/SPDX),
 
 # Supply Chain Defense
 
-## Wanneer gebruiken
+## When to use
 
-Deze skill dekt de producer- én consumer-kant van software supply-chain: wat je bouwt, hoe je bewijst dát je het bouwde, hoe je tekent, en hoe je wat je consumeert verifieert. Hij vult `cve-triage` aan (triage van wat er in je SBOM zit) en wordt door `cicd-hardening` aangeroepen voor de build-provenance-kant.
+This skill covers both producer and consumer sides of the software supply chain: what you build, how you prove that you built it, how you sign it, and how you verify what you consume. It complements `cve-triage` (triage of what is in your SBOM) and is invoked by `cicd-hardening` for the build-provenance side.
 
-Activeert bij:
+Triggers on:
 
-- Een vraag als "genereer een SBOM", "zet SLSA op", "hoe teken ik onze artefacten", "zijn we vatbaar voor dependency confusion", "cosign verify".
-- Een compliance-vraag uit `iso27001`, `nis2`, `dora` of `soc2` over provenance of SBOM-aanlevering.
-- Een build-pipeline die artefacten publiceert (npm-package, PyPI-wheel, Docker image, Helm chart, GitHub release-binary) en provenance mist.
-- Een incident waar een compromised dependency of typosquat is gevonden (XZ-achtig, event-stream-achtig).
-- Een overheids-customer die SSDF-attestation of SBOM-delivery eist (US Executive Order 14028, EU Cyber Resilience Act).
+- A question like "generate an SBOM", "set up SLSA", "how do I sign our artifacts", "are we vulnerable to dependency confusion", "cosign verify".
+- A compliance question from `iso27001`, `nis2`, `dora`, or `soc2` about provenance or SBOM delivery.
+- A build pipeline that publishes artifacts (npm package, PyPI wheel, Docker image, Helm chart, GitHub release binary) and lacks provenance.
+- An incident where a compromised dependency or typosquat has been found (XZ-style, event-stream-style).
+- A government customer demanding SSDF attestation or SBOM delivery (US Executive Order 14028, EU Cyber Resilience Act).
 
-### Wanneer NIET (handoff)
+### When NOT (handoff)
 
-- Per-CVE triage uit de SBOM → `cve-triage`. Deze skill maakt de SBOM, die andere weegt hem.
-- Secrets in artefacten of in build-output → `secrets-scanner`.
-- CI-pipeline-veiligheid zelf (pinned actions, OIDC, runner-isolatie) → `cicd-hardening`. Overlap op SLSA-provenance is daar bewust verwezen.
-- Container base-image-hardening → `container-hardening`. Image-signing komt hier (sigstore/cosign), image-inhoud daar.
-- Code-pattern-vragen over dep-hygiene (pinning, lockfiles) → `secure-coding` fase 6.
+- Per-CVE triage from the SBOM → `cve-triage`. This skill produces the SBOM; that one weighs it.
+- Secrets in artifacts or in build output → `secrets-scanner`.
+- CI-pipeline safety itself (pinned actions, OIDC, runner isolation) → `cicd-hardening`. Overlap on SLSA provenance is intentionally cross-referenced there.
+- Container base-image hardening → `container-hardening`. Image signing is here (sigstore/cosign), image content is there.
+- Code-pattern questions about dep hygiene (pinning, lockfiles) → `secure-coding` phase 6.
 
-## Aanpak
+## Approach
 
-Zes fases. Fase 1 en 2 zijn producer-kant (wat je maakt en declareert), fase 3 is de signing-laag, fase 4 en 5 zijn consumer-kant (wat je binnenhaalt), fase 6 is verificatie.
+Six phases. Phases 1 and 2 are producer-side (what you build and declare), phase 3 is the signing layer, phases 4 and 5 are consumer-side (what you bring in), phase 6 is verification.
 
-### 1. SBOM generatie
+### 1. SBOM generation
 
-Een Software Bill of Materials is de ingrediëntenlijst van je artefact. Twee gangbare formats, beide machine-leesbaar:
+A Software Bill of Materials is the ingredient list of your artifact. Two common formats, both machine-readable:
 
-- **CycloneDX** (OWASP project, JSON/XML/protobuf). Sterkere security-focus, native VEX-integratie, pURL-based identificatie. Default-keuze voor security-use-cases.
-- **SPDX** (Linux Foundation, tagValue/JSON/YAML/RDF). Sterker in licentie-tracking, bredere adoption in enterprise-compliance. Default-keuze als licentie-compliance ook doel is.
+- **CycloneDX** (OWASP project, JSON/XML/protobuf). Stronger security focus, native VEX integration, pURL-based identification. Default choice for security use cases.
+- **SPDX** (Linux Foundation, tagValue/JSON/YAML/RDF). Stronger in license tracking, broader adoption in enterprise compliance. Default choice if license compliance is also a goal.
 
-Generatie-tools:
+Generation tools:
 
-- **syft** (Anchore, Apache-2). Scant filesystems, images, lockfiles. Kan beide formats uit. Default-keuze voor containers en filesystem-artefacten.
-- **cdxgen** (OWASP, Apache-2). CycloneDX-native, bredere ecosysteem-dekking incl. Java/Node/Python/Go/Rust.
-- **cyclonedx-bom-<lang>**: taal-specifieke CLIs (`cyclonedx-bom` voor Node, `cyclonedx-python-lib` voor Python, `cyclonedx-maven-plugin` voor Maven).
-- **Microsoft sbom-tool** (MIT). Integreert met Azure DevOps en GitHub.
+- **syft** (Anchore, Apache-2). Scans filesystems, images, lockfiles. Can output both formats. Default choice for containers and filesystem artifacts.
+- **cdxgen** (OWASP, Apache-2). CycloneDX-native, broader ecosystem coverage incl. Java/Node/Python/Go/Rust.
+- **cyclonedx-bom-<lang>**: language-specific CLIs (`cyclonedx-bom` for Node, `cyclonedx-python-lib` for Python, `cyclonedx-maven-plugin` for Maven).
+- **Microsoft sbom-tool** (MIT). Integrates with Azure DevOps and GitHub.
 
-Genereer bij build, niet achteraf. Achteraf-SBOM op een al-gedeployde artefact mist transitive resolution-moments en is per definitie een benadering.
+Generate at build time, not after the fact. A post-hoc SBOM on an already-deployed artifact misses transitive resolution moments and is by definition an approximation.
 
 ```bash
 # syft — container-image SBOM in CycloneDX
 syft <image>:<tag> -o cyclonedx-json > sbom.cdx.json
 
-# syft — filesystem (bv. git clone)
+# syft — filesystem (e.g. git clone)
 syft dir:. -o spdx-json > sbom.spdx.json
 
-# cdxgen — Node-project CycloneDX
+# cdxgen — Node project, CycloneDX
 cdxgen -t js -o bom.json
 ```
 
-SBOM committen of niet? Voor open-source projecten: met het release-artefact publiceren (GitHub release asset, sigstore-bundle). Voor closed-source: in een artifact-registry naast het artefact. Niet in git-history; lockfile is de source of truth.
+Commit the SBOM or not? For open-source projects: publish with the release artifact (GitHub release asset, sigstore bundle). For closed-source: in an artifact registry next to the artifact. Not in git history; the lockfile is the source of truth.
 
-### 2. Build-provenance (SLSA)
+### 2. Build provenance (SLSA)
 
-SLSA (Supply-chain Levels for Software Artifacts) is een framework dat vier niveaus van build-provenance definieert. Provenance is een ondertekende attestatie over hoe een artefact is gebouwd.
+SLSA (Supply-chain Levels for Software Artifacts) is a framework that defines four levels of build provenance. Provenance is a signed attestation about how an artifact was built.
 
-- **SLSA Level 1**: build-proces gedocumenteerd, provenance bestaat, maar is niet tamper-proof.
-- **SLSA Level 2**: hosted build-service, authenticated provenance, source en build zijn gekoppeld.
-- **SLSA Level 3**: build is geïsoleerd (non-forgeable), source en build zijn gecontroleerd, provenance is cryptografisch gebonden aan de artefact-inhoud.
-- **SLSA Level 4** (deprecated in v1.0 spec): maximale garanties. Samengevoegd in L3 in de huidige spec.
+- **SLSA Level 1**: build process documented, provenance exists, but is not tamper-proof.
+- **SLSA Level 2**: hosted build service, authenticated provenance, source and build are linked.
+- **SLSA Level 3**: build is isolated (non-forgeable), source and build are controlled, provenance is cryptographically bound to the artifact contents.
+- **SLSA Level 4** (deprecated in v1.0 spec): maximum guarantees. Merged into L3 in the current spec.
 
-Praktische route naar Level 3:
+Practical route to Level 3:
 
-- **GitHub Actions**: de `slsa-framework/slsa-github-generator` suite levert L3-provenance out-of-the-box voor Go, Node, Python, Docker-images. Build-job draait in een reusable workflow die door GitHub is geïsoleerd; attestation wordt door GitHub-attestor-identity getekend.
-- **GitLab CI**: in-toto attestation via Cosign-sign-in-CI. Minder kant-en-klaar dan GitHub maar haalbaar met rekor-logging.
-- **Self-hosted runners**: L3 wordt moeilijker — de isolatie-garantie ligt dan bij jou. Overweeg ephemeral runners per build (bv. via actions-runner-controller).
+- **GitHub Actions**: the `slsa-framework/slsa-github-generator` suite delivers L3 provenance out of the box for Go, Node, Python, Docker images. Build job runs in a reusable workflow isolated by GitHub; attestation is signed by the GitHub attestor identity.
+- **GitLab CI**: in-toto attestation via Cosign-sign-in-CI. Less ready-made than GitHub but feasible with rekor logging.
+- **Self-hosted runners**: L3 becomes harder — the isolation guarantee is then on you. Consider ephemeral runners per build (e.g. via actions-runner-controller).
 
-Provenance is een in-toto statement met predicate-type `https://slsa.dev/provenance/v1`. Inhoud: artefact-hash, builder-identity, source-repo-commit, build-parameters. Tekenen gebeurt via sigstore (fase 3).
+Provenance is an in-toto statement with predicate type `https://slsa.dev/provenance/v1`. Contents: artifact hash, builder identity, source-repo commit, build parameters. Signing is done via sigstore (phase 3).
 
-### 3. Signing met sigstore
+### 3. Signing with sigstore
 
-Sigstore is de de-facto open-source signing-stack sinds 2021. Drie componenten:
+Sigstore is the de facto open-source signing stack since 2021. Three components:
 
-- **cosign** — CLI om artefacten te tekenen en te verifiëren. Ondersteunt container-images, blobs, git-commits (via `gitsign`), SBOMs, attestations.
-- **Fulcio** — certificate authority die short-lived X.509 certs uitgeeft op basis van OIDC-identiteit. Geen lokale key-management.
-- **Rekor** — transparantie-log. Elke signing-actie wordt als immutable entry gelogd zodat latere verificatie mogelijk is ook als de key weg is.
+- **cosign** — CLI to sign and verify artifacts. Supports container images, blobs, git commits (via `gitsign`), SBOMs, attestations.
+- **Fulcio** — certificate authority issuing short-lived X.509 certs based on OIDC identity. No local key management.
+- **Rekor** — transparency log. Every signing action is logged as an immutable entry so verification remains possible later, even if the key is gone.
 
-Keyless signing (aanbevolen default):
+Keyless signing (recommended default):
 
 ```bash
 # sign image with OIDC-bound cert, entry in rekor
@@ -92,107 +92,107 @@ cosign sign --yes <image>@sha256:<digest>
 # sign attestation (SBOM)
 cosign attest --yes --predicate sbom.cdx.json --type cyclonedx <image>@sha256:<digest>
 
-# verify signer-identity (GitHub Actions example)
+# verify signer identity (GitHub Actions example)
 cosign verify <image> \
   --certificate-identity-regexp "https://github.com/<org>/<repo>/.github/workflows/.+" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
 ```
 
-Key-based signing (als je traceable-identity niet wil of kunt): `cosign generate-key-pair` plus KMS-backed key (AWS KMS, GCP KMS, Vault). Minder operationeel leuk maar past waar OIDC-integratie ontbreekt.
+Key-based signing (when you do not want or cannot use traceable identity): `cosign generate-key-pair` plus a KMS-backed key (AWS KMS, GCP KMS, Vault). Less operationally fun but fits where OIDC integration is missing.
 
-Gitsign voor commit-signing: short-lived certs in plaats van GPG-keys die jaren blijven hangen. Geen key-management, verification tegen rekor.
+Gitsign for commit signing: short-lived certs instead of GPG keys that linger for years. No key management, verification against rekor.
 
-### 4. Dependency-confusion en typosquat-defense
+### 4. Dependency confusion and typosquat defense
 
-Dependency confusion: een aanvaller publiceert een package onder dezelfde naam als je interne private package op een public registry met hoger versie-nummer. Je build-tool resolved de public, voert aanvaller-code uit. Bekend sinds Alex Birsan's 2021 Medium-publicatie (primaire bron).
+Dependency confusion: an attacker publishes a package under the same name as your internal private package on a public registry with a higher version number. Your build tool resolves the public one and runs attacker code. Known since Alex Birsan's 2021 Medium publication (primary source).
 
-Verdediging:
+Defenses:
 
-- **Scoped / namespaced packages.** npm `@org/pkg`, Maven groupId. Scoped packages op een public registry zijn per definitie jouw namespace als je de scope bezit.
-- **Registry-config die private-first resolved.** npm `.npmrc` met `@org:registry=https://internal`. pip `index-url` op interne PyPI, `extra-index-url` alleen als fallback.
-- **Lockfile + integrity-hash.** `package-lock.json` met SHA-512 integrity, `poetry.lock` met content-hashes, Go `go.sum`. Voorkomt dat eenzelfde versie met andere inhoud wordt geaccepteerd.
-- **Mirror / proxy registry.** Nexus, Artifactory, Verdaccio, GitLab Package Registry. Internal-first, cachet public deps, blokkeert onbekende.
-- **Publish-preventie voor interne naam.** Registreer je interne namen op public registries als placeholder (met minimal/placeholder-version) om namespace-squatting te voorkomen.
+- **Scoped / namespaced packages.** npm `@org/pkg`, Maven groupId. Scoped packages on a public registry are by definition your namespace if you own the scope.
+- **Registry config that resolves private-first.** npm `.npmrc` with `@org:registry=https://internal`. pip `index-url` on internal PyPI, `extra-index-url` only as fallback.
+- **Lockfile + integrity hash.** `package-lock.json` with SHA-512 integrity, `poetry.lock` with content hashes, Go `go.sum`. Stops the same version with different contents from being accepted.
+- **Mirror / proxy registry.** Nexus, Artifactory, Verdaccio, GitLab Package Registry. Internal-first, caches public deps, blocks unknowns.
+- **Publish prevention for internal names.** Register your internal names on public registries as placeholders (with minimal/placeholder version) to prevent namespace squatting.
 
 Typosquat:
 
-- **Nieuwe dependencies kritisch bekijken.** Author, age (hoe lang bestaat het package?), download-count, reverse-deps. Tools: `npm-typo-check`, `socket.dev`, Snyk Advisor.
-- **Deps-on-install.** Post-install scripts uitzetten waar mogelijk (`npm install --ignore-scripts`). Veel supply-chain-attacks triggeren op install.
+- **Look at new dependencies critically.** Author, age (how long has the package existed?), download count, reverse deps. Tools: `npm-typo-check`, `socket.dev`, Snyk Advisor.
+- **Deps on install.** Disable post-install scripts where possible (`npm install --ignore-scripts`). Many supply-chain attacks trigger on install.
 
-### 5. Consumer-side verificatie
+### 5. Consumer-side verification
 
-Wat je binnenhaalt verifieer je voor je het gebruikt.
+Verify what you bring in before you use it.
 
-- **Container-image signatures.** Kubernetes admission controller (Kyverno, Sigstore policy-controller) die onbeketende of niet-trusted-signer images weigert. Referenties in `k8s-security`.
-- **Package-level attestations**: npm sinds 2023 ondersteunt provenance via sigstore, PyPI heeft trusted-publishing. Bij consumptie: verifieer attestatie bij install in CI, niet alleen op developer-machines.
-- **Verification-policies**: Cosign `policy` met allowlist van toegestane signers en attestation-predicates. Match op builder-identity (GitHub Actions workflow-path), niet op branch-naam (die is te wijzigen).
+- **Container image signatures.** Kubernetes admission controller (Kyverno, Sigstore policy-controller) that rejects unsigned or non-trusted-signer images. References in `k8s-security`.
+- **Package-level attestations**: npm has supported provenance via sigstore since 2023; PyPI has trusted-publishing. On consumption: verify the attestation at install time in CI, not only on developer machines.
+- **Verification policies**: Cosign `policy` with allowlist of permitted signers and attestation predicates. Match on builder identity (GitHub Actions workflow path), not on branch name (which is changeable).
 
 ### 6. Verification-loop
 
-Laag 1: scope (alle artefacten die de org publiceert hebben SBOM én attestatie? alle consumptie-paden verifiëren?), aannames ("we gebruiken keyless signing" alleen als OIDC daadwerkelijk gekoppeld is), gaps (test-artefacten en internal-tools worden vaak vergeten, zijn ze bewust uitgesloten of vergeten?), consistentie (SBOM-format consistent over alle artefacten?).
+Layer 1: scope (do all artifacts published by the org have an SBOM and an attestation? are all consumption paths verifying?), assumptions ("we use keyless signing" only if OIDC is actually wired up), gaps (test artifacts and internal tools are often forgotten — are they intentionally excluded or just missed?), consistency (SBOM format consistent across all artifacts?).
 
-Laag 2: SLSA-level-claims onderbouwd met concrete build-setup, geen hand-wave naar "we zitten op L3", CVE's of incidents die je noemt (XZ, event-stream, SolarWinds) geverifieerd qua feitelijke details, cosign-command-voorbeelden getest op syntax tegen de actuele versie.
+Layer 2: SLSA-level claims backed by a concrete build setup, no hand-waving toward "we are at L3", CVEs or incidents you mention (XZ, event-stream, SolarWinds) verified for factual detail, cosign command examples checked for syntax against the current version.
 
 ## Output
 
-Twee modes afhankelijk van aanleiding.
+Two modes depending on the trigger.
 
-**Setup-mode** (nieuwe of ontbrekende supply-chain-discipline):
+**Setup mode** (new or missing supply-chain discipline):
 
 ```
 Supply-chain setup — <project/org>
-Huidige staat: <SBOM: ja/nee | Signing: ja/nee | SLSA-level: L0–L3>
+Current state: <SBOM: yes/no | Signing: yes/no | SLSA level: L0–L3>
 
-Geleverd:
-- SBOM-generatie: <tool + format + build-step>
+Delivered:
+- SBOM generation: <tool + format + build step>
 - Provenance: <SLSA-level target + toolchain>
-- Signing: <cosign keyless via OIDC | KMS-backed | gitsign voor commits>
-- Dep-confusion defense: <scoped packages | registry-config | mirror>
-- Consumer-verificatie: <policy-controller | cosign verify in CI>
+- Signing: <cosign keyless via OIDC | KMS-backed | gitsign for commits>
+- Dep-confusion defense: <scoped packages | registry config | mirror>
+- Consumer verification: <policy-controller | cosign verify in CI>
 
-Te testen:
-1. Build artefact → SBOM bestaat en is gevuld
-2. Build artefact → attestation vindbaar in rekor
-3. Verify-command retourneert success op getekende, faalt op ongetekende
+To test:
+1. Build artifact → SBOM exists and is populated
+2. Build artifact → attestation findable in rekor
+3. Verify command returns success on signed, fails on unsigned
 
 Verification-loop: ...
 ```
 
-**Incident/audit-mode** (bestaande pipeline auditen):
+**Incident/audit mode** (audit existing pipeline):
 
 ```
 Supply-chain audit — <scope>
 Findings:
-- SBOM: <aanwezig voor alle artefacten | ontbreekt voor X>
-- Provenance: <SLSA-niveau effectief | claim vs. realiteit>
-- Signing: <coverage%, unsigned artefacten gelijst>
-- Dep-confusion: <namespace-registratie, registry-config, mirror>
-- Consumer-verify: <enforcement-punten en gaps>
+- SBOM: <present for all artifacts | missing for X>
+- Provenance: <effective SLSA level | claim vs. reality>
+- Signing: <coverage%, unsigned artifacts listed>
+- Dep-confusion: <namespace registration, registry config, mirror>
+- Consumer verify: <enforcement points and gaps>
 
 Per gap:
-- Wat mist
+- What is missing
 - Concrete remediation
-- Prioriteit (blocker voor compliance | standard sprint-item)
+- Priority (blocker for compliance | standard sprint item)
 
 Verification-loop: ...
 ```
 
-Geen rapport dat zegt "we zitten op SLSA L3" zonder de daadwerkelijke build-setup te hebben gezien. Fase 2 eist bewijs.
+No report that says "we are at SLSA L3" without having seen the actual build setup. Phase 2 demands evidence.
 
-## Referenties
+## References
 
-- SLSA framework — [https://slsa.dev/](https://slsa.dev/). v1.0 specificatie met L1–L3 definities.
-- CycloneDX — [https://cyclonedx.org/](https://cyclonedx.org/). OWASP-project, SBOM-format + VEX-integratie.
+- SLSA framework — [https://slsa.dev/](https://slsa.dev/). v1.0 specification with L1–L3 definitions.
+- CycloneDX — [https://cyclonedx.org/](https://cyclonedx.org/). OWASP project, SBOM format + VEX integration.
 - SPDX — [https://spdx.dev/](https://spdx.dev/). Linux Foundation, ISO/IEC 5962:2021.
 - Sigstore — [https://www.sigstore.dev/](https://www.sigstore.dev/). Cosign, Fulcio, Rekor, Gitsign.
-- in-toto — [https://in-toto.io/](https://in-toto.io/). Attestation-framework onder SLSA-provenance.
-- CISA SBOM-pagina — [https://www.cisa.gov/sbom](https://www.cisa.gov/sbom). Guidance + minimaal-format-definitie.
-- US Executive Order 14028 — [https://www.whitehouse.gov/briefing-room/presidential-actions/2021/05/12/executive-order-on-improving-the-nations-cybersecurity/](https://www.whitehouse.gov/briefing-room/presidential-actions/2021/05/12/executive-order-on-improving-the-nations-cybersecurity/). Origineel mandaat voor SBOM-delivery in federaal aanschaf.
-- EU Cyber Resilience Act — [https://digital-strategy.ec.europa.eu/en/policies/cyber-resilience-act](https://digital-strategy.ec.europa.eu/en/policies/cyber-resilience-act). EU-equivalent met SBOM-verplichtingen voor digitale producten.
-- NIST SP 800-218 (SSDF) — [https://csrc.nist.gov/pubs/sp/800/218/final](https://csrc.nist.gov/pubs/sp/800/218/final). Secure Software Development Framework, supply-chain-raakvlak.
-- OpenSSF Best Practices — [https://www.bestpractices.dev/](https://www.bestpractices.dev/). OpenSSF-badge, raakt supply-chain-discipline.
-- Alex Birsan — "Dependency Confusion" (2021). [https://medium.com/@alex.birsan/dependency-confusion-4a5d60fec610](https://medium.com/@alex.birsan/dependency-confusion-4a5d60fec610). Originele publicatie over de aanvalsklasse.
+- in-toto — [https://in-toto.io/](https://in-toto.io/). Attestation framework underlying SLSA provenance.
+- CISA SBOM page — [https://www.cisa.gov/sbom](https://www.cisa.gov/sbom). Guidance + minimum-format definition.
+- US Executive Order 14028 — [https://www.whitehouse.gov/briefing-room/presidential-actions/2021/05/12/executive-order-on-improving-the-nations-cybersecurity/](https://www.whitehouse.gov/briefing-room/presidential-actions/2021/05/12/executive-order-on-improving-the-nations-cybersecurity/). Original mandate for SBOM delivery in federal procurement.
+- EU Cyber Resilience Act — [https://digital-strategy.ec.europa.eu/en/policies/cyber-resilience-act](https://digital-strategy.ec.europa.eu/en/policies/cyber-resilience-act). EU equivalent with SBOM obligations for digital products.
+- NIST SP 800-218 (SSDF) — [https://csrc.nist.gov/pubs/sp/800/218/final](https://csrc.nist.gov/pubs/sp/800/218/final). Secure Software Development Framework, supply-chain interface.
+- OpenSSF Best Practices — [https://www.bestpractices.dev/](https://www.bestpractices.dev/). OpenSSF badge, touches supply-chain discipline.
+- Alex Birsan — "Dependency Confusion" (2021). [https://medium.com/@alex.birsan/dependency-confusion-4a5d60fec610](https://medium.com/@alex.birsan/dependency-confusion-4a5d60fec610). Original publication on the attack class.
 
-## Categorieën
+## Categories
 
 - appsec

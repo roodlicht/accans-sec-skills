@@ -31,18 +31,18 @@ A "pass" means: Claude routes to the expected item within the first or second me
 
 | # | Prompt | Expected trigger |
 |---|---|---|
-| 8 | "Configureer Semgrep + CodeQL in onze CI met sane defaults." | `sast-orchestrator` |
-| 9 | "Zet een ZAP baseline-scan op tegen onze staging." | `dast-workflow` |
-| 10 | "Review onze Terraform-modules op IAM-misconfig." | `iac-security` |
-| 11 | "Onze Dockerfile draait als root en we willen distroless. Migration plan?" | `container-hardening` |
-| 12 | "Kun je een NetworkPolicy default-deny opzetten voor de payments-namespace?" | `k8s-security` |
-| 13 | "Review deze REST API op OWASP API Top 10 risks." | `api-security` |
-| 14 | "Hoe genereren we SLSA-L3 provenance voor onze npm-package release?" | `supply-chain` |
-| 15 | "Onze Django app moet hardened worden voor productie. Deploy checklist?" | `django-security` |
-| 16 | "Spring Boot actuator endpoints expose te veel — fix?" | `spring-security` |
-| 17 | "Brakeman triage van deze Rails-app." | `rails-security` |
-| 18 | "Review de auth-flow in onze Next.js Server Actions." | `nextjs-security` |
-| 19 | "GitHub Actions OIDC opzetten naar AWS." | `cicd-hardening` |
+| 8 | "Configure Semgrep + CodeQL in our CI with sane defaults." | `sast-orchestrator` |
+| 9 | "Set up a ZAP baseline scan against our staging." | `dast-workflow` |
+| 10 | "Review our Terraform modules for IAM misconfig." | `iac-security` |
+| 11 | "Our Dockerfile runs as root and we want distroless. Migration plan?" | `container-hardening` |
+| 12 | "Can you set up a default-deny NetworkPolicy for the payments namespace?" | `k8s-security` |
+| 13 | "Review this REST API against OWASP API Top 10 risks." | `api-security` |
+| 14 | "How do we generate SLSA-L3 provenance for our npm package release?" | `supply-chain` |
+| 15 | "Our Django app needs to be hardened for production. Deploy checklist?" | `django-security` |
+| 16 | "Spring Boot actuator endpoints expose too much — fix?" | `spring-security` |
+| 17 | "Brakeman triage of this Rails app." | `rails-security` |
+| 18 | "Review the auth flow in our Next.js Server Actions." | `nextjs-security` |
+| 19 | "Set up GitHub Actions OIDC to AWS." | `cicd-hardening` |
 
 ### Pentest (9 items, plus core overlap)
 

@@ -1,49 +1,49 @@
 ---
 name: spring-security
-description: Spring Boot security review — Spring Security config (SecurityFilterChain), OAuth2/OIDC client en resource-server, method-level @PreAuthorize, JWT validatie, actuator endpoint lockdown, CSRF-model voor web vs API, en recente Spring CVE-patronen (Spring4Shell, SpEL injection, authorization bypasses).
+description: Spring Boot security review — Spring Security config (SecurityFilterChain), OAuth2/OIDC client and resource-server, method-level @PreAuthorize, JWT validation, actuator endpoint lockdown, CSRF model for web vs API, and recent Spring CVE patterns (Spring4Shell, SpEL injection, authorization bypasses).
 ---
 
 # Spring Boot Security
 
-## Wanneer gebruiken
+## When to use
 
-Deze skill is de Spring-specifieke laag boven `secure-coding` en `api-security`. Spring Security is krachtig en precies daarom foot-gun-rijk: configuratie-kleine-letters bepalen of je app veilig is of wagenwijd.
+This skill is the Spring-specific layer on top of `secure-coding` and `api-security`. Spring Security is powerful and exactly therefore foot-gun-rich: small letters in the config decide whether your app is safe or wide open.
 
-Activeert bij:
+Triggers on:
 
-- Een vraag als "review onze Spring Security config", "OAuth2 client-setup", "actuator endpoints afschermen", "JWT-validatie op Spring Resource Server", "@PreAuthorize-review".
-- Aanwezigheid van `spring-boot-starter-security`, `spring-security-oauth2-client`, `SecurityFilterChain`-beans, `@EnableWebSecurity`, `@PreAuthorize`/`@PostAuthorize`-annotaties, `application.yml` met `spring.security.*` of `management.*`.
-- Een PR die `.permitAll()`, `.disable()` op CSRF/CORS, custom `AuthenticationProvider`, `UserDetailsService`, of JWT-filter aanraakt.
-- Spring-version-bumps rond security-releases.
-- Een handoff vanuit `security-review` of `api-security` waar Spring in de stack zit.
+- A question like "review our Spring Security config", "OAuth2 client setup", "lock down actuator endpoints", "JWT validation on a Spring Resource Server", "@PreAuthorize review".
+- Presence of `spring-boot-starter-security`, `spring-security-oauth2-client`, `SecurityFilterChain` beans, `@EnableWebSecurity`, `@PreAuthorize`/`@PostAuthorize` annotations, `application.yml` with `spring.security.*` or `management.*`.
+- A PR that touches `.permitAll()`, `.disable()` on CSRF/CORS, custom `AuthenticationProvider`, `UserDetailsService`, or a JWT filter.
+- Spring version bumps around security releases.
+- A handoff from `security-review` or `api-security` where Spring is in the stack.
 
-### Wanneer NIET (handoff)
+### When NOT (handoff)
 
-- Algemene Java-secure-coding → `secure-coding`.
-- API-ontwerp en OWASP API Top 10 — grote overlap, maar die skill is framework-agnostisch. Gebruik `api-security` voor conceptuele vragen (wat is IDOR, hoe valideer je schema), deze skill voor Spring-specifieke uitwerking.
-- SAST met Semgrep `p/java-spring` of CodeQL — `sast-orchestrator`.
-- Dep-vulns (incl. Log4Shell-klasse-vulns in transitive deps) → `cve-triage`.
-- Infra rondom Spring (Kubernetes-deploy, container-image) → `container-hardening` + `k8s-security`.
-- Secrets (application.properties met DB-passwords) → `secrets-scanner`.
+- General Java secure-coding → `secure-coding`.
+- API design and OWASP API Top 10 — large overlap, but that skill is framework-agnostic. Use `api-security` for conceptual questions (what is IDOR, how do you validate a schema), this skill for Spring-specific implementation.
+- SAST with Semgrep `p/java-spring` or CodeQL → `sast-orchestrator`.
+- Dep vulns (incl. Log4Shell-class vulns in transitive deps) → `cve-triage`.
+- Infra around Spring (Kubernetes deploy, container image) → `container-hardening` + `k8s-security`.
+- Secrets (application.properties with DB passwords) → `secrets-scanner`.
 
-## Aanpak
+## Approach
 
-Zes fases. Fase 1 (SecurityFilterChain) is waar de meeste production-bugs zitten.
+Six phases. Phase 1 (SecurityFilterChain) is where most production bugs live.
 
-### 1. SecurityFilterChain-config
+### 1. SecurityFilterChain config
 
-Spring Security 6+ gebruikt Lambda-DSL. Elke keten bepaalt welke auth-mode welk pad krijgt en wat "geopend" betekent.
+Spring Security 6+ uses the Lambda DSL. Each chain decides which auth mode goes with which path and what "open" means.
 
-Veelgeziene foot-guns:
+Common foot-guns:
 
-- **`.permitAll()` op te breed pad.** `http.authorizeHttpRequests(auth -> auth.requestMatchers("/api/**").permitAll())` zet de hele API open. Zoek naar `.permitAll()` op wildcards en challenge elke.
-- **Volgorde van matchers.** Filter-chain matcht top-down. Een `/api/**` permitAll boven een `/api/admin/**` authenticated-rule overrulet deze laatste. Altijd van specifiek naar algemeen.
-- **`.anyRequest().permitAll()`** — als laatste regel is dit catch-all open. Bijna altijd fout. Laatste regel hoort `.anyRequest().authenticated()` te zijn, met uitzondering bij een puur publieke app.
-- **Meerdere `SecurityFilterChain`-beans** met `@Order`. Eerste match wint. Een te-brede eerste chain kan latere chains overbodig maken.
-- **`.csrf(csrf -> csrf.disable())`** zonder context. CSRF standaard aan voor stateful web-auth. Disable is terecht voor stateless JWT-API's, fout voor form-based auth. Als je twijfelt: aan laten.
-- **CORS-config.** `.cors(cors -> cors.configurationSource(source))` met `CorsConfigurationSource` die wildcards teruggeeft is standaard-misvatting. `allowedOrigins("*")` in combinatie met `allowCredentials(true)` werkt niet (Spring weigert), maar het is een signaal dat de config-flow niet is doordacht.
+- **`.permitAll()` on too broad a path.** `http.authorizeHttpRequests(auth -> auth.requestMatchers("/api/**").permitAll())` opens the entire API. Look for `.permitAll()` on wildcards and challenge each one.
+- **Order of matchers.** The filter chain matches top-down. A `/api/**` permitAll above a `/api/admin/**` authenticated rule overrules the latter. Always go from specific to general.
+- **`.anyRequest().permitAll()`** — as the last rule this is catch-all open. Almost always wrong. The last rule should be `.anyRequest().authenticated()`, with an exception for a purely public app.
+- **Multiple `SecurityFilterChain` beans** with `@Order`. First match wins. A too-broad first chain can render later chains redundant.
+- **`.csrf(csrf -> csrf.disable())`** without context. CSRF on by default for stateful web auth. Disabling is correct for stateless JWT APIs, wrong for form-based auth. If in doubt: leave it on.
+- **CORS config.** `.cors(cors -> cors.configurationSource(source))` with a `CorsConfigurationSource` that returns wildcards is a standard misconception. `allowedOrigins("*")` together with `allowCredentials(true)` does not work (Spring rejects it), but it is a signal that the config flow has not been thought through.
 
-Concrete reference-config voor een stateless JWT-API:
+Concrete reference config for a stateless JWT API:
 
 ```java
 @Bean
@@ -55,7 +55,7 @@ SecurityFilterChain api(HttpSecurity http) throws Exception {
             .requestMatchers("/api/admin/**").hasRole("ADMIN")
             .anyRequest().authenticated())
         .oauth2ResourceServer(rs -> rs.jwt(Customizer.withDefaults()))
-        .csrf(csrf -> csrf.disable())  // terecht voor stateless API
+        .csrf(csrf -> csrf.disable())  // correct for stateless API
         .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
     return http.build();
 }
@@ -63,112 +63,112 @@ SecurityFilterChain api(HttpSecurity http) throws Exception {
 
 ### 2. Method-level authorization
 
-Route-level auth is nooit genoeg. Methods met sensitive logica horen `@PreAuthorize` of equivalent.
+Route-level auth is never enough. Methods with sensitive logic deserve `@PreAuthorize` or equivalent.
 
-- **`@EnableMethodSecurity`** (Spring Security 6) vervangt `@EnableGlobalMethodSecurity`. Zonder deze annotatie werken `@PreAuthorize`/`@PostAuthorize` niet.
+- **`@EnableMethodSecurity`** (Spring Security 6) replaces `@EnableGlobalMethodSecurity`. Without this annotation, `@PreAuthorize`/`@PostAuthorize` do not work.
 - **`@PreAuthorize("hasRole('ADMIN')")`** — role-based.
-- **`@PreAuthorize("hasAuthority('SCOPE_write:documents')")`** — voor JWT-scopes.
-- **`@PreAuthorize("#id == authentication.name or hasRole('ADMIN')")`** — per-resource ownership, de fix voor IDOR (zie `api-security` API1 BOLA).
-- **`@PostAuthorize`** — filter return-value na execute. Zeldzaam nodig, heeft performance-impact.
+- **`@PreAuthorize("hasAuthority('SCOPE_write:documents')")`** — for JWT scopes.
+- **`@PreAuthorize("#id == authentication.name or hasRole('ADMIN')")`** — per-resource ownership, the fix for IDOR (see `api-security` API1 BOLA).
+- **`@PostAuthorize`** — filter the return value after execution. Rarely needed, has performance impact.
 
-Common miss: ownership-check in de service-method maar niet in de controller, of omgekeerd. Eén plek is genoeg, maar moet ondubbelzinnig zijn welke.
+Common miss: ownership check in the service method but not in the controller, or vice versa. One place is enough, but it must be unambiguous which one.
 
 ### 3. Actuator lockdown
 
-Spring Boot Actuator exposed operationele endpoints. Default-config (oud) was wijd open. Sinds Boot 2.x default alleen `/health` en `/info` public, rest geauthenticeerd. Reviewer-regel: controleer dat je niet teruggevallen bent naar het oude model.
+Spring Boot Actuator exposes operational endpoints. The default config (older) was wide open. Since Boot 2.x the defaults are `/health` and `/info` public, the rest authenticated. Reviewer rule: confirm you have not fallen back to the older model.
 
-- **`management.endpoints.web.exposure.include`** — wat wordt blootgesteld. `"*"` is fout in prod. Beperk tot wat Ops écht nodig heeft: `health,info,prometheus,metrics`.
-- **`management.endpoint.env.show-values=NEVER`** of `ALWAYS`/`WHEN_AUTHORIZED`. `/env` toont alle env-vars, inclusief secrets bij verkeerde config.
-- **`management.endpoint.heapdump.enabled=false`** in prod. Heapdump via HTTP is memory-exfil-primitive.
-- **`management.server.port`** op aparte port die niet extern routable is. Plus firewall/NetworkPolicy (zie `k8s-security`).
-- **Actuator security op de SecurityFilterChain**: aparte chain met `EndpointRequest.toAnyEndpoint()` matcher, role `ACTUATOR` of equivalent.
+- **`management.endpoints.web.exposure.include`** — what gets exposed. `"*"` is wrong in prod. Limit to what Ops actually needs: `health,info,prometheus,metrics`.
+- **`management.endpoint.env.show-values=NEVER`** or `ALWAYS`/`WHEN_AUTHORIZED`. `/env` shows all env vars, including secrets when misconfigured.
+- **`management.endpoint.heapdump.enabled=false`** in prod. Heap dump via HTTP is a memory-exfil primitive.
+- **`management.server.port`** on a separate port that is not externally routable. Plus firewall/NetworkPolicy (see `k8s-security`).
+- **Actuator security on the SecurityFilterChain**: a separate chain with `EndpointRequest.toAnyEndpoint()` matcher, role `ACTUATOR` or equivalent.
 
-### 4. JWT en OAuth2
+### 4. JWT and OAuth2
 
-Spring heeft drie OAuth2-rollen: client (consumer), resource-server (you, validating tokens), authorization-server (you, issuing tokens). Elk heeft eigen foot-guns.
+Spring has three OAuth2 roles: client (consumer), resource-server (you, validating tokens), authorization-server (you, issuing tokens). Each has its own foot-guns.
 
-- **Resource-server (JWT-validatie)**:
-  - **Issuer-validatie** verplicht: `spring.security.oauth2.resourceserver.jwt.issuer-uri` of expliciete `JwtDecoder` met `NimbusJwtDecoder.withIssuerLocation(issuer)`.
-  - **Audience-claim** validatie expliciet bouwen (niet default). `OAuth2TokenValidatorFactories.create().andValidate(JwtIssuerValidator).andValidate(JwtAudienceValidator)`.
-  - **Algorithm-whitelist**: accepteer `RS256` / `ES256`, wijs `HS256` af tenzij expliciet bedoeld. Algorithm-confusion is een klassieke aanval. Zie ook `api-security` fase 2.
-  - **Clock-skew**: `.setClockSkew(Duration.ofMinutes(2))` redelijk, niet 1 uur.
-- **Client (consumer van OAuth)**:
-  - **PKCE verplicht** voor public clients (mobile, SPA die Spring alleen serveert).
-  - **Redirect-URI strict** geregistreerd, geen wildcards.
-  - **Scopes minimal** vragen.
+- **Resource-server (JWT validation)**:
+  - **Issuer validation** required: `spring.security.oauth2.resourceserver.jwt.issuer-uri` or an explicit `JwtDecoder` with `NimbusJwtDecoder.withIssuerLocation(issuer)`.
+  - **Audience-claim validation** must be built explicitly (not default). `OAuth2TokenValidatorFactories.create().andValidate(JwtIssuerValidator).andValidate(JwtAudienceValidator)`.
+  - **Algorithm whitelist**: accept `RS256` / `ES256`, reject `HS256` unless explicitly intended. Algorithm confusion is a classic attack. See also `api-security` phase 2.
+  - **Clock skew**: `.setClockSkew(Duration.ofMinutes(2))` is reasonable, not 1 hour.
+- **Client (OAuth consumer)**:
+  - **PKCE required** for public clients (mobile, SPA that Spring only serves).
+  - **Redirect URI strictly** registered, no wildcards.
+  - **Scopes minimal** when requesting.
 - **Authorization-server**:
-  - Spring Authorization Server is relatief jong (stable sinds 2022). Gebruik vendor-IdP (Keycloak, Auth0, Okta) tenzij je een sterke reden hebt om zelf te hosten.
+  - Spring Authorization Server is relatively young (stable since 2022). Use a vendor IdP (Keycloak, Auth0, Okta) unless you have a strong reason to self-host.
 
-### 5. CVE-patronen uit de afgelopen jaren
+### 5. CVE patterns from recent years
 
-Spring ecosystem heeft een paar beruchte CVEs; elk is een patroon om naar te zoeken.
+The Spring ecosystem has a few infamous CVEs; each is a pattern to look for.
 
-- **Spring4Shell (CVE-2022-22965)**. Spring Framework RCE via class-loader-manipulation in data-binding. Patched in 5.2.20, 5.3.18. Historisch maar nog actueel als reviewer-reflex: Java-apps die `ServletRequestDataBinder` gebruiken zonder allowlist zijn gevoelig. Spring Boot's default-binder is sinds fix-release patched.
-- **CVE-2022-22963 Spring Cloud Function** — SpEL-injection via `spring.cloud.function.routing-expression`-header. Les: SpEL-evaluatie op untrusted input is RCE. Zoek in je code naar `SpelExpressionParser().parseExpression(userInput)`.
-- **CVE-2023-20860 / -20861 Spring Framework** — mass-binding en security-bypass via `matchers` in combinatie met `mvcMatchers`. Fix in 5.3.26, 6.0.7. Reviewer-regel: mix van `antMatchers` en `mvcMatchers` is foot-gun — gebruik consistent één en bij voorkeur `requestMatchers` (Spring Security 6).
-- **CVE-2024-22257 Spring Security authorization bypass** — mogelijke bypass wanneer `AuthenticatedVoter` geconfigureerd was zonder additional checks. `[verify tegen https://spring.io/security/cve-2024-22257]` voor exact patched-versions in jullie context.
-- **Recentere CVEs** — `[verify tegen https://spring.io/security/]` — check de CVE-feed bij versie-bump of review. Geen verzonnen IDs in findings.
+- **Spring4Shell (CVE-2022-22965)**. Spring Framework RCE via class-loader manipulation in data binding. Patched in 5.2.20, 5.3.18. Historical but still relevant as a reviewer reflex: Java apps using `ServletRequestDataBinder` without an allowlist are exposed. Spring Boot's default binder has been patched since the fix release.
+- **CVE-2022-22963 Spring Cloud Function** — SpEL injection via the `spring.cloud.function.routing-expression` header. Lesson: SpEL evaluation on untrusted input is RCE. Search your code for `SpelExpressionParser().parseExpression(userInput)`.
+- **CVE-2023-20860 / -20861 Spring Framework** — mass-binding and security bypass via `matchers` combined with `mvcMatchers`. Fixed in 5.3.26, 6.0.7. Reviewer rule: mixing `antMatchers` and `mvcMatchers` is a foot-gun — use one consistently and prefer `requestMatchers` (Spring Security 6).
+- **CVE-2024-22257 Spring Security authorization bypass** — possible bypass when `AuthenticatedVoter` was configured without additional checks. `[verify against https://spring.io/security/cve-2024-22257]` for the exact patched versions in your context.
+- **More recent CVEs** — `[verify against https://spring.io/security/]` — check the CVE feed on every version bump or review. No invented IDs in findings.
 
-### 6. Misc en verification-loop
+### 6. Misc and verification-loop
 
-- **`@JsonIgnore` op gevoelige entity-velden** (password_hash, internal-notes) om te voorkomen dat ze in de JSON-response belanden (mass-response, spiegel van mass-assignment).
-- **`@JsonProperty(access = WRITE_ONLY)`** voor input-only velden.
-- **DTOs gebruiken** in plaats van entities direct serialiseren. Voorkomt dat DB-schema-wijzigingen per ongeluk velden exposen.
-- **Session-fixation**: Spring Security voorkomt dit by default (`SessionAuthenticationStrategy`). Niet uitzetten zonder reden.
-- **Password hashing**: `BCryptPasswordEncoder` default. Argon2-variant via `Argon2PasswordEncoder` als de library erbij zit. Nooit `NoOpPasswordEncoder` buiten tests.
+- **`@JsonIgnore` on sensitive entity fields** (password_hash, internal notes) to keep them out of JSON responses (mass-response, the mirror of mass-assignment).
+- **`@JsonProperty(access = WRITE_ONLY)`** for input-only fields.
+- **Use DTOs** instead of serializing entities directly. Prevents accidental field exposure when the DB schema changes.
+- **Session fixation**: Spring Security prevents this by default (`SessionAuthenticationStrategy`). Do not turn it off without reason.
+- **Password hashing**: `BCryptPasswordEncoder` default. Argon2 variant via `Argon2PasswordEncoder` if the library is included. Never `NoOpPasswordEncoder` outside tests.
 
-Verification-loop: Laag 1 (SecurityFilterChain-config coherent? Actuator-endpoints expliciet afgeschermd? JWT-issuer+audience beide gevalideerd?), Laag 2 (CVE-IDs via spring.io/security bevestigen, OAuth-flow-namen kloppen, geen verzonnen Spring-annotaties in voorbeelden).
+Verification-loop: Layer 1 (SecurityFilterChain config coherent? Actuator endpoints explicitly locked down? JWT issuer + audience both validated?), Layer 2 (CVE IDs confirmed via spring.io/security, OAuth flow names correct, no invented Spring annotations in examples).
 
 ## Output
 
 ```
 Spring Security review — <service/module>
-Spring Boot: <x.y.z> | Spring Security: <x.y.z> | Versie-status: <current | N releases achterstand>
+Spring Boot: <x.y.z> | Spring Security: <x.y.z> | Version status: <current | N releases behind>
 
 SecurityFilterChain:
-  Chains aanwezig:        N
-  permitAll() matchers:   <lijst + context>
-  .anyRequest() laatste:  <authenticated | permitAll — FINDING>
-  CSRF-status:            <enabled | disabled met context>
-  CORS-config:            <scoped | wildcard — FINDING>
+  Chains present:         N
+  permitAll() matchers:   <list + context>
+  .anyRequest() last:     <authenticated | permitAll — FINDING>
+  CSRF status:            <enabled | disabled with context>
+  CORS config:            <scoped | wildcard — FINDING>
 
-Method-security:
-  @EnableMethodSecurity:  <ja/nee>
-  @PreAuthorize-coverage: <controllers met/zonder>
-  Ownership-checks:       <aanwezig op resource-endpoints?>
+Method security:
+  @EnableMethodSecurity:  <yes/no>
+  @PreAuthorize coverage: <controllers with/without>
+  Ownership checks:       <present on resource endpoints?>
 
 Actuator:
-  Exposure:               <lijst endpoints>
+  Exposure:               <list of endpoints>
   /env show-values:       <NEVER | WHEN_AUTHORIZED | ALWAYS — FINDING>
   /heapdump:              <disabled | exposed — FINDING>
-  Apart port of filter:   <ja/nee>
+  Separate port or filter:<yes/no>
 
 OAuth2 / JWT:
-  Rol:                    <client | resource-server | beide>
-  Issuer-validatie:       <ja/nee>
-  Audience-validatie:     <ja/nee>
-  Algorithm-whitelist:    <ja/nee>
+  Role:                   <client | resource-server | both>
+  Issuer validation:      <yes/no>
+  Audience validation:    <yes/no>
+  Algorithm whitelist:    <yes/no>
 
-CVE-check:
-  Spring4Shell-patched:   <ja>
-  Recente security-releases: <binnen N dagen van upstream?>
-  cve-triage handoff:     <N openstaand>
+CVE check:
+  Spring4Shell patched:   <yes>
+  Recent security release:<within N days of upstream?>
+  cve-triage handoff:     <N open>
 
-Findings (severity-gesorteerd, volg security-review-format)
+Findings (severity-sorted, follow security-review format)
 Verification-loop: ...
 ```
 
-## Referenties
+## References
 
-- Spring Security Reference — [https://docs.spring.io/spring-security/reference/](https://docs.spring.io/spring-security/reference/). Canonical docs, Lambda-DSL en config-patronen.
-- Spring Security CVE-feed — [https://spring.io/security/](https://spring.io/security/). Alle Spring-projects CVEs, canonieke bron voor verificatie.
-- Spring Boot Actuator — [https://docs.spring.io/spring-boot/reference/actuator/index.html](https://docs.spring.io/spring-boot/reference/actuator/index.html). Endpoint-config en security-implicaties.
+- Spring Security Reference — [https://docs.spring.io/spring-security/reference/](https://docs.spring.io/spring-security/reference/). Canonical docs, Lambda DSL and config patterns.
+- Spring Security CVE feed — [https://spring.io/security/](https://spring.io/security/). All Spring projects CVEs, canonical source for verification.
+- Spring Boot Actuator — [https://docs.spring.io/spring-boot/reference/actuator/index.html](https://docs.spring.io/spring-boot/reference/actuator/index.html). Endpoint config and security implications.
 - OWASP Java Security Cheat Sheet — [https://cheatsheetseries.owasp.org/cheatsheets/Java_Security_Cheat_Sheet.html](https://cheatsheetseries.owasp.org/cheatsheets/Java_Security_Cheat_Sheet.html).
-- Spring Framework Reference (RequestMapping, Binding) — [https://docs.spring.io/spring-framework/reference/](https://docs.spring.io/spring-framework/reference/). Voor patronen die Spring4Shell-achtige aanvallen omvatten.
-- RFC 8725 (JWT BCP) — [https://datatracker.ietf.org/doc/html/rfc8725](https://datatracker.ietf.org/doc/html/rfc8725). JWT-specifieke gotchas.
+- Spring Framework Reference (RequestMapping, Binding) — [https://docs.spring.io/spring-framework/reference/](https://docs.spring.io/spring-framework/reference/). For patterns that include Spring4Shell-style attacks.
+- RFC 8725 (JWT BCP) — [https://datatracker.ietf.org/doc/html/rfc8725](https://datatracker.ietf.org/doc/html/rfc8725). JWT-specific gotchas.
 - OAuth 2.0 Security BCP — [https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics).
-- NIST NVD — [https://nvd.nist.gov/](https://nvd.nist.gov/). Voor CVE-verificatie bij elke cite.
+- NIST NVD — [https://nvd.nist.gov/](https://nvd.nist.gov/). For CVE verification on every cite.
 
-## Categorieën
+## Categories
 
 - appsec

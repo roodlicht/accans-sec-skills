@@ -5,76 +5,76 @@ description: Docker and OCI image hardening — base-image selection, USER/caps/
 
 # Container Hardening
 
-## Wanneer gebruiken
+## When to use
 
-Deze skill dekt de container-image-laag: wat erin zit, hoe het draait, en hoe je bewijst dat het klopt. Hij is de basis waar `k8s-security` op voortbouwt (K8s neemt deze images aan en voegt cluster-niveau controls toe).
+This skill covers the container-image layer: what's inside, how it runs, and how you prove it checks out. It's the foundation `k8s-security` builds on (K8s takes these images and adds cluster-level controls).
 
-Activeert bij:
+Activates on:
 
-- Een vraag als "review onze Dockerfile", "naar distroless migreren", "waarom draait onze container als root", "trivy-scan triage", "image signen met cosign".
-- Een nieuwe of gewijzigde `Dockerfile`, `Containerfile`, `docker-compose.yml`, `.dockerignore`, multi-stage build-script.
-- Een image-scan-output (trivy/grype/snyk container) die getrieerd moet worden.
-- Een handoff vanuit `security-review` fase 3 (container in scope) of vanuit `k8s-security` (PodSecurityContext wijst op image-level issue).
-- Een supply-chain-moment: image moet getekend, attestation gepubliceerd. Samen met `supply-chain`.
+- A request like "review our Dockerfile", "migrate to distroless", "why does our container run as root", "trivy scan triage", "sign images with cosign".
+- A new or modified `Dockerfile`, `Containerfile`, `docker-compose.yml`, `.dockerignore`, multi-stage build script.
+- An image-scan output (trivy/grype/snyk container) that needs triaging.
+- A handoff from `security-review` phase 3 (container in scope) or from `k8s-security` (PodSecurityContext points to an image-level issue).
+- A supply-chain moment: image needs to be signed, attestation published. Together with `supply-chain`.
 
-### Wanneer NIET (handoff)
+### When NOT to use (handoff)
 
-- Kubernetes-workload-spec (PodSecurityContext, NetworkPolicy, RBAC) → `k8s-security`. Image is de ingrediënt, K8s is de kok.
-- SBOM-format en signing-keys-setup → `supply-chain`. Deze skill roept sigstore aan, de andere legt hem uit.
-- Vulnerabilities in packages bínnen de image → output van scanner gaat naar `cve-triage` voor triage.
-- Secrets in image-layers → `secrets-scanner` op image-history.
-- CI-pipeline die de build doet → `cicd-hardening`.
-- Pure code-vraag die toevallig in een container draait → `secure-coding` of de framework-skill.
+- Kubernetes workload spec (PodSecurityContext, NetworkPolicy, RBAC) → `k8s-security`. The image is the ingredient; K8s is the cook.
+- SBOM format and signing-keys setup → `supply-chain`. This skill calls sigstore; that one explains it.
+- Vulnerabilities in packages *inside* the image → scanner output goes to `cve-triage` for triage.
+- Secrets in image layers → `secrets-scanner` on image history.
+- CI pipeline that runs the build → `cicd-hardening`.
+- Pure code question that just happens to run in a container → `secure-coding` or the framework skill.
 
-## Aanpak
+## Approach
 
-Zes fases. Fase 1–3 zijn image-inhoud, fase 4 is signing, fase 5 is runtime, fase 6 is verificatie.
+Six phases. Phases 1–3 are image content, phase 4 is signing, phase 5 is runtime, phase 6 is verification.
 
-### 1. Base-image-keuze
+### 1. Base-image choice
 
-De base-image is 80% van je attack-surface. Kies bewust.
+The base image is 80% of your attack surface. Choose deliberately.
 
-**Opties, van klein naar groot**:
+**Options, smallest to largest**:
 
-- **scratch** (0 layers). Alleen voor statically-linked binaries. Go, Rust, soms C. Kleinste attack-surface, geen shell, geen debug-tools. Default bij statisch gelinkte artefacten.
-- **Distroless** (Google). Minimale runtime voor een taal (Java, Python, Node), geen shell, geen package-manager. `gcr.io/distroless/java21-debian12`, `gcr.io/distroless/python3-debian12`, etc. Met `:debug`-variant voor troubleshooting.
-- **Chainguard Images** / **Wolfi**. Glibc-free, continually-rebuilt, SLSA-L3-signed. Vergelijkbaar met distroless, aantoonbaar kleiner CVE-venster door dagelijkse builds.
-- **Alpine** (musl-libc). Klein (~5 MB), package-manager (apk) aanwezig. Pas op: musl kan subtiele verschillen vs glibc opleveren (DNS-resolving, thread-locals).
-- **Debian slim** / **Ubuntu minimal**. Grotere footprint maar bredere compatibiliteit.
-- **`<language>:latest`** (bv. `node:latest`, `python:latest`). **Gebruik niet.** `latest` is onreproducibel, en deze tags bevatten veel meer dan nodig.
+- **scratch** (0 layers). Only for statically-linked binaries. Go, Rust, sometimes C. Smallest attack surface, no shell, no debug tools. Default for statically linked artifacts.
+- **Distroless** (Google). Minimal runtime for a language (Java, Python, Node), no shell, no package manager. `gcr.io/distroless/java21-debian12`, `gcr.io/distroless/python3-debian12`, etc. With a `:debug` variant for troubleshooting.
+- **Chainguard Images** / **Wolfi**. Glibc-free, continually rebuilt, SLSA-L3-signed. Comparable to distroless, with a demonstrably smaller CVE window thanks to daily builds.
+- **Alpine** (musl-libc). Small (~5 MB), package manager (apk) present. Caveat: musl can produce subtle differences vs glibc (DNS resolution, thread-locals).
+- **Debian slim** / **Ubuntu minimal**. Larger footprint but broader compatibility.
+- **`<language>:latest`** (e.g. `node:latest`, `python:latest`). **Don't use.** `latest` is unreproducible, and these tags carry far more than needed.
 
-Regels:
+Rules:
 
-- **Pin op digest, niet op tag.** `FROM gcr.io/distroless/python3-debian12@sha256:<digest>`. Tag kan onder je voeten muteren.
-- **Update-cadens documenteren.** Base-images krijgen CVEs, je moet regelmatig rebuilden. Renovate of Dependabot voor Dockerfile-dep-bumps.
-- **Één image = één verantwoordelijkheid.** Niet één mega-image met app + migratie + CLI-tools; aparte images met shared base.
+- **Pin on digest, not on tag.** `FROM gcr.io/distroless/python3-debian12@sha256:<digest>`. A tag can mutate under your feet.
+- **Document update cadence.** Base images get CVEs; you have to rebuild regularly. Renovate or Dependabot for Dockerfile dep bumps.
+- **One image = one responsibility.** Not one mega-image with app + migration + CLI tools; separate images with a shared base.
 
-### 2. Dockerfile-hygiëne
+### 2. Dockerfile hygiene
 
-De instructies die image-inhoud vormen. Elk van deze is een klassieke foot-gun.
+The instructions that shape image content. Each of these is a classic foot-gun.
 
-- **USER niet-root.** Default Docker-user is root (UID 0). Expliciet `USER app` of `USER 10001` op een eigen UID. Zonder USER: elke proces in de container is root in de container, en bij container-escape root op de host.
-- **Read-only filesystem waar kan.** Via `docker run --read-only` of Kubernetes `readOnlyRootFilesystem: true`. Write-behoefte beperken tot expliciete `tmpfs`- of `volume`-mounts. Exposure: als een aanvaller executie krijgt, kan hij geen malware wegschrijven.
-- **Capabilities droppen.** Default Docker-caps (NET_ADMIN, SYS_ADMIN selectief) zijn te ruim. `--cap-drop=ALL` plus expliciet toevoegen wat je nodig hebt (bv. `--cap-add=NET_BIND_SERVICE` voor poort <1024). In Kubernetes: `securityContext.capabilities`.
-- **Multi-stage builds.** Build-stage met compilers en dep-installers, runtime-stage minimaal. Voorkomt dat `gcc`, `make`, `git` in productie-image eindigen. Zie Docker-docs voor syntax.
-- **.dockerignore.** Voorkomt dat `.env`, `.git`, `node_modules`, test-fixtures in image belanden via `COPY . .`. Zonder `.dockerignore` heeft je container de hele source plus eventuele lokale secrets.
-- **Geen geheimen in layers.** `ENV PASSWORD=...`, `ARG SECRET=...`, of `COPY .env .` commits secrets in image-history. Zelfs bij latere layer-delete blijft het. Gebruik BuildKit-secrets (`RUN --mount=type=secret,id=...`) of runtime-injection via K8s secret / Vault.
-- **Layer-volgorde voor caching én security.** Dependencies installeren eerst (verandert zelden), code copy later (verandert vaak). Cache-efficiency plus forceert rebuild bij dep-wijziging.
-- **Apt/apk-install opschonen.** `apt-get install --no-install-recommends` plus `rm -rf /var/lib/apt/lists/*` in dezelfde RUN. Anders blijven package-lists in de layer.
-- **HEALTHCHECK toevoegen** (als niet via K8s liveness/readiness). Laat orchestrator merken dat container hangt.
-- **EXPOSE documenteren, niet publiceren.** `EXPOSE 8080` is documentatie. Publicatie gebeurt op `docker run -p` of K8s Service.
+- **USER non-root.** The default Docker user is root (UID 0). Explicit `USER app` or `USER 10001` on a dedicated UID. Without USER: every process in the container is root in the container, and on container escape it's root on the host.
+- **Read-only filesystem where possible.** Via `docker run --read-only` or Kubernetes `readOnlyRootFilesystem: true`. Limit write needs to explicit `tmpfs` or `volume` mounts. Exposure: if an attacker gets execution, they can't drop malware.
+- **Drop capabilities.** Default Docker caps (NET_ADMIN, SYS_ADMIN selectively) are too broad. `--cap-drop=ALL` plus explicit additions for what you need (e.g. `--cap-add=NET_BIND_SERVICE` for ports < 1024). In Kubernetes: `securityContext.capabilities`.
+- **Multi-stage builds.** Build stage with compilers and dep installers, runtime stage minimal. Prevents `gcc`, `make`, `git` from ending up in the production image. See Docker docs for syntax.
+- **.dockerignore.** Prevents `.env`, `.git`, `node_modules`, test fixtures from landing in the image via `COPY . .`. Without `.dockerignore` your container has the whole source plus any local secrets.
+- **No secrets in layers.** `ENV PASSWORD=...`, `ARG SECRET=...`, or `COPY .env .` commits secrets into image history. Even after a later layer-delete the secret is still there. Use BuildKit secrets (`RUN --mount=type=secret,id=...`) or runtime injection via K8s secret / Vault.
+- **Layer order for caching and security.** Install dependencies first (rarely change), copy code later (frequently changes). Cache efficiency plus forced rebuild on dep change.
+- **Apt/apk install cleanup.** `apt-get install --no-install-recommends` plus `rm -rf /var/lib/apt/lists/*` in the same RUN. Otherwise package lists stay in the layer.
+- **Add a HEALTHCHECK** (when not via K8s liveness/readiness). Lets the orchestrator know the container is hung.
+- **Document EXPOSE, don't publish.** `EXPOSE 8080` is documentation. Publishing happens at `docker run -p` or via a K8s Service.
 
-**Anti-patterns**:
+**Anti-pattern**:
 
 ```dockerfile
-FROM node:latest                    # latest tag, onreproducibel
-COPY . /app                         # inclusief .env, .git, tests
-RUN npm install --unsafe-perm       # suggereert root-permission need
-USER root                           # expliciet root
+FROM node:latest                    # latest tag, unreproducible
+COPY . /app                         # including .env, .git, tests
+RUN npm install --unsafe-perm       # suggests root permission need
+USER root                           # explicitly root
 CMD ["npm", "start"]
 ```
 
-**Betere variant**:
+**Better variant**:
 
 ```dockerfile
 FROM node:20-bookworm-slim@sha256:<digest> AS build
@@ -92,111 +92,111 @@ CMD ["src/index.js"]
 
 ### 3. Build-time scanning
 
-Voordat image de registry raakt:
+Before the image hits the registry:
 
-- **Trivy** (Aqua, Apache-2). Scant images op OS- en app-dep-vulns, secrets, misconfigs. Snelst in adoption.
+- **Trivy** (Aqua, Apache-2). Scans images for OS and app dep-vulns, secrets, misconfigs. Fastest in adoption.
   ```bash
   trivy image --severity HIGH,CRITICAL --exit-code 1 <image>:<tag>
   ```
-- **Grype** (Anchore, Apache-2). Vuln-scanner gecombineerd met Syft voor SBOM. Detailleerde per-package-CVEs.
-- **Clair** (Red Hat OSS). Server-side scanning, integreert met Harbor.
-- **Snyk container** / **Sysdig Secure** (commercial). Enterprise-options met bredere feed-bronnen en UI.
-- **Docker Scout** (Docker Inc). Sinds 2023 de default in Docker Desktop; vergelijkbaar met Trivy voor use-case.
+- **Grype** (Anchore, Apache-2). Vuln scanner combined with Syft for SBOM. Detailed per-package CVEs.
+- **Clair** (Red Hat OSS). Server-side scanning, integrates with Harbor.
+- **Snyk container** / **Sysdig Secure** (commercial). Enterprise options with broader feed sources and UI.
+- **Docker Scout** (Docker Inc). Default in Docker Desktop since 2023; comparable to Trivy for the use case.
 
-Koppel output aan `cve-triage`. Alle findings van hoge severity blocker-matchen hun criteria daar (KEV, reachable, exposed). Niet automatisch blokkeren op alle HIGH; je drown-t in low-impact base-image-noise.
+Tie output to `cve-triage`. All high-severity findings face that skill's blocker criteria (KEV, reachable, exposed). Don't auto-block on every HIGH; you drown in low-impact base-image noise.
 
-Configuraties ook scannen: Trivy heeft `--scanners misconfig` voor Dockerfile-linting (stapt in fase 2 op dezelfde regels).
+Scan configurations too: Trivy has `--scanners misconfig` for Dockerfile linting (overlapping with phase 2's rules).
 
-### 4. Image signing en provenance
+### 4. Image signing and provenance
 
-Zie `supply-chain` voor de volledige uitleg; hier de container-specifieke calls.
+See `supply-chain` for the full explanation; here are the container-specific calls.
 
-- **Teken bij build** (niet achteraf). Sigstore + cosign, keyless via OIDC.
+- **Sign at build** (not after). Sigstore + cosign, keyless via OIDC.
   ```bash
   cosign sign --yes <registry>/<image>@sha256:<digest>
   ```
-- **SBOM attesteren** op dezelfde image.
+- **Attest the SBOM** on the same image.
   ```bash
   syft <image>:<tag> -o cyclonedx-json > sbom.json
   cosign attest --yes --predicate sbom.json --type cyclonedx <image>@sha256:<digest>
   ```
-- **SLSA-provenance** via `slsa-framework/slsa-github-generator` bij GitHub Actions build.
-- **Verify bij pull**, niet alleen bij push. Kubernetes admission controller (Kyverno, Sigstore policy-controller) die onbeketende images weigert. Referentie: `k8s-security` fase 1.
+- **SLSA provenance** via `slsa-framework/slsa-github-generator` for GitHub Actions builds.
+- **Verify on pull**, not just on push. A Kubernetes admission controller (Kyverno, Sigstore policy-controller) that rejects unsigned images. Reference: `k8s-security` phase 1.
 
-Registry-keuze:
+Registry choice:
 
-- **Harbor** (OSS) ondersteunt signing, vuln-scanning, image-replication.
-- **Cloud registries** (ECR, GAR, ACR) met built-in scanning.
-- **GHCR** voor GitHub-gekoppelde builds.
+- **Harbor** (OSS) supports signing, vuln scanning, image replication.
+- **Cloud registries** (ECR, GAR, ACR) with built-in scanning.
+- **GHCR** for GitHub-attached builds.
 
-### 5. Runtime-hardening
+### 5. Runtime hardening
 
-Image is maar de helft. Runtime-policy beslist wat de container mag als hij draait.
+The image is only half. Runtime policy decides what the container is allowed to do once it runs.
 
-- **Seccomp** — filter system-calls. Docker-default-profile is goed startpunt; custom profile voor specifieke workloads (nginx, PostgreSQL) op te vinden in `moby/moby` repo of via tools als `dockerd-rootless-setuptool`.
-- **AppArmor / SELinux** — mandatory access control. Ubuntu/Debian default AppArmor-profiles, RHEL/Fedora SELinux. Custom profiles via `--security-opt apparmor=profile-name`.
-- **Rootless Docker / Podman** — daemon draait als non-root user; container-escape raakt geen host-root. Default in Podman, opt-in in Docker.
-- **No new privileges** — `--security-opt=no-new-privileges:true` voorkomt setuid-escalatie binnen de container.
-- **gVisor / Kata Containers** — kernel-isolatie voor hogere trust-niveaus. Overhead ~5–20%, loont bij multi-tenant workloads of vertrouwelijke data.
+- **Seccomp** — filter system calls. Docker's default profile is a good starting point; custom profiles for specific workloads (nginx, PostgreSQL) can be sourced from the `moby/moby` repo or via tools like `dockerd-rootless-setuptool`.
+- **AppArmor / SELinux** — mandatory access control. Default AppArmor profiles on Ubuntu/Debian, SELinux on RHEL/Fedora. Custom profiles via `--security-opt apparmor=profile-name`.
+- **Rootless Docker / Podman** — daemon runs as a non-root user; a container escape doesn't reach host-root. Default in Podman, opt-in in Docker.
+- **No new privileges** — `--security-opt=no-new-privileges:true` prevents setuid escalation inside the container.
+- **gVisor / Kata Containers** — kernel isolation for higher trust levels. Overhead ~5–20%; pays off for multi-tenant workloads or sensitive data.
 
-Ephemeral runtime: containers zijn stateless. State in volumes, niet in writable layers. `--rm` bij losstaande runs, `emptyDir` of persistent-volume in K8s.
+Ephemeral runtime: containers are stateless. State in volumes, not in writable layers. `--rm` for one-off runs, `emptyDir` or persistent-volume in K8s.
 
 ### 6. Verification-loop
 
-Laag 1: scope (alle Dockerfiles in de repo gedekt? base-images met digest pinned? USER niet-root in alle stages?), aannames ("distroless dus safe" alleen als je de concrete image-hash hebt geverifieerd), gaps (build-time én runtime-controls beide aanwezig?), consistentie (trivy-severity-threshold consistent tussen images?).
+Layer 1: scope (every Dockerfile in the repo covered? base images pinned by digest? USER non-root in every stage?), assumptions ("distroless so safe" only with the concrete image hash verified), gaps (both build-time and runtime controls present?), consistency (trivy severity threshold consistent across images?).
 
-Laag 2: image-tags en digest-syntax kloppen, CVE-referenties in scan-triage tegen NVD geverifieerd, SLSA-level-claim onderbouwd met de concrete builder-config, geen verzonnen seccomp-profile-namen.
+Layer 2: image-tag and digest syntax correct, CVE references in scan triage verified against NVD, SLSA-level claim backed by the concrete builder config, no fabricated seccomp-profile names.
 
 ## Output
 
 ```
 Container hardening review — <image(s)>
-Dockerfiles in scope: <lijst>
-Base-images: <gebruikt, pinned op digest: ja/nee>
+Dockerfiles in scope: <list>
+Base images: <used, pinned by digest: yes/no>
 
-Image-inhoud:
-  USER niet-root:           <ja/nee per image>
-  Multi-stage build:        <ja/nee>
-  Read-only compatible:     <ja/nee, en welke write-paden>
-  .dockerignore aanwezig:   <ja/nee>
-  Secrets in layers:        <geen | gevonden: ...>
+Image content:
+  USER non-root:            <yes/no per image>
+  Multi-stage build:        <yes/no>
+  Read-only compatible:     <yes/no, and which write paths>
+  .dockerignore present:    <yes/no>
+  Secrets in layers:        <none | found: ...>
 
-Scan-output (trivy/grype):
-  Blockers (HIGH/CRITICAL): <N, met cve-triage-handoff>
+Scan output (trivy/grype):
+  Blockers (HIGH/CRITICAL): <N, with cve-triage handoff>
   Medium:                   <N>
-  Misconfigs:               <lijst>
+  Misconfigs:               <list>
 
 Signing + provenance:
-  Signed:                   <ja/nee, cosign-identity>
-  SBOM attested:            <ja/nee, format>
-  SLSA-level effectief:     <L0–L3>
+  Signed:                   <yes/no, cosign identity>
+  SBOM attested:            <yes/no, format>
+  SLSA level effective:     <L0–L3>
 
-Runtime-policy:
-  Seccomp:                  <default | custom | geen>
-  AppArmor/SELinux:         <profile | geen>
-  Capabilities gedropt:     <ALL + adds | default>
-  Rootless runtime:         <ja/nee>
+Runtime policy:
+  Seccomp:                  <default | custom | none>
+  AppArmor/SELinux:         <profile | none>
+  Capabilities dropped:     <ALL + adds | default>
+  Rootless runtime:         <yes/no>
 
-Findings (severity-gesorteerd)
+Findings (severity-sorted)
 
 Verification-loop: ...
 ```
 
-## Referenties
+## References
 
 - Docker security docs — [https://docs.docker.com/engine/security/](https://docs.docker.com/engine/security/).
-- OCI Image Spec — [https://github.com/opencontainers/image-spec](https://github.com/opencontainers/image-spec). Primaire image-format-spec.
+- OCI Image Spec — [https://github.com/opencontainers/image-spec](https://github.com/opencontainers/image-spec). Primary image-format spec.
 - NIST SP 800-190 — [https://csrc.nist.gov/pubs/sp/800/190/final](https://csrc.nist.gov/pubs/sp/800/190/final). Application Container Security Guide.
-- CIS Docker Benchmark — [https://www.cisecurity.org/benchmark/docker](https://www.cisecurity.org/benchmark/docker). Checklist-vorm, goed voor audits.
-- Docker Bench for Security — [https://github.com/docker/docker-bench-security](https://github.com/docker/docker-bench-security). Scripted CIS-Docker-check.
+- CIS Docker Benchmark — [https://www.cisecurity.org/benchmark/docker](https://www.cisecurity.org/benchmark/docker). Checklist form, good for audits.
+- Docker Bench for Security — [https://github.com/docker/docker-bench-security](https://github.com/docker/docker-bench-security). Scripted CIS-Docker check.
 - Distroless images — [https://github.com/GoogleContainerTools/distroless](https://github.com/GoogleContainerTools/distroless).
-- Chainguard / Wolfi — [https://edu.chainguard.dev/chainguard/chainguard-images/](https://edu.chainguard.dev/chainguard/chainguard-images/). Continually-rebuilt minimal images.
+- Chainguard / Wolfi — [https://edu.chainguard.dev/chainguard/chainguard-images/](https://edu.chainguard.dev/chainguard/chainguard-images/). Continually rebuilt minimal images.
 - Trivy — [https://trivy.dev/](https://trivy.dev/). Multi-purpose scanner.
-- Grype + Syft — [https://github.com/anchore/grype](https://github.com/anchore/grype). Vuln-scanner plus SBOM.
-- Sigstore cosign — [https://docs.sigstore.dev/cosign/overview/](https://docs.sigstore.dev/cosign/overview/). Image-signing zonder long-lived keys.
+- Grype + Syft — [https://github.com/anchore/grype](https://github.com/anchore/grype). Vuln scanner plus SBOM.
+- Sigstore cosign — [https://docs.sigstore.dev/cosign/overview/](https://docs.sigstore.dev/cosign/overview/). Image signing without long-lived keys.
 - Seccomp profiles — [https://docs.docker.com/engine/security/seccomp/](https://docs.docker.com/engine/security/seccomp/).
 - OWASP Docker Security Cheat Sheet — [https://cheatsheetseries.owasp.org/cheatsheets/Docker_Security_Cheat_Sheet.html](https://cheatsheetseries.owasp.org/cheatsheets/Docker_Security_Cheat_Sheet.html).
 
-## Categorieën
+## Categories
 
 - appsec

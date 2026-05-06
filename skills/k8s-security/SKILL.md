@@ -5,49 +5,49 @@ description: Kubernetes security review — RBAC discipline, Pod Security Standa
 
 # Kubernetes Security
 
-## Wanneer gebruiken
+## When to use
 
-Deze skill dekt de cluster-en-workload-laag boven op `container-hardening`. Image-inhoud en build zit daar; wat K8s met die images doet (scheduling, RBAC, networking, secrets, runtime-policy) zit hier.
+This skill covers the cluster and workload layer on top of `container-hardening`. Image content and build live there; what K8s does with those images (scheduling, RBAC, networking, secrets, runtime policy) lives here.
 
-Activeert bij:
+Activates on:
 
-- Een vraag als "review onze K8s-manifests", "onze RBAC loopt uit de hand", "zet Pod Security Standards aan", "schrijf een NetworkPolicy", "welke admission-controller is verstandig", "cosign-verification in de cluster".
-- Nieuwe of gewijzigde manifests: `Deployment`, `StatefulSet`, `DaemonSet`, `Job`, `ServiceAccount`, `Role(Binding)`, `ClusterRole(Binding)`, `NetworkPolicy`, `ValidatingAdmissionPolicy`, Helm-charts, Kustomize-overlays.
-- Een cluster-audit uit compliance (CIS Kubernetes Benchmark, NSA/CISA guide, PCI-DSS cloud-scope).
-- Een handoff vanuit `security-review` wanneer K8s in de scope zit.
-- Een incident waar laterale beweging in een cluster wordt vermoed (zie `ir-runbook` voor response).
+- A request like "review our K8s manifests", "our RBAC is sprawling", "turn on Pod Security Standards", "write a NetworkPolicy", "which admission controller should we use", "cosign verification in the cluster".
+- New or modified manifests: `Deployment`, `StatefulSet`, `DaemonSet`, `Job`, `ServiceAccount`, `Role(Binding)`, `ClusterRole(Binding)`, `NetworkPolicy`, `ValidatingAdmissionPolicy`, Helm charts, Kustomize overlays.
+- A cluster audit driven by compliance (CIS Kubernetes Benchmark, NSA/CISA guide, PCI-DSS cloud scope).
+- A handoff from `security-review` when K8s is in scope.
+- An incident where lateral movement in a cluster is suspected (see `ir-runbook` for response).
 
-### Wanneer NIET (handoff)
+### When NOT to use (handoff)
 
-- Container image-inhoud (base-image, USER, caps) → `container-hardening`. Deze skill neemt de image als gegeven.
-- Cluster-provisioning IaC (EKS/GKE/AKS-module, node-groups, VPC) → `iac-security`. Manifest-niveau hier, infrastructuur-niveau daar.
-- CI-pipeline die manifests toepast → `cicd-hardening`. GitOps-controllers (Argo CD, Flux) noemen we hier alleen ter context.
-- Secret backend (Vault, AWS Secrets Manager, GCP Secret Manager, Azure Key Vault) → `secrets-scanner`. External Secrets Operator bridgt beide.
-- Per-CVE in K8s-componenten of sidecars → `cve-triage`.
-- Service-mesh-config (Istio AuthorizationPolicy, mTLS, Linkerd) ligt deels in scope (auth/runtime), deels buiten (traffic-management is ops).
-- Pentest tegen een cluster → `recon-agent` + `web-exploit-triage`.
+- Container image content (base image, USER, caps) → `container-hardening`. This skill takes the image as given.
+- Cluster-provisioning IaC (EKS/GKE/AKS module, node groups, VPC) → `iac-security`. Manifest level here, infrastructure level there.
+- CI pipeline that applies manifests → `cicd-hardening`. GitOps controllers (Argo CD, Flux) we mention only as context here.
+- Secret backend (Vault, AWS Secrets Manager, GCP Secret Manager, Azure Key Vault) → `secrets-scanner`. External Secrets Operator bridges both.
+- Per-CVE on K8s components or sidecars → `cve-triage`.
+- Service-mesh config (Istio AuthorizationPolicy, mTLS, Linkerd) sits partly in scope (auth/runtime), partly out (traffic management is ops).
+- Pentest against a cluster → `recon-agent` + `web-exploit-triage`.
 
-## Aanpak
+## Approach
 
-Zes fases. Fase 1–3 vormen de cluster-basis, fase 4 bridgt naar externe secrets, fase 5 dekt runtime.
+Six phases. Phases 1–3 form the cluster baseline, phase 4 bridges to external secrets, phase 5 covers runtime.
 
-### 1. Cluster-baseline: RBAC, Pod Security Standards, admission
+### 1. Cluster baseline: RBAC, Pod Security Standards, admission
 
-De drie controls die bij een nieuwe cluster meteen moeten staan.
+The three controls that should be in place from day one in a new cluster.
 
-**RBAC-discipline**:
+**RBAC discipline**:
 
-- **Default deny voor service accounts.** `automountServiceAccountToken: false` op de namespace-default service account plus op elke Pod die API-toegang niet nodig heeft. De default-SA die in elke pod gemount wordt, is de meest misbruikte aanval-trampolin.
-- **Least-privilege roles.** Wildcards (`verbs: ["*"]`, `resources: ["*"]`) zijn red flags. Splits lees en schrijf, scope op specifieke resources, gebruik `Role` (namespace-scoped) boven `ClusterRole` waar kan.
-- **Geen cluster-admin voor applicaties.** `cluster-admin` ClusterRole mag alleen voor human operators en zelfs daar liefst via just-in-time escalatie.
-- **Kyverno/Gatekeeper-policy die high-risk RBAC blokkeert**: geen wildcards in prod-namespaces, geen bindings aan `system:anonymous`, geen escalatie naar `cluster-admin`.
-- **Audit wat er aan rechten staat**: `kubectl auth can-i --list --as=system:serviceaccount:<ns>:<sa>`. Of tools als `rbac-lookup`, `krane`, `permission-manager`.
+- **Default deny for service accounts.** `automountServiceAccountToken: false` on the namespace-default service account and on every Pod that doesn't need API access. The default SA mounted into every pod is the most-abused attack trampoline.
+- **Least-privilege roles.** Wildcards (`verbs: ["*"]`, `resources: ["*"]`) are red flags. Split read and write, scope to specific resources, prefer `Role` (namespace-scoped) over `ClusterRole` where possible.
+- **No cluster-admin for applications.** The `cluster-admin` ClusterRole is for human operators only, and even then preferably via just-in-time escalation.
+- **Kyverno/Gatekeeper policy that blocks high-risk RBAC**: no wildcards in prod namespaces, no bindings to `system:anonymous`, no escalation to `cluster-admin`.
+- **Audit what permissions exist**: `kubectl auth can-i --list --as=system:serviceaccount:<ns>:<sa>`. Or tools like `rbac-lookup`, `krane`, `permission-manager`.
 
-**Pod Security Standards (PSS)** zijn sinds Kubernetes 1.25 de vervanger van PodSecurityPolicy. Drie niveaus, afgedwongen per namespace via labels:
+**Pod Security Standards (PSS)** have replaced PodSecurityPolicy since Kubernetes 1.25. Three levels, enforced per namespace via labels:
 
-- **privileged** — alles toegestaan. Alleen voor systeem-workloads die het nodig hebben.
-- **baseline** — voorkomt bekende privilege-escalatie (geen hostNetwork, geen privileged containers, beperkte hostPath, geen linux-capabilities buiten defaults).
-- **restricted** — harden-by-default: runAsNonRoot, readOnlyRootFilesystem, seccomp RuntimeDefault, alle caps gedropt plus NET_BIND_SERVICE-achtige expliciete adds, geen privilege escalation, volume-types beperkt.
+- **privileged** — anything goes. Only for system workloads that need it.
+- **baseline** — prevents known privilege-escalation (no hostNetwork, no privileged containers, restricted hostPath, no Linux capabilities beyond defaults).
+- **restricted** — harden-by-default: runAsNonRoot, readOnlyRootFilesystem, seccomp RuntimeDefault, all caps dropped plus NET_BIND_SERVICE-style explicit adds, no privilege escalation, restricted volume types.
 
 Labels per namespace:
 
@@ -63,19 +63,19 @@ metadata:
     pod-security.kubernetes.io/warn: restricted
 ```
 
-`enforce` blokkeert, `audit` logt, `warn` waarschuwt bij `kubectl apply`. Begin met `warn`+`audit`, migreer naar `enforce` als findings gladgetrokken zijn.
+`enforce` blocks, `audit` logs, `warn` warns at `kubectl apply`. Start with `warn` + `audit`, migrate to `enforce` once findings are cleaned up.
 
-**Admission controllers** voor regels die PSS niet dekt:
+**Admission controllers** for rules PSS doesn't cover:
 
-- **Kyverno** — YAML-policies, no-code, sterker op mutation (bv. automatisch `readOnlyRootFilesystem: true` injecteren). Default-keuze voor teams zonder Rego-ervaring.
-- **OPA Gatekeeper** — Rego-policies, deeper logic mogelijk, zelfde engine als `iac-security` fase 4. Default-keuze als je OPA al gebruikt.
-- **ValidatingAdmissionPolicy (VAP)** — built-in in Kubernetes 1.30+, CEL-expressions in plaats van Rego. Geen externe controller nodig, lichter dan Gatekeeper, minder feature-rijk. Gebruik voor simpele policies.
+- **Kyverno** — YAML policies, no-code, stronger on mutation (e.g. auto-injecting `readOnlyRootFilesystem: true`). Default choice for teams without Rego experience.
+- **OPA Gatekeeper** — Rego policies, deeper logic possible, same engine as `iac-security` phase 4. Default if you already use OPA.
+- **ValidatingAdmissionPolicy (VAP)** — built-in in Kubernetes 1.30+, CEL expressions instead of Rego. No external controller needed, lighter than Gatekeeper, less feature-rich. Use for simple policies.
 
-Eén van deze is genoeg. Alle drie samen is onderhoudslast zonder meerwaarde.
+One of these is enough. All three together is maintenance burden without added value.
 
-### 2. Workload-hardening: securityContext in Pod-spec
+### 2. Workload hardening: securityContext in the Pod spec
 
-Dit is de brug tussen `container-hardening` (wat er in de image zit) en wat K8s er daadwerkelijk mee doet. Elke Deployment/StatefulSet/Job hoort dit blok:
+This is the bridge between `container-hardening` (what's in the image) and what K8s actually does with it. Every Deployment/StatefulSet/Job needs this block:
 
 ```yaml
 spec:
@@ -96,7 +96,7 @@ spec:
             readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
-              # alleen toevoegen wat strikt nodig:
+              # only add what's strictly needed:
               # add: ["NET_BIND_SERVICE"]
           resources:
             limits:
@@ -107,19 +107,19 @@ spec:
               memory: "128Mi"
 ```
 
-Per veld kort:
+Per field, briefly:
 
-- **runAsNonRoot + runAsUser** — backup als image geen USER-directive heeft. Explicitely zet een niet-root UID.
-- **readOnlyRootFilesystem** — writable paden via `emptyDir` of persistent-volume mounts, rest is read-only. Malware-persistentie binnen de container wordt moeilijker.
-- **seccompProfile RuntimeDefault** — Docker/containerd-default seccomp-filter aan. In restricted-PSS vereist.
-- **capabilities drop ALL** — geen Linux-caps tenzij expliciet toegevoegd.
-- **allowPrivilegeEscalation false** — blokkeert setuid-escalatie.
-- **resource limits** — voorkomt dat één pod het node uitput (DoS-amplificatie). Limits én requests, niet alleen één van beide.
-- **imagePullPolicy** — IfNotPresent met digest-pin; `Always` alleen bij mutable tags (wat je in productie niet wil).
+- **runAsNonRoot + runAsUser** — backup when the image has no USER directive. Explicitly set a non-root UID.
+- **readOnlyRootFilesystem** — writable paths via `emptyDir` or persistent-volume mounts; the rest is read-only. Malware persistence inside the container becomes harder.
+- **seccompProfile RuntimeDefault** — Docker/containerd default seccomp filter on. Required in restricted PSS.
+- **capabilities drop ALL** — no Linux caps unless explicitly added.
+- **allowPrivilegeEscalation false** — blocks setuid escalation.
+- **resource limits** — prevents one pod from exhausting the node (DoS amplification). Limits and requests, not just one.
+- **imagePullPolicy** — IfNotPresent with a digest pin; `Always` only with mutable tags (which you don't want in production).
 
-### 3. Netwerk-isolatie: NetworkPolicy default-deny
+### 3. Network isolation: NetworkPolicy default-deny
 
-Zonder NetworkPolicy is intra-cluster traffic volledig open. Default-deny installeren, daarna per Pod/namespace toestaan wat nodig is.
+Without NetworkPolicy, intra-cluster traffic is wide open. Install default-deny, then allow per Pod/namespace what's needed.
 
 Default-deny per namespace:
 
@@ -134,7 +134,7 @@ spec:
   policyTypes: [Ingress, Egress]
 ```
 
-Daarna expliciete allow-policies:
+Then explicit allow policies:
 
 ```yaml
 apiVersion: networking.k8s.io/v1
@@ -157,99 +157,99 @@ spec:
           port: 8080
 ```
 
-Egress naar het internet: allowlist van DNS-resolvable hostnames kan niet met vanilla NetworkPolicy (die werkt op pod/namespace-selectors en IP-CIDR's). Voor FQDN-egress gebruik je een CNI met FQDN-support (Cilium, Calico Enterprise) of een egress-proxy (Istio egress gateway, Squid).
+Egress to the internet: an allowlist of DNS-resolvable hostnames is not possible with vanilla NetworkPolicy (which works on pod/namespace selectors and IP CIDRs). For FQDN egress use a CNI with FQDN support (Cilium, Calico Enterprise) or an egress proxy (Istio egress gateway, Squid).
 
-Cilium en Calico hebben ook `ClusterwideNetworkPolicy` voor policies die boven namespaces zweven — handig voor baseline-defaults.
+Cilium and Calico also offer `ClusterwideNetworkPolicy` for policies that hover above namespaces — useful for baseline defaults.
 
-### 4. Secrets: waarom K8s Secrets niet genoeg zijn, en wat wel
+### 4. Secrets: why K8s Secrets aren't enough, and what is
 
-`kind: Secret` is base64, niet encryption. Wie RBAC-toegang heeft tot `secrets.get` in de namespace leest alles. Wel encrypted-at-rest in etcd als je de kube-apiserver `--encryption-provider-config` hebt ingesteld — maar dat is opt-in en vaak niet gebeurt.
+`kind: Secret` is base64, not encryption. Anyone with RBAC access to `secrets.get` in the namespace reads everything. Encrypted-at-rest in etcd is possible if you set `--encryption-provider-config` on the kube-apiserver — but that's opt-in and often skipped.
 
-Drie aanpakken, stijgend in volwassenheid:
+Three approaches, increasing in maturity:
 
-- **SealedSecrets** (Bitnami). Encrypt de secret offline met cluster-public-key, commit het versleutelde object in git. Handig voor GitOps; één cluster = één key-paar.
-- **External Secrets Operator (ESO)**. Pull-model: ESO synct externe secret-stores (Vault, AWS Secrets Manager, GCP Secret Manager, Azure Key Vault, Doppler, Infisical) naar K8s-Secret-objects. Dat object in de Pod is nog steeds base64, maar de source of truth is buiten het cluster. Default-keuze in enterprise-contexten.
-- **Secrets Store CSI Driver**. Mount secrets als files via een CSI volume; geen K8s-Secret-object tussenstap. Secrets nooit in etcd. Zwaarder om op te zetten, schoner qua threat-model.
+- **SealedSecrets** (Bitnami). Encrypt the secret offline with a cluster public key, commit the encrypted object in git. Useful for GitOps; one cluster = one key pair.
+- **External Secrets Operator (ESO)**. Pull model: ESO syncs external secret stores (Vault, AWS Secrets Manager, GCP Secret Manager, Azure Key Vault, Doppler, Infisical) to K8s Secret objects. The object in the Pod is still base64, but the source of truth is outside the cluster. Default in enterprise contexts.
+- **Secrets Store CSI Driver**. Mount secrets as files via a CSI volume; no K8s Secret object as an intermediate. Secrets never in etcd. Heavier to set up, cleaner threat model.
 
-Bij alle drie: secret-rotatie blijft een externe verantwoordelijkheid (zie `secrets-scanner` fase 4). K8s-ESO zorgt alleen voor sync.
+For all three: secret rotation remains an external responsibility (see `secrets-scanner` phase 4). K8s ESO only handles sync.
 
-IRSA (IAM Roles for Service Accounts) op EKS, Workload Identity op GKE, Managed Identity op AKS: bind de SA direct aan een cloud-IAM-role, geen statische API-key nodig. Default-aanbeveling voor cloud-workloads.
+IRSA (IAM Roles for Service Accounts) on EKS, Workload Identity on GKE, Managed Identity on AKS: bind the SA directly to a cloud IAM role, no static API key needed. Default recommendation for cloud workloads.
 
-### 5. Runtime-monitoring
+### 5. Runtime monitoring
 
-Wat gebeurt er eigenlijk in de cluster, en merk je dat op tijd?
+What's actually happening in the cluster, and do you notice it in time?
 
-- **Kubernetes audit log**. `--audit-policy-file` op kube-apiserver. Minimaal: alle RBAC-changes, alle secret-reads door non-system-accounts, alle `exec`/`attach`-acties, alle `escalate`/`bind`-verbs. Stream naar SIEM (zie `siem-query` en `log-triage`).
-- **Falco** (CNCF OSS). eBPF/kernel-based syscall-monitoring met regelset voor anomalieën: shell-in-container, `cat /etc/shadow`, `chmod 777` in prod-namespaces, netwerk-connecties naar bekende C2. Default-keuze voor runtime-threat-detection in open-source.
-- **Tetragon** (Cilium) — eBPF-based observability plus enforcement. Vergelijkbaar met Falco, meer kernel-level.
-- **KubeArmor** — runtime-enforcement met AppArmor/BPF.
-- **Service-mesh-auth** — Istio `AuthorizationPolicy` of Linkerd policy voor mTLS-enforcement tussen services. Vervangt NetworkPolicy niet, vult hem aan op L7-niveau.
+- **Kubernetes audit log**. `--audit-policy-file` on kube-apiserver. At minimum: every RBAC change, every secret read by non-system accounts, every `exec`/`attach` action, every `escalate`/`bind` verb. Stream to a SIEM (see `siem-query` and `log-triage`).
+- **Falco** (CNCF OSS). eBPF/kernel-based syscall monitoring with rule sets for anomalies: shell-in-container, `cat /etc/shadow`, `chmod 777` in prod namespaces, network connections to known C2. Default for runtime threat detection in open source.
+- **Tetragon** (Cilium) — eBPF-based observability plus enforcement. Comparable to Falco, more kernel-level.
+- **KubeArmor** — runtime enforcement with AppArmor/BPF.
+- **Service-mesh auth** — Istio `AuthorizationPolicy` or Linkerd policy for mTLS enforcement between services. Doesn't replace NetworkPolicy; complements it at L7.
 
-Alerts uit Falco etc. gaan naar `detection-engineer` voor rule-tuning en `ir-runbook` voor response.
+Alerts from Falco etc. go to `detection-engineer` for rule tuning and `ir-runbook` for response.
 
 ### 6. Verification-loop
 
-Laag 1: scope (alle namespaces een PSS-label? alle Pods een securityContext? alle namespaces een default-deny NetworkPolicy?), aannames ("we gebruiken Workload Identity" alleen als je de SA-annotations daadwerkelijk hebt gezien), gaps (audit log activated, Falco-alerts gerouteerd, runtime-monitoring dekt ook kube-system), consistentie (PSS-level matcht met daadwerkelijke securityContext-settings).
+Layer 1: scope (every namespace has a PSS label? every Pod has a securityContext? every namespace has a default-deny NetworkPolicy?), assumptions ("we use Workload Identity" only when you've actually seen the SA annotations), gaps (audit log enabled, Falco alerts routed, runtime monitoring also covers kube-system), consistency (PSS level matches actual securityContext settings).
 
-Laag 2: K8s API-versies en veldnamen kloppen (PSS-syntax veranderde met 1.25, VAP is 1.30+), CVE-referenties naar K8s-componenten tegen NVD geverifieerd, geen verzonnen Kyverno-policy-snippets die niet tegen echte CRDs draaien.
+Layer 2: K8s API versions and field names correct (PSS syntax changed at 1.25, VAP is 1.30+), CVE references for K8s components verified against NVD, no fabricated Kyverno policy snippets that don't run against real CRDs.
 
 ## Output
 
 ```
 K8s security review — <cluster/namespace/app>
-Scope: <manifests, Helm-charts, namespaces>
+Scope: <manifests, Helm charts, namespaces>
 
-Cluster-baseline:
-  RBAC:             <audit-bevindingen, wildcards, over-permissive>
-  PSS per namespace:<tabel: namespace → enforce/audit/warn>
-  Admission:        <Kyverno | Gatekeeper | VAP | geen>
+Cluster baseline:
+  RBAC:             <audit findings, wildcards, over-permissive>
+  PSS per namespace:<table: namespace → enforce/audit/warn>
+  Admission:        <Kyverno | Gatekeeper | VAP | none>
 
-Workload-hardening:
-  Pods zonder securityContext: <N>
-  runAsNonRoot false:          <N>
+Workload hardening:
+  Pods without securityContext: <N>
+  runAsNonRoot false:           <N>
   readOnlyRootFilesystem false: <N>
-  capabilities niet gedropt:   <N>
-  Geen resource limits:        <N>
+  capabilities not dropped:     <N>
+  No resource limits:           <N>
 
-Netwerk:
-  Namespaces zonder default-deny: <lijst>
-  Egress-policies aanwezig:       <ja/nee per namespace>
-  FQDN-egress via: <CNI | proxy | geen>
+Network:
+  Namespaces without default-deny: <list>
+  Egress policies present:         <yes/no per namespace>
+  FQDN egress via:                 <CNI | proxy | none>
 
 Secrets:
-  Native K8s Secrets in use: <N, zijn ze source-of-truth of ESO-synced?>
-  Encryption at rest etcd:   <aan/uit>
-  Workload Identity:         <ja/nee per service>
+  Native K8s Secrets in use: <N, source-of-truth or ESO-synced?>
+  Encryption at rest etcd:   <on/off>
+  Workload Identity:         <yes/no per service>
 
 Runtime:
-  Audit log aan:   <ja/nee>
-  Falco/Tetragon:  <deployed, alerts geroute>
-  Service-mesh:    <Istio/Linkerd/geen, mTLS-scope>
+  Audit log on:    <yes/no>
+  Falco/Tetragon:  <deployed, alerts routed>
+  Service mesh:    <Istio/Linkerd/none, mTLS scope>
 
-Findings (severity-gesorteerd)
+Findings (severity-sorted)
 
 Verification-loop: ...
 ```
 
-Per finding: location (manifest of resource), CIS-benchmark-ID waar relevant, CWE-ID waar van toepassing, severity, fix (YAML-snippet in plaats van proza).
+Per finding: location (manifest or resource), CIS-benchmark ID where relevant, CWE-ID where applicable, severity, fix (YAML snippet rather than prose).
 
-## Referenties
+## References
 
-- Kubernetes Pod Security Standards — [https://kubernetes.io/docs/concepts/security/pod-security-standards/](https://kubernetes.io/docs/concepts/security/pod-security-standards/). Officiële definitie privileged/baseline/restricted.
+- Kubernetes Pod Security Standards — [https://kubernetes.io/docs/concepts/security/pod-security-standards/](https://kubernetes.io/docs/concepts/security/pod-security-standards/). Official definition of privileged/baseline/restricted.
 - Kubernetes RBAC — [https://kubernetes.io/docs/reference/access-authn-authz/rbac/](https://kubernetes.io/docs/reference/access-authn-authz/rbac/).
 - Kubernetes NetworkPolicy — [https://kubernetes.io/docs/concepts/services-networking/network-policies/](https://kubernetes.io/docs/concepts/services-networking/network-policies/).
-- ValidatingAdmissionPolicy — [https://kubernetes.io/docs/reference/access-authn-authz/validating-admission-policy/](https://kubernetes.io/docs/reference/access-authn-authz/validating-admission-policy/). Built-in alternatief voor OPA/Kyverno vanaf 1.30.
-- CIS Kubernetes Benchmark — [https://www.cisecurity.org/benchmark/kubernetes](https://www.cisecurity.org/benchmark/kubernetes). Audit-checklist.
+- ValidatingAdmissionPolicy — [https://kubernetes.io/docs/reference/access-authn-authz/validating-admission-policy/](https://kubernetes.io/docs/reference/access-authn-authz/validating-admission-policy/). Built-in alternative to OPA/Kyverno from 1.30.
+- CIS Kubernetes Benchmark — [https://www.cisecurity.org/benchmark/kubernetes](https://www.cisecurity.org/benchmark/kubernetes). Audit checklist.
 - NSA/CISA Kubernetes Hardening Guide — [https://media.defense.gov/2022/Aug/29/2003066362/-1/-1/0/CTR_KUBERNETES_HARDENING_GUIDANCE_1.2_20220829.PDF](https://media.defense.gov/2022/Aug/29/2003066362/-1/-1/0/CTR_KUBERNETES_HARDENING_GUIDANCE_1.2_20220829.PDF). Semi-governmental baseline.
 - OWASP Kubernetes Top 10 — [https://owasp.org/www-project-kubernetes-top-ten/](https://owasp.org/www-project-kubernetes-top-ten/).
 - NIST SP 800-204B — [https://csrc.nist.gov/pubs/sp/800/204/b/final](https://csrc.nist.gov/pubs/sp/800/204/b/final). Microservices + service-mesh security.
-- Kyverno — [https://kyverno.io/](https://kyverno.io/). YAML policy-engine.
+- Kyverno — [https://kyverno.io/](https://kyverno.io/). YAML policy engine.
 - OPA Gatekeeper — [https://open-policy-agent.github.io/gatekeeper/website/](https://open-policy-agent.github.io/gatekeeper/website/).
 - External Secrets Operator — [https://external-secrets.io/](https://external-secrets.io/).
 - Secrets Store CSI Driver — [https://secrets-store-csi-driver.sigs.k8s.io/](https://secrets-store-csi-driver.sigs.k8s.io/).
 - Falco — [https://falco.org/](https://falco.org/). Runtime threat detection.
-- Cilium — [https://docs.cilium.io/](https://docs.cilium.io/). CNI met FQDN-egress en Tetragon-integratie.
+- Cilium — [https://docs.cilium.io/](https://docs.cilium.io/). CNI with FQDN egress and Tetragon integration.
 
-## Categorieën
+## Categories
 
 - appsec

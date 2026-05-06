@@ -5,135 +5,135 @@ description: CI/CD pipeline hardening for GitHub Actions and GitLab CI — trust
 
 # CI/CD Hardening
 
-## Wanneer gebruiken
+## When to use
 
-Deze skill behandelt de pipeline zelf als aanvalsoppervlak, niet de code die erdoorheen stroomt. CI/CD-compromise is een supply-chain-incident: wie de pipeline bezit, bezit de release-artefacten.
+This skill treats the pipeline itself as the attack surface, not the code flowing through it. CI/CD compromise is a supply-chain incident: whoever owns the pipeline owns the release artifacts.
 
-Activeert bij:
+Triggers on:
 
-- Een vraag als "review onze workflow-files op security", "zet OIDC op tussen GitHub en AWS", "waarom is `pull_request_target` gevaarlijk", "pin alle actions op SHA", "kunnen we SLSA-L3 halen".
-- Nieuwe of gewijzigde `.github/workflows/*.yml`, `.gitlab-ci.yml`, Jenkinsfile, Azure Pipelines-YAML, CircleCI-config, reusable-workflow-definities, composite actions.
-- Een incident of near-miss: een forked PR heeft secrets kunnen gebruiken, een third-party action had een compromise, een self-hosted runner werd misbruikt.
-- Een compliance-audit die SSDF-evidence of SLSA-level-attestation vraagt.
-- Een supply-chain-moment waar de pipeline de laatste schakel is voor release (`supply-chain`-skill belt hierheen voor build-provenance-setup).
+- A question like "review our workflow files for security", "set up OIDC between GitHub and AWS", "why is `pull_request_target` dangerous", "pin all actions to SHA", "can we hit SLSA-L3".
+- New or changed `.github/workflows/*.yml`, `.gitlab-ci.yml`, Jenkinsfile, Azure Pipelines YAML, CircleCI config, reusable workflow definitions, composite actions.
+- An incident or near-miss: a forked PR could use secrets, a third-party action had a compromise, a self-hosted runner was abused.
+- A compliance audit asking for SSDF evidence or SLSA-level attestation.
+- A supply-chain moment where the pipeline is the last link before release (`supply-chain` skill calls in here for build-provenance setup).
 
-### Wanneer NIET (handoff)
+### When NOT (handoff)
 
-- SAST in de pipeline → `sast-orchestrator` voor tool-keuze en ruleset. Deze skill bepaalt alleen dat hij ergens in de workflow-fase draait.
-- Secret-scanning in de pipeline → `secrets-scanner`. Zelfde verdeling.
-- Dependency-scanning en CVE-triage → `cve-triage` en `supply-chain`. De gate-logica ligt bij `security-gate`.
-- Container-build zelf (Dockerfile, base-image) → `container-hardening`. Hier dekken we alleen de workflow die hem bouwt.
-- Kubernetes-deployment door GitOps-agent (Argo CD, Flux) → `k8s-security`.
-- Infrastructuur-provisioning (Terraform apply vanuit CI) → `iac-security` voor de resources-kant, hier alleen de creds-flow via OIDC.
-- IR bij een daadwerkelijk-gecompromitteerde pipeline → `ir-runbook`.
+- SAST in the pipeline → `sast-orchestrator` for tool choice and ruleset. This skill only decides that it runs somewhere in the workflow phase.
+- Secret scanning in the pipeline → `secrets-scanner`. Same split.
+- Dependency scanning and CVE triage → `cve-triage` and `supply-chain`. The gate logic is in `security-gate`.
+- Container build itself (Dockerfile, base image) → `container-hardening`. We only cover the workflow that builds it here.
+- Kubernetes deployment by a GitOps agent (Argo CD, Flux) → `k8s-security`.
+- Infrastructure provisioning (Terraform apply from CI) → `iac-security` for the resources side, here only the creds flow via OIDC.
+- IR for an actually compromised pipeline → `ir-runbook`.
 
-## Aanpak
+## Approach
 
-Zeven fases. Fase 1 (trust-model) is het hart — wat mis gaat in CI-aanvallen is vaak een misvatting over wie wat mag draaien.
+Seven phases. Phase 1 (trust model) is the heart — what goes wrong in CI attacks is often a misconception about who is allowed to run what.
 
-### 1. Trust-model en workflow-triggers
+### 1. Trust model and workflow triggers
 
-**GitHub Actions — de `pull_request_target` val.**
+**GitHub Actions — the `pull_request_target` trap.**
 
-`pull_request` (default) draait workflow-code uit de PR-branch en heeft **geen** toegang tot secrets van de base-repo. Veilig voor fork-PRs.
+`pull_request` (default) runs workflow code from the PR branch and has **no** access to the base repo's secrets. Safe for fork PRs.
 
-`pull_request_target` draait de workflow-code uit de **base-branch** (dus vertrouwd) maar met de PR-context. Heeft secrets. Bedoeld voor scenario's zoals "label de PR na lint-check". **Levensgevaarlijk** als je de PR-code uitvoert (via checkout + test-run), want dan voert je base-trusted workflow code uit de untrusted fork uit met secrets aan boord. Dit is de aanvalsklasse die GitHub zelf "poisoned pipeline execution" noemt.
+`pull_request_target` runs the workflow code from the **base branch** (so trusted) but with the PR context. Has secrets. Intended for scenarios like "label the PR after a lint check". **Extremely dangerous** if you execute the PR code (via checkout + test run), because then your base-trusted workflow runs untrusted fork code with secrets on board. This is the attack class GitHub itself calls "poisoned pipeline execution".
 
-Regel: als je `pull_request_target` gebruikt, check **nooit** de PR-branch uit en voer **nooit** code uit die van de PR komt. Wel: labels zetten, commentaren plaatsen, metadata lezen.
+Rule: if you use `pull_request_target`, **never** check out the PR branch and **never** execute code from the PR. Do: set labels, post comments, read metadata.
 
 **GitLab CI — merge request pipelines.**
 
-`merge_request_event` draait op de source-branch met toegang tot variabelen afhankelijk van protected-flag. Protected variables alleen beschikbaar op protected branches — zet prod-secrets op protected. Cross-project triggers via pipeline-trigger-tokens zijn nog een vector; behandel die tokens als secret.
+`merge_request_event` runs on the source branch with access to variables depending on the protected flag. Protected variables are only available on protected branches — set prod secrets to protected. Cross-project triggers via pipeline trigger tokens are another vector; treat those tokens as secrets.
 
-**Protected branches en required checks.**
+**Protected branches and required checks.**
 
-Main/release-branches protected zetten: geen directe push, review-required, status-checks-required, linear history, no force-push. `security-gate` als required check. Zonder branch-protection kan een compromised developer-account direct release-pipelines starten.
+Set main/release branches to protected: no direct push, review-required, status-checks-required, linear history, no force-push. `security-gate` as a required check. Without branch protection, a compromised developer account can start release pipelines directly.
 
-**CODEOWNERS**: verplicht review door specifieke teams voor kritieke paths (`.github/workflows/`, `infra/`, `deploy/`). Zonder CODEOWNERS-enforcement bij branch-protection is het advies, niet beleid.
+**CODEOWNERS**: required review by specific teams for critical paths (`.github/workflows/`, `infra/`, `deploy/`). Without CODEOWNERS enforcement at branch protection, it is advice, not policy.
 
-### 2. Action-pinning en provenance
+### 2. Action pinning and provenance
 
-Third-party Actions zijn de onderschatte supply-chain-risico. Een owner die compromised wordt of een action die muteert raakt iedereen die de tag gebruikt.
+Third-party Actions are the underestimated supply-chain risk. An owner getting compromised or an action mutating affects everyone using the tag.
 
-- **Pin op SHA, niet op tag.** `uses: actions/checkout@v4` is mutable (tag kan worden herplaatst). `uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683` is immutable. Voor cruciale workflows (release, deploy): altijd SHA-pinning.
-- **Renovate/Dependabot configureren om SHA-pins te updaten** met changelog-review. Zonder auto-updates loop je op stale vulnerable Actions.
-- **Verified publishers en Actions uit trusted orgs** (`actions/`, `github/`, `docker/`, `aws-actions/`, `azure/`, `google-github-actions/`). Third-party marketplace-Actions met 10 stars en één maintainer zijn een keuze die je moet kunnen verantwoorden.
-- **Lint tools**: `zizmor` (Rust, OSS) voor GitHub Actions audit — pakt `pull_request_target`-misuse, impersonation, expression-injection op. `actionlint` voor syntax. `poutine` voor cross-platform CI-analyse.
-- **GitLab equivalent**: include'd templates pinnen op vaste versie, geen `@main` voor `include: remote:` of shared templates.
+- **Pin to SHA, not to tag.** `uses: actions/checkout@v4` is mutable (the tag can be moved). `uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683` is immutable. For critical workflows (release, deploy): always SHA-pin.
+- **Configure Renovate/Dependabot to update SHA pins** with changelog review. Without auto-updates you run on stale, vulnerable Actions.
+- **Verified publishers and Actions from trusted orgs** (`actions/`, `github/`, `docker/`, `aws-actions/`, `azure/`, `google-github-actions/`). Third-party marketplace Actions with 10 stars and one maintainer are a choice you have to be able to defend.
+- **Lint tools**: `zizmor` (Rust, OSS) for GitHub Actions audit — catches `pull_request_target` misuse, impersonation, expression injection. `actionlint` for syntax. `poutine` for cross-platform CI analysis.
+- **GitLab equivalent**: pin included templates to a fixed version, no `@main` for `include: remote:` or shared templates.
 
-**Expression-injection**. `${{ github.event.pull_request.title }}` direct in een `run:`-block is command-injection: een PR-titel met ``" ; rm -rf / #`` voert op de runner uit. Fix: waarde via env-variabele doorgeven (`env: TITLE: ${{ github.event.pull_request.title }}`, dan `"$TITLE"` in het script). Zizmor vangt dit.
+**Expression injection**. `${{ github.event.pull_request.title }}` directly in a `run:` block is command injection: a PR title with ``" ; rm -rf / #`` runs on the runner. Fix: pass the value via an env variable (`env: TITLE: ${{ github.event.pull_request.title }}`, then `"$TITLE"` in the script). Zizmor catches this.
 
-### 3. Secrets en creds: OIDC eerst
+### 3. Secrets and creds: OIDC first
 
-Long-lived cloud-credentials in CI-secrets zijn het klassiek-slechte patroon. OIDC lost het op: CI-runner krijgt een short-lived, audience-gebonden token van de identity-provider, cloud-side accepteert dat token en reikt tijdelijke IAM-creds uit.
+Long-lived cloud credentials in CI secrets is the classic bad pattern. OIDC fixes it: the CI runner gets a short-lived, audience-bound token from the identity provider, the cloud side accepts that token and hands out temporary IAM creds.
 
-- **GitHub → AWS**: OIDC-provider in AWS (`token.actions.githubusercontent.com`), IAM-role met trust-policy op `repo:<org>/<repo>:ref:refs/heads/main` of `environment:<env>`. `aws-actions/configure-aws-credentials@v4` pinned op SHA.
+- **GitHub → AWS**: OIDC provider in AWS (`token.actions.githubusercontent.com`), IAM role with trust policy on `repo:<org>/<repo>:ref:refs/heads/main` or `environment:<env>`. `aws-actions/configure-aws-credentials@v4` SHA-pinned.
 - **GitHub → GCP**: Workload Identity Federation, `google-github-actions/auth`.
-- **GitHub → Azure**: federated identity credentials op App Registration.
-- **GitLab → cloud**: `id_tokens` feature (JWT per job) met equivalent OIDC-setup cloud-side.
+- **GitHub → Azure**: federated identity credentials on the App Registration.
+- **GitLab → cloud**: `id_tokens` feature (JWT per job) with the equivalent OIDC setup on the cloud side.
 
-OIDC-trust-policy's:
+OIDC trust policies:
 
-- **Scope zo nauw mogelijk**. Trust alleen specifieke branches (`refs/heads/main`), of beter: environments (`environment:production`). Niet op `repo:<org>/<repo>:*`.
-- **Audience-claim expliciet** op `sts.amazonaws.com` of cloud-equivalent. Default is wide, je wil 'm narrow.
-- **Geen fallback op statische keys.** Als OIDC om welke reden dan ook niet werkt, faal de pipeline — geen "oh dan gebruiken we de oude `AWS_SECRET_ACCESS_KEY` maar even". Die key bestaat niet meer, als het goed is.
+- **Scope as narrowly as possible.** Trust only specific branches (`refs/heads/main`), or better: environments (`environment:production`). Not on `repo:<org>/<repo>:*`.
+- **Audience claim explicit** on `sts.amazonaws.com` or cloud equivalent. Default is wide; you want it narrow.
+- **No fallback to static keys.** If OIDC for whatever reason does not work, fail the pipeline — no "oh well, let's use the old `AWS_SECRET_ACCESS_KEY` for now". That key does not exist anymore, if all is well.
 
-Resterende secrets (third-party API-keys die geen OIDC ondersteunen):
+Remaining secrets (third-party API keys that do not support OIDC):
 
-- **Environment-scoped** in GitHub Actions (`environment: production` met protected-flag en required-reviewers). Of GitLab-protected-variables op protected-branch.
-- **Verwijder na gebruik** waar kan; sommige tooling (HashiCorp Vault integratie) genereert just-in-time creds.
-- **Nooit echo'en**. Een bug waar een secret per ongeluk in log-output belandt: GitHub maskeert automatisch maar is niet feilloos. Zet `set -x` / `--debug` uit in steps die secrets aanraken.
+- **Environment-scoped** in GitHub Actions (`environment: production` with protected flag and required reviewers). Or GitLab protected variables on a protected branch.
+- **Remove after use** where possible; some tooling (HashiCorp Vault integration) generates just-in-time creds.
+- **Never echo.** A bug where a secret accidentally lands in log output: GitHub auto-masks but is not infallible. Disable `set -x` / `--debug` in steps that touch secrets.
 
-### 4. Permissions: minimaal per workflow
+### 4. Permissions: minimal per workflow
 
-GitHub Actions default `GITHUB_TOKEN` is historisch `write-all`. Sinds 2023 is default read-only in nieuwe repos, maar oude repos niet automatisch. Expliciet zetten:
+The default `GITHUB_TOKEN` in GitHub Actions was historically `write-all`. Since 2023 the default is read-only in new repos, but old repos do not flip automatically. Set explicitly:
 
 ```yaml
 permissions:
-  contents: read          # default voor de meeste workflows
+  contents: read          # default for most workflows
 jobs:
   deploy:
     permissions:
       contents: read
-      id-token: write     # voor OIDC
-      packages: write     # voor ghcr-push, alleen in deploy-job
+      id-token: write     # for OIDC
+      packages: write     # for ghcr push, only in deploy job
     ...
 ```
 
-Workflow-level permissions zet een plafond; job-level kan verfijnen omlaag. Voor jobs die push rechten nodig hebben, dat strikt naar die job scopen.
+Workflow-level permissions set a ceiling; job-level can refine downward. For jobs that need push rights, scope strictly to that job.
 
-GitLab CI-equivalent: `CI_JOB_TOKEN` permissions via Project → Settings → CI/CD → Token access, met allowlist van projects die je token mag gebruiken.
+GitLab CI equivalent: `CI_JOB_TOKEN` permissions via Project → Settings → CI/CD → Token access, with an allowlist of projects your token may use.
 
-### 5. Runners: isolatie en keuze
+### 5. Runners: isolation and choice
 
-**GitHub-hosted runners** zijn ephemeral (fresh VM per job), goed default. Verbruik: public repos gratis, private betaald.
+**GitHub-hosted runners** are ephemeral (fresh VM per job), good default. Cost: free for public repos, paid for private.
 
-**Self-hosted runners** zijn persistent tenzij je ze zelf elke run opnieuw provisioneert. Risico's:
+**Self-hosted runners** are persistent unless you re-provision them every run. Risks:
 
-- **Persistente state**: vorige run kan secrets/artifacts achterlaten voor volgende run, cross-job-contamination.
-- **Fork-PR exposure**: een forked PR die op een self-hosted runner draait heeft toegang tot de hele host. Standaard-advies: **self-hosted runners alleen voor workflows die niet door forked PRs getriggerd kunnen worden**. Private repos of internal-only workflows.
-- **Network positionering**: een self-hosted runner in een VPC kan dingen bereiken die je niet wil.
+- **Persistent state**: a previous run can leave secrets/artifacts behind for the next run, cross-job contamination.
+- **Fork-PR exposure**: a forked PR running on a self-hosted runner has access to the entire host. Default advice: **self-hosted runners only for workflows that cannot be triggered by forked PRs**. Private repos or internal-only workflows.
+- **Network positioning**: a self-hosted runner in a VPC can reach things you do not want it to.
 
-Als je self-hosted moet: **ephemeral runners** (actions-runner-controller op Kubernetes, of `--ephemeral`-flag), **non-root service-account**, **runner-scope per repo of per org** en niet cluster-wide, **network-egress-policy**, geen mount van docker.sock (geeft breakout).
+If you must self-host: **ephemeral runners** (actions-runner-controller on Kubernetes, or `--ephemeral` flag), **non-root service account**, **runner scope per repo or per org** and not cluster-wide, **network-egress policy**, no mount of docker.sock (gives a breakout).
 
-Scale-set runners met firecracker/KVM-isolatie (GitLab) of runner-groups met labels (GitHub) voor verdere segmentatie.
+Scale-set runners with firecracker/KVM isolation (GitLab) or runner groups with labels (GitHub) for further segmentation.
 
-### 6. Supply-chain gates in de pipeline
+### 6. Supply-chain gates in the pipeline
 
-De plaats waar `supply-chain`, `secrets-scanner`, `cve-triage`, `sast-orchestrator` en `security-gate` landen als CI-steps.
+The place where `supply-chain`, `secrets-scanner`, `cve-triage`, `sast-orchestrator`, and `security-gate` land as CI steps.
 
-- **Per-PR** (blocking): `/security-gate` als required check, die intern `secrets-scanner` + `sast-orchestrator` + `cve-triage` draait.
-- **Per-build** (artefact-gerelateerd): SBOM genereren (syft), attestation tekenen (cosign), SLSA-provenance via `slsa-framework/slsa-github-generator`. Zie `supply-chain` fase 2.
-- **Per-release** (aanvullend): image-scan met Trivy/Grype, signing verify, provenance verify. Fail-fast op unsigned of unresolved-critical.
-- **OpenSSF Scorecard** als periodieke self-assessment van pipeline-hygiëne: pinned Actions, branch-protection, SAST aanwezig, etc. Rapporteert een score plus per-check-detail.
+- **Per-PR** (blocking): `/security-gate` as a required check, which internally runs `secrets-scanner` + `sast-orchestrator` + `cve-triage`.
+- **Per-build** (artifact-related): generate SBOM (syft), sign attestation (cosign), SLSA provenance via `slsa-framework/slsa-github-generator`. See `supply-chain` phase 2.
+- **Per-release** (additional): image scan with Trivy/Grype, signing verify, provenance verify. Fail-fast on unsigned or unresolved-critical.
+- **OpenSSF Scorecard** as a periodic self-assessment of pipeline hygiene: pinned Actions, branch-protection, SAST present, etc. Reports a score plus per-check detail.
 
-Log CI-events naar SIEM: wie draaide welke workflow, welke secrets werden geraakt, welke artifacts geproduceerd. Zonder audit-trail is een compromised-CI-incident niet reconstrueerbaar.
+Log CI events to SIEM: who ran which workflow, which secrets were touched, which artifacts produced. Without an audit trail, a compromised-CI incident is not reconstructable.
 
 ### 7. Verification-loop
 
-Laag 1: scope (alle workflow-files gedekt? self-hosted runners geïnventariseerd? OIDC overal toegepast waar mogelijk?), aannames ("we pinnen op SHA" alleen als je de `uses:`-lines daadwerkelijk hebt gelezen), gaps (pull_request_target scherp nagelopen? expression-injection checks gedaan?), consistentie (permissions-scope matcht met wat de job daadwerkelijk doet).
+Layer 1: scope (all workflow files covered? self-hosted runners inventoried? OIDC applied everywhere possible?), assumptions ("we pin to SHA" only if you have actually read the `uses:` lines), gaps (pull_request_target carefully checked? expression-injection checks done?), consistency (permissions scope matches what the job actually does).
 
-Laag 2: Action-SHA's en publisher-identities kloppen, OWASP CICD Top 10 mapping correct, geen verzonnen zizmor/actionlint-rule-IDs, SLSA-level-claims onderbouwd.
+Layer 2: Action SHAs and publisher identities are correct, OWASP CICD Top 10 mapping correct, no invented zizmor/actionlint rule IDs, SLSA-level claims supported.
 
 ## Output
 
@@ -141,57 +141,57 @@ Laag 2: Action-SHA's en publisher-identities kloppen, OWASP CICD Top 10 mapping 
 CI/CD hardening review — <repo/pipeline>
 Platform: <GitHub Actions | GitLab CI | Jenkins | Azure | ...>
 
-Trust-model:
-  Triggers gebruikt:       <lijst pull_request/pull_request_target/push/etc>
-  pull_request_target risk:<clean | finding met context>
-  Protected branches:      <config samenvatting>
-  CODEOWNERS actief:       <ja/nee>
+Trust model:
+  Triggers used:           <list pull_request/pull_request_target/push/etc>
+  pull_request_target risk:<clean | finding with context>
+  Protected branches:      <config summary>
+  CODEOWNERS active:       <yes/no>
 
-Action-pinning:
+Action pinning:
   % Actions SHA-pinned:    <N/M>
-  Third-party uit onbekende orgs: <lijst>
-  Expression-injection:    <clean | findings>
+  Third-party from unknown orgs: <list>
+  Expression injection:    <clean | findings>
 
 Credentials:
-  OIDC naar cloud:         <AWS/GCP/Azure, trust-scope>
-  Long-lived secrets:      <N, welke en waarom nog>
-  Environment-protected:   <ja/nee per kritieke environment>
+  OIDC to cloud:           <AWS/GCP/Azure, trust scope>
+  Long-lived secrets:      <N, which and why still>
+  Environment-protected:   <yes/no per critical environment>
 
 Permissions:
-  Workflows met default write-all: <N>
-  permissions: leeg of te breed:   <lijst>
+  Workflows with default write-all: <N>
+  permissions: empty or too broad:  <list>
 
 Runners:
-  Self-hosted in gebruik:   <ja/nee + scope>
-  Ephemeral:                <ja/nee>
-  Fork-PR-toegang tot self-hosted: <geblokkeerd | open>
+  Self-hosted in use:      <yes/no + scope>
+  Ephemeral:               <yes/no>
+  Fork-PR access to self-hosted: <blocked | open>
 
 Supply-chain gates:
-  SAST in pipeline:         <sast-orchestrator handoff>
-  Secret-scan:              <secrets-scanner handoff>
-  Dep-scan:                 <cve-triage handoff>
-  SBOM + provenance:        <supply-chain handoff>
-  Scorecard:                <score + zwakste checks>
+  SAST in pipeline:        <sast-orchestrator handoff>
+  Secret scan:             <secrets-scanner handoff>
+  Dep scan:                <cve-triage handoff>
+  SBOM + provenance:       <supply-chain handoff>
+  Scorecard:               <score + weakest checks>
 
-Findings (severity-gesorteerd, volg security-review-format)
+Findings (severity-sorted, follow security-review format)
 
 Verification-loop: ...
 ```
 
-## Referenties
+## References
 
-- GitHub Actions Security Hardening — [https://docs.github.com/en/actions/security-for-github-actions/security-guides/security-hardening-for-github-actions](https://docs.github.com/en/actions/security-for-github-actions/security-guides/security-hardening-for-github-actions). Primaire GitHub-docs over workflow-security.
+- GitHub Actions Security Hardening — [https://docs.github.com/en/actions/security-for-github-actions/security-guides/security-hardening-for-github-actions](https://docs.github.com/en/actions/security-for-github-actions/security-guides/security-hardening-for-github-actions). Primary GitHub docs on workflow security.
 - GitHub Actions OIDC — [https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/about-security-hardening-with-openid-connect](https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/about-security-hardening-with-openid-connect).
-- GitLab CI Security — [https://docs.gitlab.com/ee/ci/pipelines/](https://docs.gitlab.com/ee/ci/pipelines/) en [https://docs.gitlab.com/ee/ci/secrets/](https://docs.gitlab.com/ee/ci/secrets/).
-- OWASP Top 10 CI/CD Security Risks — [https://owasp.org/www-project-top-10-ci-cd-security-risks/](https://owasp.org/www-project-top-10-ci-cd-security-risks/). Canonieke categorisatie.
-- NSA/CISA "Defending CI/CD Environments" — [https://media.defense.gov/2023/Jun/28/2003249466/-1/-1/0/CSI_DEFENDING_CI_CD_ENVIRONMENTS.PDF](https://media.defense.gov/2023/Jun/28/2003249466/-1/-1/0/CSI_DEFENDING_CI_CD_ENVIRONMENTS.PDF). 2023-guidance.
-- SLSA — [https://slsa.dev/](https://slsa.dev/). Build-provenance framework, zie ook `supply-chain`.
-- OpenSSF Scorecard — [https://github.com/ossf/scorecard](https://github.com/ossf/scorecard). Self-assessment van project-hygiëne.
-- zizmor — [https://github.com/woodruffw/zizmor](https://github.com/woodruffw/zizmor). Static analysis voor GitHub Actions.
-- actionlint — [https://github.com/rhysd/actionlint](https://github.com/rhysd/actionlint). Workflow-syntax linter.
+- GitLab CI Security — [https://docs.gitlab.com/ee/ci/pipelines/](https://docs.gitlab.com/ee/ci/pipelines/) and [https://docs.gitlab.com/ee/ci/secrets/](https://docs.gitlab.com/ee/ci/secrets/).
+- OWASP Top 10 CI/CD Security Risks — [https://owasp.org/www-project-top-10-ci-cd-security-risks/](https://owasp.org/www-project-top-10-ci-cd-security-risks/). Canonical categorization.
+- NSA/CISA "Defending CI/CD Environments" — [https://media.defense.gov/2023/Jun/28/2003249466/-1/-1/0/CSI_DEFENDING_CI_CD_ENVIRONMENTS.PDF](https://media.defense.gov/2023/Jun/28/2003249466/-1/-1/0/CSI_DEFENDING_CI_CD_ENVIRONMENTS.PDF). 2023 guidance.
+- SLSA — [https://slsa.dev/](https://slsa.dev/). Build-provenance framework, see also `supply-chain`.
+- OpenSSF Scorecard — [https://github.com/ossf/scorecard](https://github.com/ossf/scorecard). Self-assessment of project hygiene.
+- zizmor — [https://github.com/woodruffw/zizmor](https://github.com/woodruffw/zizmor). Static analysis for GitHub Actions.
+- actionlint — [https://github.com/rhysd/actionlint](https://github.com/rhysd/actionlint). Workflow syntax linter.
 - slsa-github-generator — [https://github.com/slsa-framework/slsa-github-generator](https://github.com/slsa-framework/slsa-github-generator). SLSA-L3 provenance in GitHub Actions.
-- Trail of Bits — "Publishing Python packages from GitHub Actions" threat-model ([https://blog.trailofbits.com/2023/05/23/trusted-publishing-a-new-benchmark-for-packaging-security/](https://blog.trailofbits.com/2023/05/23/trusted-publishing-a-new-benchmark-for-packaging-security/)). Goed referentie-werk voor OIDC-trust-setup.
+- Trail of Bits — "Publishing Python packages from GitHub Actions" threat model ([https://blog.trailofbits.com/2023/05/23/trusted-publishing-a-new-benchmark-for-packaging-security/](https://blog.trailofbits.com/2023/05/23/trusted-publishing-a-new-benchmark-for-packaging-security/)). Good reference work for OIDC-trust setup.
 
-## Categorieën
+## Categories
 
 - appsec

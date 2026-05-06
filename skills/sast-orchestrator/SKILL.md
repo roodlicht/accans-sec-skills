@@ -5,91 +5,91 @@ description: SAST orchestration for Semgrep, CodeQL and SonarQube. Covers tool s
 
 # SAST Orchestrator
 
-## Wanneer gebruiken
+## When to use
 
-Deze skill configureert statische-analyse-tooling en houdt de ruis laag genoeg dat findings nog actionable zijn. Hij is de engine achter fase 3 van `security-review` en de SAST-gate van `/security-gate`.
+This skill configures static-analysis tooling and keeps the noise low enough that findings stay actionable. It's the engine behind phase 3 of `security-review` and the SAST gate of `/security-gate`.
 
-Activeert bij:
+Activates on:
 
-- Een vraag als "zet Semgrep op deze repo op", "welke CodeQL-query-suite gebruiken we", "onze SonarQube is vol met false positives", "SAST in CI integreren".
-- Een bestaande SAST-output die getrieerd moet worden voordat hij naar developers gaat.
-- PR-comment-configuratie waar de balans tussen inline-annotaties en silent failure moet worden vastgesteld.
-- Een nieuwe repo waar SAST nog ontbreekt, of een bestaande waar de rulesets zijn gegroeid zonder hygiëne.
-- Een handoff vanuit `security-review` fase 3 of de `security-gate` SAST-gate.
+- A request like "set up Semgrep on this repo", "which CodeQL query suite should we use", "our SonarQube is full of false positives", "integrate SAST in CI".
+- Existing SAST output that needs to be triaged before it goes to developers.
+- PR-comment configuration where you have to decide between inline annotations and silent failure.
+- A new repo where SAST is missing, or an existing one where the rule sets have grown without hygiene.
+- A handoff from `security-review` phase 3 or the `security-gate` SAST gate.
 
-### Wanneer NIET (handoff)
+### When NOT to use (handoff)
 
-- Secrets in code → `secrets-scanner`. SAST-tools hebben secret-regels maar zijn niet de scherpste laag.
-- Vulnerabilities in dependencies → `cve-triage` en `supply-chain`. SCA is een aparte discipline.
-- Runtime/dynamic analyse → `dast-workflow`. SAST ziet geen live auth-flow of response-headers.
-- IaC-misconfig → `iac-security`. Hoewel tools als Semgrep IaC-regels hebben, is de specialisatie bij `iac-security` scherper.
-- Framework-deep regels (Django, Rails, Spring, Next.js) → respectievelijk `django-security`, `rails-security`, `spring-security`, `nextjs-security`. Die skills kunnen deze skill aanroepen voor CI-integratie van hun framework-specifieke rulesets.
-- Pure code-pattern-vragen zonder tool-context → `secure-coding`.
+- Secrets in code → `secrets-scanner`. SAST tools have secret rules but they are not the sharpest layer.
+- Vulnerabilities in dependencies → `cve-triage` and `supply-chain`. SCA is a separate discipline.
+- Runtime / dynamic analysis → `dast-workflow`. SAST doesn't see live auth-flow or response headers.
+- IaC misconfig → `iac-security`. Even though tools like Semgrep have IaC rules, the specialist coverage in `iac-security` is sharper.
+- Framework-deep rules (Django, Rails, Spring, Next.js) → `django-security`, `rails-security`, `spring-security`, `nextjs-security` respectively. Those skills can call this one for CI integration of their framework-specific rule sets.
+- Pure code-pattern questions without a tool context → `secure-coding`.
 
-## Aanpak
+## Approach
 
-Zes fases. Fase 2 en 3 zijn het hart (welke tools, welke regels). De rest is workflow-omheen.
+Six phases. Phases 2 and 3 are the heart (which tools, which rules). The rest is workflow around them.
 
-### 1. Scope en inventaris
+### 1. Scope and inventory
 
-Weet wat je hebt voor je nieuwe tools toevoegt.
+Know what you have before adding new tools.
 
-- **Talen en frameworks in de repo.** `tokei` of `cloc` voor taal-breakdown, `package.json`/`pyproject.toml`/`go.mod`/`pom.xml` voor frameworks. Bepaalt welke tools zinvol zijn.
-- **Bestaande SAST-setup.** Wat draait er al (lokale linters, CI-jobs, GitHub Advanced Security)? Welke rulesets zijn actief? Wat is de gemiddelde hit-rate per PR?
-- **Doel.** Blocker-catch (pre-merge gate), compliance-evidence (SOC2/ISO-audit), quality-trend (tech-debt dashboard), ontwikkelaar-feedback (inline tips). Het doel bepaalt tool-keuze en hoe aggressief je faalt op findings.
-- **Deadline en appetite.** Een blocker-gate-setup is iets anders dan een eerste verkenning. Tune aggressiviteit daarop.
+- **Languages and frameworks in the repo.** `tokei` or `cloc` for the language breakdown, `package.json`/`pyproject.toml`/`go.mod`/`pom.xml` for frameworks. This determines which tools make sense.
+- **Existing SAST setup.** What's already running (local linters, CI jobs, GitHub Advanced Security)? Which rule sets are active? What's the average hit rate per PR?
+- **Goal.** Blocker-catch (pre-merge gate), compliance evidence (SOC2/ISO audit), quality trend (tech-debt dashboard), developer feedback (inline tips). The goal drives tool choice and how aggressively you fail on findings.
+- **Deadline and appetite.** A blocker-gate setup is a different thing from a first reconnaissance. Tune aggressiveness accordingly.
 
-Uitkomst: een inventaris van talen plus bestaande checks plus doel. Zonder dat kies je tools op de tast.
+Outcome: an inventory of languages plus existing checks plus goal. Without that you're choosing tools blindly.
 
-### 2. Tool-keuze
+### 2. Tool choice
 
-Minimaliseer overlap. Drie tools die 80% overlappen vangt niet drie keer zoveel, wel drie keer zoveel ruis.
+Minimize overlap. Three tools that overlap 80% don't catch three times as much; they produce three times as much noise.
 
-- **Semgrep** (open-source, Apache-2, pattern-based in YAML). Default-keuze voor breadth. Community-rulesets dekken OWASP-klassen in alle gangbare talen. CI-integratie via `semgrep-action` of `semgrep ci`. Semgrep Pro (commercial) voegt call-graph-based checks en reachability toe.
-- **CodeQL** (GitHub, deels open-source, query-based in QL). Diepere taint-tracking en dataflow-analyse. Trager dan Semgrep, fijner in de analyse. Gratis voor public repos, vereist GitHub Advanced Security (betaald) voor private. Default voor deep-mode reviews en security-critical codebases.
-- **SonarQube / SonarCloud** (SonarSource, commercial). Scanner plus server plus dashboard. Sterk in trend-tracking en code-quality (niet alleen security). Overkill als je alleen security-findings wil, goed als het team ook tech-debt wil tracken.
+- **Semgrep** (open-source, Apache-2, pattern-based in YAML). Default choice for breadth. Community rule sets cover OWASP classes in all common languages. CI integration via `semgrep-action` or `semgrep ci`. Semgrep Pro (commercial) adds call-graph-based checks and reachability.
+- **CodeQL** (GitHub, partly open-source, query-based in QL). Deeper taint tracking and dataflow analysis. Slower than Semgrep, finer in the analysis. Free for public repos, requires GitHub Advanced Security (paid) for private. Default for deep-mode reviews and security-critical codebases.
+- **SonarQube / SonarCloud** (SonarSource, commercial). Scanner plus server plus dashboard. Strong in trend tracking and code quality (not just security). Overkill if you only want security findings; good if the team also wants to track tech debt.
 
-**Language-specific linters** (als aanvulling waar ze scherper zijn):
+**Language-specific linters** (as a complement where they're sharper):
 
-- **Bandit** (Python) — vangt Python-specifieke foot-guns die Semgrep ook ziet, maar met strakke pre-commit-integratie.
-- **gosec** (Go) — idem voor Go.
-- **Brakeman** (Rails) — Rails-specifieke checks die veel diepere Rails-kennis hebben dan general-purpose tools. Zie `rails-security` voor details.
-- **eslint-plugin-security** + **eslint-plugin-security-node** (JS/TS) — inline in de standaard linter, geen extra CI-stap.
-- **PMD** / **SpotBugs** met **FindSecBugs** (Java).
-- **psalm** / **phpstan** + security-plugins (PHP).
+- **Bandit** (Python) — catches Python-specific foot-guns Semgrep also sees, but with tighter pre-commit integration.
+- **gosec** (Go) — same idea for Go.
+- **Brakeman** (Rails) — Rails-specific checks that have much deeper Rails knowledge than general-purpose tools. See `rails-security` for details.
+- **eslint-plugin-security** + **eslint-plugin-security-node** (JS/TS) — inline in the standard linter, no extra CI step.
+- **PMD** / **SpotBugs** with **FindSecBugs** (Java).
+- **psalm** / **phpstan** + security plugins (PHP).
 
-Selectie-heuristiek: één breadth-tool (Semgrep) altijd. CodeQL voor deep-mode en security-critical. SonarQube alleen als quality-trend ook een doel is. Language-specific als de breadth-tool bewezen te oppervlakkig is (bv. Rails zonder Brakeman mist veel).
+Selection heuristic: one breadth tool (Semgrep) always. CodeQL for deep mode and security-critical codebases. SonarQube only when quality-trend is also a goal. Language-specific tools when the breadth tool has been shown to be too shallow (e.g. Rails without Brakeman misses a lot).
 
-### 3. Ruleset-curatie
+### 3. Ruleset curation
 
-Default rulesets van tools zijn een startpunt, geen eindpunt. Curatie betekent: aanzetten wat waardevol is, uitzetten wat niet bij deze codebase past, en eigen regels schrijven voor org-specifieke foot-guns.
+Tool default rule sets are a starting point, not an end point. Curation means: turn on what's valuable, turn off what doesn't fit this codebase, and write your own rules for org-specific foot-guns.
 
-**Semgrep** registry-rulesets (via `rules:` of `config:` directive):
+**Semgrep** registry rule sets (via `rules:` or `config:` directive):
 
-- `p/security-audit` — brede security-set voor alle talen.
-- `p/owasp-top-ten` — focust op OWASP-categorieën, maps naar A0x.
-- `p/ci` — subset die niet te traag is voor elke PR.
-- `p/<language>` — taal-specifiek (bv. `p/python`, `p/javascript`, `p/java`, `p/go`, `p/typescript`, `p/ruby`).
-- `p/r2c-security-audit` — r2c-curated security-set, iets andere mix dan OWASP.
+- `p/security-audit` — broad security set for all languages.
+- `p/owasp-top-ten` — focuses on OWASP categories, maps to A0x.
+- `p/ci` — subset that's not too slow for every PR.
+- `p/<language>` — language-specific (e.g. `p/python`, `p/javascript`, `p/java`, `p/go`, `p/typescript`, `p/ruby`).
+- `p/r2c-security-audit` — r2c-curated security set, slightly different mix from OWASP.
 
-Custom Semgrep-regels in `.semgrep/` schrijven voor org-patronen (bv. "gebruik niet `requests.get` zonder timeout", "gebruik altijd onze interne `log_pii()` wrapper"). Zie Semgrep-playground voor ontwikkeling.
+Write custom Semgrep rules in `.semgrep/` for org patterns (e.g. "don't use `requests.get` without a timeout", "always use our internal `log_pii()` wrapper"). Use the Semgrep playground for development.
 
-**CodeQL** query-suites:
+**CodeQL** query suites:
 
-- `security-extended` — standaard-set plus extra-strengere queries.
-- `security-and-quality` — security plus code-quality queries; groter, meer ruis.
+- `security-extended` — standard set plus extra-strict queries.
+- `security-and-quality` — security plus code-quality queries; larger, more noise.
 
-Custom CodeQL-queries in `.github/codeql/` als org-specifieke patterns te diep zijn voor Semgrep-patroonmatching.
+Custom CodeQL queries in `.github/codeql/` when org-specific patterns are too deep for Semgrep pattern matching.
 
-**SonarQube**: Quality Profile selecteren (built-in "Sonar way" of eigen). Security Hotspots en Vulnerabilities zijn de security-relevante categorieën; Code Smells is quality, niet security, separaat rapporteren.
+**SonarQube**: select a Quality Profile (built-in "Sonar way" or your own). Security Hotspots and Vulnerabilities are the security-relevant categories; Code Smells is quality, not security — report separately.
 
-Regel-tuning per codebase: sommige regels triggeren altijd false positive op patronen die in deze codebase bewust zijn (bv. `subprocess.run` met vaste arguments in een admin-tool). Documenteer uitzetten, nooit wildcardend.
+Per-codebase rule tuning: some rules consistently false-positive on patterns that are deliberate in this codebase (e.g. `subprocess.run` with fixed arguments in an admin tool). Document the disable, never wildcard.
 
-### 4. CI-integratie en PR-comments
+### 4. CI integration and PR comments
 
-Tools in CI draaien is standaard. De moeite zit in hoe developers de output zien.
+Running tools in CI is standard. The work is in how developers see the output.
 
-**Semgrep in GitHub Actions** (minimaal):
+**Semgrep in GitHub Actions** (minimal):
 
 ```yaml
 # .github/workflows/semgrep.yml
@@ -106,7 +106,7 @@ jobs:
       - run: semgrep ci --config p/security-audit --config p/owasp-top-ten
 ```
 
-PR-comments: Semgrep App (commercial) of een third-party action als `reviewdog` kunnen findings als GitHub review-comments posten op de exacte regel. Alternatief: Semgrep als SARIF uploaden naar GitHub code-scanning; dan verschijnen findings in de Security-tab plus als inline annotations.
+PR comments: Semgrep App (commercial) or a third-party action like `reviewdog` can post findings as GitHub review comments on the exact line. Alternative: upload Semgrep as SARIF to GitHub code-scanning; findings then appear in the Security tab and as inline annotations.
 
 **CodeQL in GitHub Actions**:
 
@@ -132,97 +132,97 @@ jobs:
       - uses: github/codeql-action/analyze@v3
 ```
 
-CodeQL findings landen automatisch in de Security-tab. Inline annotaties op de PR via de github/codeql-action.
+CodeQL findings land automatically in the Security tab. Inline annotations on the PR via the github/codeql-action.
 
-**SonarQube**: scanner als CI-step, server-side rules, kwaliteits-gate config. PR-decoration via de SonarQube-app installeren op GitHub/GitLab.
+**SonarQube**: scanner as CI step, server-side rules, quality-gate config. PR decoration via the SonarQube app installed on GitHub/GitLab.
 
-Blocker-gedrag: laat de job falen op New findings boven een bepaalde severity (bv. semgrep's `--severity=ERROR` + exit-code check). Existing findings vóór invoering van de tool niet als blocker behandelen; zie fase 5 (baseline).
+Blocker behaviour: make the job fail on new findings above a certain severity (e.g. semgrep's `--severity=ERROR` plus exit-code check). Don't treat findings that pre-date tool introduction as blockers; see phase 5 (baseline).
 
-### 5. Noise-reductie
+### 5. Noise reduction
 
-Te veel findings = findings worden genegeerd. Dit is het vak.
+Too many findings = findings get ignored. This is the craft.
 
-- **Baseline bij invoering.** Eerste run registreert alle bestaande findings als "known", gate faalt alleen op nieuwe. Semgrep: `--baseline-ref=main` of `semgrep-managed` baselines. CodeQL: het GitHub Advanced Security-dashboard markeert nieuwe vs. bestaande. SonarQube: "new code" analyse per PR.
-- **In-code suppressies** met reden. Semgrep: `// nosemgrep: rule-id reason` (regel-niveau). CodeQL: `// lgtm[rule-id]` of `// codeql[rule-id]` + review-comment. SonarQube: `// NOSONAR reason`. Nooit wildcard-suppressies, altijd rule-id en reden.
-- **Rule-disabling.** Rules die structureel false-positive zijn op deze codebase uitzetten in tool-config, met korte rationale in commit-message. Periodiek herzien (elk kwartaal, of bij grote refactors).
-- **Severity-hergroepering.** Sommige default severities kloppen niet voor deze repo. Bv. een rule die Info-level is default maar hier Critical omdat het auth-flow raakt: promoten. In Semgrep via `severity` override, in CodeQL via query-packs.
-- **Ignore-paths.** `.semgrepignore`, `paths-ignore` in CodeQL config. Generated code (`vendor/`, `node_modules/`, `migrations/`), test-fixtures, en third-party copies horen hier typisch thuis.
-- **Exit-criteria.** De gate faalt wanneer: nieuwe finding High/Critical, of new Medium in kritiek pad (auth/crypto/IO). Bestaande findings worden niet geblokkeerd maar wel zichtbaar. Passing rate op PRs moet minimaal 70% zijn; zit je onder, dan is de tuning nog niet af.
+- **Baseline at introduction.** The first run records all existing findings as "known"; the gate fails only on new ones. Semgrep: `--baseline-ref=main` or `semgrep-managed` baselines. CodeQL: the GitHub Advanced Security dashboard marks new vs existing. SonarQube: "new code" analysis per PR.
+- **In-code suppressions** with reasons. Semgrep: `// nosemgrep: rule-id reason` (line level). CodeQL: `// lgtm[rule-id]` or `// codeql[rule-id]` plus review comment. SonarQube: `// NOSONAR reason`. Never wildcard suppressions; always rule-id and reason.
+- **Rule disabling.** Rules that are structurally false-positive on this codebase: turn them off in tool config with a short rationale in the commit message. Review periodically (every quarter, or after large refactors).
+- **Severity regrouping.** Some default severities don't fit this repo. E.g. a rule that's Info-level by default but Critical here because it touches the auth flow: promote it. In Semgrep via `severity` override, in CodeQL via query packs.
+- **Ignore paths.** `.semgrepignore`, `paths-ignore` in CodeQL config. Generated code (`vendor/`, `node_modules/`, `migrations/`), test fixtures, and third-party copies typically belong here.
+- **Exit criteria.** The gate fails when: a new High/Critical finding lands, or a new Medium in a critical path (auth/crypto/IO). Existing findings are not blocked but are visible. PR pass-rate should be at least 70%; below that, tuning isn't done.
 
 ### 6. Verification-loop
 
-Pas `verification-loop` toe op de configuratie voor je hem op een team loslaat.
+Apply `verification-loop` to the configuration before you let it loose on a team.
 
-- Laag 1: scope (alle talen in de repo gedekt? alle kritieke paden in de ignore-path-lijst uitgesloten?), aannames (rulesets die je aanzette zijn actueel en bestaan echt), gaps (secrets en deps verwezen naar hun eigen skills?), consistentie (severities tussen tools vergelijkbaar?).
-- Laag 2: rule-ID's en ruleset-namen echt, CWE-/OWASP-references verifieerbaar, geen custom regels die beweren een specifieke CVE te detecteren zonder PoC.
+- Layer 1: scope (every language in the repo covered? every critical path excluded from the ignore-path list?), assumptions (the rule sets you turned on are current and exist?), gaps (secrets and deps referred to their own skills?), consistency (severities comparable across tools?).
+- Layer 2: rule IDs and ruleset names are real, CWE / OWASP references verifiable, no custom rules claiming to detect a specific CVE without a PoC.
 
 ## Output
 
-Bij nieuwe setup: CI-workflow-files, tool-configs en een korte toelichting. Bij triage-opdracht op bestaande output: een gecategoriseerd rapport.
+For a new setup: CI workflow files, tool configs, and a short explanation. For triage on existing output: a categorized report.
 
-**Setup-mode**:
+**Setup mode**:
 
 ```
-SAST-setup — <repo>
-Talen: <list>
-Doel:  <gate | compliance | quality | feedback>
+SAST setup — <repo>
+Languages: <list>
+Goal:      <gate | compliance | quality | feedback>
 
-Geselecteerde tools:
-- Semgrep (breadth)          — rulesets: p/security-audit, p/owasp-top-ten, p/<lang>
-- CodeQL (deep)              — suite: security-extended (indien GHAS beschikbaar)
-- <optionele quality tool>   — <SonarQube | disabled>
-- Language-specific:          <bandit | gosec | brakeman | eslint-security>
+Selected tools:
+- Semgrep (breadth)          — rule sets: p/security-audit, p/owasp-top-ten, p/<lang>
+- CodeQL (deep)              — suite: security-extended (if GHAS available)
+- <optional quality tool>    — <SonarQube | disabled>
+- Language-specific:           <bandit | gosec | brakeman | eslint-security>
 
-Geleverd:
+Delivered:
 - .github/workflows/semgrep.yml
-- .github/workflows/codeql.yml (indien CodeQL)
-- .semgrep/<org>-rules.yml (custom regels, indien gewenst)
+- .github/workflows/codeql.yml (if CodeQL)
+- .semgrep/<org>-rules.yml (custom rules, if needed)
 - .semgrepignore / paths-ignore in CodeQL
-- Baseline-instructie: eerste run op main voordat gate aan gaat
-- PR-comment-strategie: <inline via SARIF | apart comment via reviewdog | alleen Security-tab>
-- Exit-criteria: <severity-threshold, new-only-logica>
+- Baseline instruction: first run on main before the gate goes live
+- PR-comment strategy: <inline via SARIF | separate comment via reviewdog | Security tab only>
+- Exit criteria: <severity threshold, new-only logic>
 
 Verification-loop:
   Verdict: ...
-  Security-verdict: ...
+  Security verdict: ...
 ```
 
-**Triage-mode** (bestaande output screenen):
+**Triage mode** (screening existing output):
 
 ```
-SAST-triage — <tool>, <N findings>
-Na triage:
+SAST triage — <tool>, <N findings>
+After triage:
   Real blockers:       n1
   Real non-blockers:   n2
-  False positives:     n3  (met per-rule reden)
-  Uit te zetten regels: <rule-IDs + rationale>
+  False positives:     n3  (with per-rule reason)
+  Rules to disable:    <rule IDs + rationale>
 
 Per real finding:
 - Rule: <tool>/<rule-id> — CWE-<N>
-- Locatie: <file:line>
-- Ernst: <blocker | high | medium | low>
-- Reden dat dit real is (niet false positive)
-- Fix-suggestie of handoff
+- Location: <file:line>
+- Severity: <blocker | high | medium | low>
+- Why this is real (not a false positive)
+- Fix suggestion or handoff
 
-Doorgezet naar security-review: <N findings>
-Genegeerd met documentatie: <N, met redenen>
+Forwarded to security-review: <N findings>
+Ignored with documentation: <N, with reasons>
 ```
 
-Geen ruwe tool-dumps in de deliverable. Die zijn voor de CI-log, niet voor de reviewer.
+No raw tool dumps in the deliverable. Those belong in the CI log, not the reviewer's inbox.
 
-## Referenties
+## References
 
-- Semgrep docs — [https://semgrep.dev/docs/](https://semgrep.dev/docs/). Tool-docs, rule-syntax, CI-integratie.
-- Semgrep Registry — [https://semgrep.dev/r](https://semgrep.dev/r). Zoek-interface voor rulesets en individuele regels.
-- CodeQL docs — [https://codeql.github.com/docs/](https://codeql.github.com/docs/). Queries, query-suites, dataflow-analyse.
-- GitHub Code Scanning — [https://docs.github.com/en/code-security/code-scanning](https://docs.github.com/en/code-security/code-scanning). Hoe SARIF-findings in de UI landen.
-- SonarQube Rules — [https://rules.sonarsource.com/](https://rules.sonarsource.com/). Rule-inventaris per taal.
-- OWASP Benchmark — [https://owasp.org/www-project-benchmark/](https://owasp.org/www-project-benchmark/). SAST-tool-vergelijking (let op: gedateerd, maar methodologisch nog relevant).
-- SARIF-spec — [https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/sarif-v2.1.0-os.html](https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/sarif-v2.1.0-os.html). Interchange-format voor scan-output, draagt findings tussen tools.
-- Bandit — [https://github.com/PyCQA/bandit](https://github.com/PyCQA/bandit). Python-specifieke linter.
-- gosec — [https://github.com/securego/gosec](https://github.com/securego/gosec). Go-specifieke linter.
-- Brakeman — [https://brakemanscanner.org/](https://brakemanscanner.org/). Rails-specifieke SAST.
+- Semgrep docs — [https://semgrep.dev/docs/](https://semgrep.dev/docs/). Tool docs, rule syntax, CI integration.
+- Semgrep Registry — [https://semgrep.dev/r](https://semgrep.dev/r). Search interface for rule sets and individual rules.
+- CodeQL docs — [https://codeql.github.com/docs/](https://codeql.github.com/docs/). Queries, query suites, dataflow analysis.
+- GitHub Code Scanning — [https://docs.github.com/en/code-security/code-scanning](https://docs.github.com/en/code-security/code-scanning). How SARIF findings land in the UI.
+- SonarQube Rules — [https://rules.sonarsource.com/](https://rules.sonarsource.com/). Rule inventory per language.
+- OWASP Benchmark — [https://owasp.org/www-project-benchmark/](https://owasp.org/www-project-benchmark/). SAST tool comparison (note: dated, but methodologically still relevant).
+- SARIF spec — [https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/sarif-v2.1.0-os.html](https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/sarif-v2.1.0-os.html). Interchange format for scan output; carries findings between tools.
+- Bandit — [https://github.com/PyCQA/bandit](https://github.com/PyCQA/bandit). Python-specific linter.
+- gosec — [https://github.com/securego/gosec](https://github.com/securego/gosec). Go-specific linter.
+- Brakeman — [https://brakemanscanner.org/](https://brakemanscanner.org/). Rails-specific SAST.
 
-## Categorieën
+## Categories
 
 - appsec
