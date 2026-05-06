@@ -48,15 +48,15 @@ A "pass" means: Claude routes to the expected item within the first or second me
 
 | # | Prompt | Expected trigger |
 |---|---|---|
-| 20 | "Map de attack surface van example.com — autorisatie staat in scope.txt." | `recon-agent` (agent) |
-| 21 | "We hebben drie Mediums gevonden: open redirect, OAuth state weakness, en stored XSS in admin. Chain ze." | `exploit-chain` |
-| 22 | "Geef me een SSTI-test-payload voor Jinja2-context." | `payload-crafter` |
-| 23 | "Triage deze BloodHound-output op shortest-paths-to-DA." | `ad-attacks` |
-| 24 | "Is deze JWT-config kwetsbaar voor algorithm-confusion?" | `web-exploit-triage` |
-| 25 | "Zet een C2 redirector op met sleep + jitter discipline." | `c2-hygiene` |
-| 26 | "Plan een phishing-sim voor 200 medewerkers, ethical scope." | `phishing-sim` |
-| 27 | "We hebben foothold op een Linux-host als unprivileged user — privesc-paden?" | `post-exploit` |
-| 28 | "Schrijf het pentest-rapport voor engagement X-2026." | `pentest-reporter` |
+| 20 | "Map the attack surface of example.com — authorization is in scope.txt." | `recon-agent` (agent) |
+| 21 | "We found three Mediums: open redirect, OAuth state weakness, and stored XSS in admin. Chain them." | `exploit-chain` |
+| 22 | "Give me an SSTI test payload for a Jinja2 context." | `payload-crafter` |
+| 23 | "Triage this BloodHound output on shortest paths to DA." | `ad-attacks` |
+| 24 | "Is this JWT config vulnerable to algorithm confusion?" | `web-exploit-triage` |
+| 25 | "Set up a C2 redirector with sleep + jitter discipline." | `c2-hygiene` |
+| 26 | "Plan a phishing sim for 200 employees, ethical scope." | `phishing-sim` |
+| 27 | "We have foothold on a Linux host as an unprivileged user — privesc paths?" | `post-exploit` |
+| 28 | "Write the pentest report for engagement X-2026." | `pentest-reporter` |
 
 ### Blue (10 items)
 
