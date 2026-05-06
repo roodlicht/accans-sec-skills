@@ -2,9 +2,11 @@
 
 # accans-sec-skills
 
-> **47 Claude skills, agents and commands across 5 security profiles** · NL/EU regulatory-anchored (NIS2, DORA, AVG, Cyberbeveiligingswet) · 443 cross-references · pattern-level discipline for offensive items · static-site builder + curl-pipeable installer.
+> **47 Claude skills, agents and commands across 5 disciplines** · ~8,600 lines of structured tradecraft · 41 ATT&CK techniques mapped · 19 ISO 27001 Annex-A controls referenced · 9 NL/EU regulatory frameworks anchored · 443 internal cross-references · 426 primary-source URLs · pattern-level discipline for every offensive item.
 
 A catalog of structured `SKILL.md` files that prime Claude with security tradecraft across the full SDLC: AppSec & DevSecOps, Pentest & Red Team, Blue Team & IR, GRC & Compliance, plus a Core layer of cross-cutting essentials. Drop a profile-bundle into `~/.claude/` (or build your own selection in the browser) and Claude routes to the right item when you ask.
+
+> *Claude knows how to think. Pre-load it with how to think about security.*
 
 Maintained by **[Accans](https://accans.com)** — security engineering with NL/EU regulatory grounding.
 
@@ -23,6 +25,32 @@ Five profiles, 47 items, one consistent architecture. Each item is a structured 
 | `grc`     | 10 | NIS2, DORA, ISO 27001, SOC 2, AVG/GDPR PIA, risk-register, policy-drafter, vendor-questionnaire, audit-evidence — EU/NL-anchored. |
 
 `full` is everything (47).
+
+### Profile architecture
+
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#11182d','primaryTextColor':'#cdd5e8','primaryBorderColor':'#4f7df9','lineColor':'#5b6584'}}}%%
+flowchart TB
+    Root(["accans-sec-skills · 47 items"])
+
+    Root --> Core["core · 7<br/><i>secure-coding, security-review,<br/>verification-loop, secrets-scanner,<br/>cve-triage, threat-modeler, security-gate</i>"]
+
+    Core --> AppSec["appsec · 19<br/><i>SAST/DAST · IaC · container · k8s ·<br/>API · supply-chain · Django · Spring ·<br/>Rails · Next.js · CI/CD</i>"]
+    Core --> Pentest["pentest · 12<br/><i>recon · exploit-chain · payload-crafter ·<br/>AD-attacks · web-exploit-triage ·<br/>C2-hygiene · phishing-sim · post-exploit ·<br/>pentest-reporter · purple-ops</i>"]
+    Core --> Blue["blue · 11<br/><i>IR-runbook · detection-engineer ·<br/>log-triage · siem-query · ioc-hunter ·<br/>malware-triage · forensics-assist ·<br/>alert-tuning · purple-ops · threat-hunt</i>"]
+    Core --> GRC["grc · 10<br/><i>NIS2 · DORA · AVG/GDPR · ISO 27001 ·<br/>SOC 2 · risk-register · policy-drafter ·<br/>vendor-questionnaire · audit-evidence</i>"]
+
+    Pentest -. dual-cat .- Blue
+
+    style Root fill:#0a0f1f,stroke:#4f7df9,stroke-width:2px,color:#fff
+    style Core fill:#11182d,stroke:#4f7df9,color:#cdd5e8
+    style AppSec fill:#11182d,stroke:#5b6584,color:#cdd5e8
+    style Pentest fill:#11182d,stroke:#5b6584,color:#cdd5e8
+    style Blue fill:#11182d,stroke:#5b6584,color:#cdd5e8
+    style GRC fill:#11182d,stroke:#5b6584,color:#cdd5e8
+```
+
+`core` is the substrate — every other profile pulls it. `purple-ops` is dual-cat (lives in both `pentest` and `blue`); the dotted line marks the bridge.
 
 ## How it differs from a generic "all-in-one" security AI bundle
 
@@ -90,6 +118,38 @@ Four end-to-end walkthroughs that chain multiple items in realistic scenarios:
 - [`examples/03-authorized-red-team-engagement.md`](examples/03-authorized-red-team-engagement.md) — `recon-agent` → `web-exploit-triage` → `payload-crafter` → `exploit-chain` → `post-exploit` (with `c2-hygiene`) → `pentest-reporter` → `purple-ops`. Pattern-level discipline across an entire engagement.
 - [`examples/04-ransomware-incident-response.md`](examples/04-ransomware-incident-response.md) — `ir-runbook` → `forensics-assist` → `malware-triage` → `ioc-hunter` → `detection-engineer` → `purple-ops` (with regulatory chains to `nis2` / `gdpr-pia` / `dora`). Multi-regulator incident-response.
 
+### Example walk-through · NIS2 readiness audit (NL essential entity)
+
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#11182d','primaryTextColor':'#cdd5e8','primaryBorderColor':'#4f7df9','lineColor':'#5b6584'}}}%%
+flowchart LR
+    Start(["Customer<br/>SaaS · 80 FTE · fintech"])
+
+    Start --> S1["nis2<br/><i>scope check</i>"]
+    S1 --> S2["iso27001<br/><i>Annex A mapping</i>"]
+    S2 --> S3["risk-register<br/><i>ISO 27005 register</i>"]
+    S3 --> S4["policy-drafter<br/><i>Tier-1/2 policy stack</i>"]
+    S4 --> S5["vendor-questionnaire<br/><i>supply-chain Art 21(4)</i>"]
+    S5 --> S6["audit-evidence<br/><i>collection cadence</i>"]
+    S6 --> Out["Submission to RDI<br/>+ continuous-compliance plan"]
+
+    S1 -. handoff .- DORA["dora<br/><i>if financial entity</i>"]
+    S1 -. handoff .- AVG["gdpr-pia<br/><i>if personal data in scope</i>"]
+
+    style Start fill:#0a0f1f,stroke:#4f7df9,stroke-width:2px,color:#fff
+    style Out fill:#0a0f1f,stroke:#4f7df9,stroke-width:2px,color:#fff
+    style S1 fill:#11182d,stroke:#4f7df9,color:#cdd5e8
+    style S2 fill:#11182d,stroke:#5b6584,color:#cdd5e8
+    style S3 fill:#11182d,stroke:#5b6584,color:#cdd5e8
+    style S4 fill:#11182d,stroke:#5b6584,color:#cdd5e8
+    style S5 fill:#11182d,stroke:#5b6584,color:#cdd5e8
+    style S6 fill:#11182d,stroke:#5b6584,color:#cdd5e8
+    style DORA fill:#11182d,stroke:#5b6584,color:#7c4ff9
+    style AVG fill:#11182d,stroke:#5b6584,color:#7c4ff9
+```
+
+Each box is a skill that primes Claude with the methodology for that step. Solid arrows = sequential workflow; dotted = conditional handoffs based on entity classification. The full walk-through (with example outputs at every step) lives in [`examples/02-nis2-readiness-audit.md`](examples/02-nis2-readiness-audit.md).
+
 ## Smoke tests
 
 [`tests/smoke-test-prompts.md`](tests/smoke-test-prompts.md) lists 47 prompts — one per catalog item — for manually exercising the matcher in a Claude environment. Useful when validating a fresh install, after substantive edits, or when investigating regressions.
@@ -115,6 +175,7 @@ install.sh                    Curl-pipeable installer (POSIX bash + curl + jq) f
 web/index.html                Builder UI
 examples/                     End-to-end walkthroughs
 tests/                        Smoke-test prompts
+docs/capabilities.md          Capability index — ~150 capabilities mapped to the skill that delivers them
 CLAUDE.md (root)              Working-language editing conventions (for contributors)
 ```
 
