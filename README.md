@@ -165,7 +165,14 @@ Reporting tradecraft errors, installer issues, or accidental credential exposure
 
 ## License
 
-[MIT](LICENSE). Use it, fork it, ship it. Attribution to Accans is appreciated but not required.
+Dual-licensed:
+
+- **Catalog content** (skills, agents, commands, examples, tests, docs, assets, JSON manifests) — [CC BY-SA 4.0](LICENSE-CC-BY-SA-4.0). Use, modify, redistribute, translate; derivatives must remain CC BY-SA 4.0 with attribution to Accans.
+- **Code** (installer, build/validate/package scripts, web builder, workflows) — [Apache 2.0](LICENSE-Apache-2.0). Permissive with explicit copyright retention and patent grant.
+
+See [LICENSE](LICENSE) for the combiner and [LICENSING.md](LICENSING.md) for per-file license assignment, contributor terms, and commercial-use guidance.
+
+`Accans` and the Accans dot mark are not part of the license grant.
 
 ---
 

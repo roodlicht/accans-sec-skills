@@ -56,4 +56,25 @@ By participating, you agree to abide by the [Code of Conduct](CODE_OF_CONDUCT.md
 
 ## Licensing
 
-Contributions are licensed under the same MIT license as the project (see `LICENSE`). By submitting a PR you confirm that you have the right to contribute the code or text under those terms.
+This project is dual-licensed (see [LICENSING.md](LICENSING.md) for the full breakdown):
+
+- **Content contributions** (skill bodies, examples, tests, documentation, JSON metadata) are licensed under **CC BY-SA 4.0**.
+- **Code contributions** (scripts, installer, web builder, workflows) are licensed under **Apache 2.0**.
+
+By submitting a pull request you confirm:
+
+1. You have the right to contribute the work under the applicable license (you are the author, or you have explicit permission from the author).
+2. Your contribution to content files is licensed to the project — and onwards to its users — under CC BY-SA 4.0.
+3. Your contribution to code files is licensed to the project — and onwards to its users — under Apache 2.0.
+
+We use the **Developer Certificate of Origin (DCO)** as the attestation mechanism. Sign your commits:
+
+```bash
+git commit -s -m "your commit message"
+```
+
+This appends a `Signed-off-by:` trailer with your name and email, asserting that you have the right to contribute under the project's licenses. Full DCO text: https://developercertificate.org/.
+
+Pull requests without DCO sign-off will be flagged for fixup before merge. We don't require a separate CLA — DCO is sufficient.
+
+For the larger questions (commercial licensing for AI training, SaaS bundling, exemptions from the CC BY-SA 4.0 ShareAlike obligation), see [LICENSING.md](LICENSING.md) or contact the maintainer via [accans.com](https://accans.com).
