@@ -64,17 +64,16 @@ Inheritance is asymmetric. `appsec` pulls all 7 core items (thick arrow). `pente
 
 ### Hosted install (recommended)
 
-If you have access to a hosted instance, pick a profile and run:
+The canonical hosted instance is at **[accans.com/skills](https://accans.com/skills)**. Pick a profile and run:
 
 ```bash
-# Replace example.com with the actual host
-curl -sSL https://example.com/install.sh | bash -s -- --list-profiles
-curl -sSL https://example.com/install.sh | bash -s -- --profile core --dry-run
-curl -sSL https://example.com/install.sh | bash -s -- --profile core
-curl -sSL https://example.com/install.sh | bash -s -- security-review threat-modeler ir-runbook
+curl -sSL https://accans.com/skills/install.sh | bash -s -- --list-profiles
+curl -sSL https://accans.com/skills/install.sh | bash -s -- --profile core --dry-run
+curl -sSL https://accans.com/skills/install.sh | bash -s -- --profile core
+curl -sSL https://accans.com/skills/install.sh | bash -s -- security-review threat-modeler ir-runbook
 ```
 
-Requires `curl` and `jq` on the client. Default destination is `$HOME/.claude`; override with `--dest`.
+Requires `curl` and `jq` on the client. Default destination is `$HOME/.claude`; override with `--dest`. The browser-side builder at [accans.com/skills](https://accans.com/skills) lets you curate a custom selection and copy the matching install command.
 
 ### Local repo install
 
@@ -169,7 +168,6 @@ scripts/build-manifest.mjs    Scans disk → writes manifest.json → injects in
 scripts/validate.mjs          Validates catalog ↔ disk + frontmatter + cross-reference graph
 scripts/package.mjs           Builds dist/ for static-site deploy
 .github/workflows/ci.yml      Build + validate + drift-check on push/PR
-.github/workflows/deploy.yml  rsync dist/ to a Plesk host on push to main
 bin/sec-install               Installer CLI for local-repo use (Node, no deps)
 install.sh                    Curl-pipeable installer (POSIX bash + curl + jq) for hosted deploy
 web/index.html                Builder UI
@@ -181,15 +179,48 @@ CLAUDE.md (root)              Working-language editing conventions (for contribu
 
 ## Hosting
 
+The canonical hosted instance is **[accans.com/skills](https://accans.com/skills)**. It is built and deployed as part of the `accans.com` Astro site — this repo holds the catalog source, the Astro site pulls a tagged version, runs `npm run package`, and inlines the resulting static output into `public/skills/` before its own build.
+
+If you want to host your own copy (fork, private deploy, bug-bounty-style internal share):
+
 ```bash
-# Build a deploy-ready dist/ (index.html + manifest.json + install.sh + skills/ + agents/ + commands/)
+# 1. Build a deploy-ready dist/
+#    (index.html + manifest.json + install.sh + skills/ + agents/ + commands/)
 npm run package
 
-# Upload to your static host
+# 2. Upload to your static host (any host serving plain files works)
 rsync -av --delete dist/ user@host:/var/www/example.com/
 ```
 
-When the site is served over http(s), the builder auto-detects `location.origin` and renders curl-install commands using the live host. The `install.sh` default base URL can be overridden via `--base-url` or `SEC_INSTALL_BASE_URL` env-var.
+The builder UI auto-detects its base URL via `new URL('.', location.href)`, so it works for both subdomain (`skills.example.com`) and path-based (`example.com/skills`) deploys without modification. The `install.sh` default base URL can be overridden via `--base-url` or `SEC_INSTALL_BASE_URL` env-var when self-hosting under a different domain.
+
+### Astro integration (how accans.com pulls this in)
+
+For reference, the relevant snippet from the accans.com build workflow:
+
+```yaml
+- name: Clone skills catalog (pinned to a release tag)
+  run: git clone --depth 1 --branch v0.2.2 https://github.com/roodlicht/accans-sec-skills.git /tmp/skills
+
+- uses: actions/setup-node@v6
+  with: { node-version: '22' }
+
+- name: Build skills static output
+  working-directory: /tmp/skills
+  run: |
+    npm ci
+    npm run check       # 0 errors / 0 warnings as a deploy gate
+    npm run package     # produces /tmp/skills/dist/
+
+- name: Inline skills into Astro public/
+  run: |
+    mkdir -p public/skills
+    cp -r /tmp/skills/dist/* public/skills/
+    # Astro copies public/* untouched into dist/, so /skills/ ends up
+    # at the deployed site root as accans.com/skills/.
+```
+
+Astro does not process `public/*` files, so the catalog's `.md` files, `manifest.json`, and `install.sh` are served as-is.
 
 ## Adding a new item
 
