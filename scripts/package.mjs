@@ -43,9 +43,9 @@ for (const [src, dst] of topFiles) {
 }
 fs.chmodSync(path.join(dist, "install.sh"), 0o755);
 
-// Catalog content
+// Catalog content + assets (banner etc.) for the deployed mirror
 let copied = 0;
-for (const dir of ["skills", "agents", "commands"]) {
+for (const dir of ["skills", "agents", "commands", "assets"]) {
   const src = path.join(root, dir);
   if (!fs.existsSync(src)) continue;
   fs.cpSync(src, path.join(dist, dir), { recursive: true });
