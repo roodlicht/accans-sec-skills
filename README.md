@@ -14,28 +14,28 @@ Maintained by **[Accans](https://accans.com)** — security engineering with NL/
 
 ## What this is
 
-Five profiles, 48 items, one consistent architecture. Each item is a structured markdown file (`SKILL.md`, agent definition, or slash-command) with a front-matter description that the Claude matcher reads and a body that primes Claude on methodology, scope discipline, output format, and primary-source references.
+Five profiles, 49 items, one consistent architecture. Each item is a structured markdown file (`SKILL.md`, agent definition, or slash-command) with a front-matter description that the Claude matcher reads and a body that primes Claude on methodology, scope discipline, output format, and primary-source references.
 
 | Profile  | Items | Focus |
 |----------|-------|-------|
 | `core`    | 7  | Cross-cutting essentials: secure-coding, security-review, secrets-scanner, cve-triage, threat-modeler, security-gate, verification-loop. |
-| `appsec`  | 20 | Core + DevSecOps and framework-specific guardrails: SAST/DAST, IaC, container, k8s, API, supply-chain, Django, Spring, Rails, Next.js, Astro, CI/CD. |
+| `appsec`  | 21 | Core + DevSecOps and framework-specific guardrails: SAST/DAST, IaC, container, k8s, API, supply-chain, Django, Spring, Rails, Next.js, Astro, Symfony, CI/CD. |
 | `pentest` | 12 | Recon, exploit-chain, payload library, AD attack paths, web-exploit triage, C2 hygiene, phishing-sim, post-exploitation, reporter. |
 | `blue`    | 11 | IR runbook, detection-engineer, log-triage (CloudTrail / Entra / Workspace / Okta), SIEM queries, IOC hunter, malware-triage, forensics-assist, alert-tuning, purple-ops, threat-hunt. |
 | `grc`     | 10 | NIS2, DORA, ISO 27001, SOC 2, AVG/GDPR PIA, risk-register, policy-drafter, vendor-questionnaire, audit-evidence — EU/NL-anchored. |
 
-`full` is everything (48).
+`full` is everything (49).
 
 ### Profile architecture
 
 ```mermaid
 %%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#11182d','primaryTextColor':'#cdd5e8','primaryBorderColor':'#4f7df9','lineColor':'#5b6584'}}}%%
 flowchart TB
-    Root(["accans-sec-skills · 48 items"])
+    Root(["accans-sec-skills · 49 items"])
 
     Root --> Core["core · 7<br/><i>secure-coding, security-review,<br/>verification-loop, secrets-scanner,<br/>cve-triage, threat-modeler, security-gate</i>"]
 
-    Core ==>|"all 7"| AppSec["appsec · 20<br/><i>SAST/DAST · IaC · container · k8s ·<br/>API · supply-chain · Django · Spring ·<br/>Rails · Next.js · Astro · CI/CD</i>"]
+    Core ==>|"all 7"| AppSec["appsec · 21<br/><i>SAST/DAST · IaC · container · k8s ·<br/>API · supply-chain · Django · Spring ·<br/>Rails · Next.js · Astro · Symfony · CI/CD</i>"]
     Core -.->|"verification-loop<br/>+ security-review"| Pentest["pentest · 12<br/><i>recon · exploit-chain · payload-crafter ·<br/>AD-attacks · web-exploit-triage ·<br/>C2-hygiene · phishing-sim · post-exploit ·<br/>pentest-reporter · purple-ops</i>"]
     Core -.->|"verification-loop"| Blue["blue · 11<br/><i>IR-runbook · detection-engineer ·<br/>log-triage · siem-query · ioc-hunter ·<br/>malware-triage · forensics-assist ·<br/>alert-tuning · purple-ops · threat-hunt</i>"]
     Core -.->|"verification-loop"| GRC["grc · 10<br/><i>NIS2 · DORA · AVG/GDPR · ISO 27001 ·<br/>SOC 2 · risk-register · policy-drafter ·<br/>vendor-questionnaire · audit-evidence</i>"]
@@ -50,7 +50,7 @@ flowchart TB
     style GRC fill:#11182d,stroke:#5b6584,color:#cdd5e8
 ```
 
-Inheritance is asymmetric. `appsec` pulls all 7 core items (thick arrow). `pentest` pulls `verification-loop` + `security-review`. `blue` and `grc` pull only `verification-loop` — that one is the universal self-review pass that ships in every profile. `purple-ops` is dual-cat (lives in both `pentest` and `blue`); the horizontal dotted line marks the bridge. `full` is everything (48).
+Inheritance is asymmetric. `appsec` pulls all 7 core items (thick arrow). `pentest` pulls `verification-loop` + `security-review`. `blue` and `grc` pull only `verification-loop` — that one is the universal self-review pass that ships in every profile. `purple-ops` is dual-cat (lives in both `pentest` and `blue`); the horizontal dotted line marks the bridge. `full` is everything (49).
 
 ## How it differs from a generic "all-in-one" security AI bundle
 
@@ -88,7 +88,7 @@ cd accans-sec-skills
 
 ## Working language
 
-The catalog is fully English. All 48 items — across Core, AppSec, Pentest, Blue, and GRC — have English bodies, English front-matter descriptions, and English public-facing positioning (this README, examples, smoke tests, contributor docs).
+The catalog is fully English. All 49 items — across Core, AppSec, Pentest, Blue, and GRC — have English bodies, English front-matter descriptions, and English public-facing positioning (this README, examples, smoke tests, contributor docs).
 
 **GRC items remain explicitly NL/EU-anchored** in their references and regulatory text. That is the catalog's positioning — preserved through the translation work. NIS2, DORA, AVG, Cyberbeveiligingswet, AP, RDI, DNB, AFM stay as primary sources. Only the wrapping prose is English.
 
@@ -232,7 +232,7 @@ Astro does not process `public/*` files, so the catalog's `.md` files, `manifest
 
 ## Status
 
-48 items committed. v0.1.0 shipped the catalog with mixed NL/EN bodies; v0.2.0 shipped the catalog fully in English across all five profiles; v0.2.x adds polish and the Astro framework skill. CI runs build + validate + drift-check on every push and PR. Validation passes with 0 errors and 0 warnings.
+49 items committed. v0.1.0 shipped the catalog with mixed NL/EN bodies; v0.2.0 shipped the catalog fully in English across all five profiles; v0.2.x adds polish, the Astro framework skill, and the Symfony framework skill. CI runs build + validate + drift-check on every push and PR. Validation passes with 0 errors and 0 warnings.
 
 ## Contributing
 

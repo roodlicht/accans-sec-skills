@@ -603,6 +603,20 @@
       "path": "skills/supply-chain"
     },
     {
+      "id": "symfony-security",
+      "name": "Symfony Security",
+      "type": "skill",
+      "cat": [
+        "appsec"
+      ],
+      "profiles": [
+        "appsec",
+        "full"
+      ],
+      "desc": "Symfony / PHP webapp security review — Security Component (firewalls, voters, access_control, role hierarchies), Doctrine ORM injection patterns (raw DQL, QueryBuilder, expr()), Twig auto-escape and |raw, CSRF + session, PHP-specific RCE classes (unserialize, include/require, system/exec, eval, type juggling), configuration discipline (.env, secrets vault, profiler in prod), and recent Symfony CVE patterns. Covers Symfony-based CMSes (Sulu, Ibexa, Bolt) and custom Symfony webapps.",
+      "path": "skills/symfony-security"
+    },
+    {
       "id": "vendor-questionnaire",
       "name": "Vendor Security Questionnaire",
       "type": "skill",

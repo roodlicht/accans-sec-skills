@@ -27,7 +27,7 @@ A "pass" means: Claude routes to the expected item within the first or second me
 | 6 | "Threat-model this new payment service with Stripe integration." | `threat-modeler` (agent) |
 | 7 | "/security-gate" (slash command) | `security-gate` (command) |
 
-### AppSec (13 items, plus core)
+### AppSec (14 items, plus core)
 
 | # | Prompt | Expected trigger |
 |---|---|---|
@@ -44,6 +44,7 @@ A "pass" means: Claude routes to the expected item within the first or second me
 | 18 | "Review the auth flow in our Next.js Server Actions." | `nextjs-security` |
 | 19 | "Set up GitHub Actions OIDC to AWS." | `cicd-hardening` |
 | 19a | "Review our Astro site for security — we use Decap CMS over GitHub OAuth." | `astro-security` |
+| 19b | "Audit this Symfony app — security.yaml, Doctrine queries, and Twig templates with \|raw." | `symfony-security` |
 
 ### Pentest (9 items, plus core overlap)
 
