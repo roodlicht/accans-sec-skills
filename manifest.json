@@ -74,6 +74,20 @@
       "path": "skills/api-security"
     },
     {
+      "id": "astro-security",
+      "name": "Astro Security",
+      "type": "skill",
+      "cat": [
+        "appsec"
+      ],
+      "profiles": [
+        "appsec",
+        "full"
+      ],
+      "desc": "Astro security review — render-mode attack surface (SSG/SSR/hybrid), set:html and MDX content collections (XSS + author trust), API routes and middleware (auth, scope), adapter-specific runtime models (Cloudflare/Vercel/Netlify/Node), env-var hygiene (PUBLIC_ prefix), and Decap CMS pairing (OAuth backend, token storage, branch-based editorial workflow).",
+      "path": "skills/astro-security"
+    },
+    {
       "id": "audit-evidence",
       "name": "Audit Evidence Collector",
       "type": "skill",
