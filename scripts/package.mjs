@@ -28,7 +28,6 @@ fs.mkdirSync(dist, { recursive: true });
 
 // Top-level files
 const topFiles = [
-  ["web/index.html", "index.html"],
   ["manifest.json",  "manifest.json"],
   ["install.sh",     "install.sh"],
 ];
@@ -42,6 +41,54 @@ for (const [src, dst] of topFiles) {
   fs.cpSync(srcPath, path.join(dist, dst));
 }
 fs.chmodSync(path.join(dist, "install.sh"), 0o755);
+
+// web/index.html — copy and inject CollectionPage + ItemList JSON-LD from catalog.json
+// The placeholder marker in web/index.html (<!-- SCHEMA:CATALOG_ITEMLIST -->) is
+// replaced with a <script type="application/ld+json"> block listing every catalog item.
+// Keeps schema in sync with the catalog without committing generated content to source.
+{
+  const SITE = "https://accans.com/skills/";
+  const html = fs.readFileSync(path.join(root, "web/index.html"), "utf8");
+  const catalog = JSON.parse(fs.readFileSync(path.join(root, "catalog.json"), "utf8"));
+  const items = Array.isArray(catalog.items) ? catalog.items : [];
+
+  const schema = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "@id": SITE + "#collection",
+    "name": "Claude Code Security Skills Catalog",
+    "description": catalog?.meta?.description ?? "Security-focused skills, agents and commands for Claude Code.",
+    "url": SITE,
+    "inLanguage": "en",
+    "isPartOf": { "@type": "WebSite", "url": "https://accans.com", "name": "Accans" },
+    "about": [
+      { "@type": "Thing", "name": "Application Security" },
+      { "@type": "Thing", "name": "Penetration Testing" },
+      { "@type": "Thing", "name": "Blue Team Security" },
+      { "@type": "Thing", "name": "Governance Risk Compliance" },
+      { "@type": "Thing", "name": "Claude Code" }
+    ],
+    "mainEntity": {
+      "@type": "ItemList",
+      "numberOfItems": items.length,
+      "itemListElement": items.map((it, i) => ({
+        "@type": "ListItem",
+        "position": i + 1,
+        "name": it.name ?? it.id,
+        "url": `${SITE}#${it.id}`,
+        "description": it.desc ?? ""
+      }))
+    }
+  };
+
+  const block = `<script type="application/ld+json">${JSON.stringify(schema)}</script>`;
+  const patched = html.replace("<!-- SCHEMA:CATALOG_ITEMLIST -->", block);
+
+  if (patched === html) {
+    console.warn("!! SCHEMA:CATALOG_ITEMLIST placeholder not found in web/index.html — schema not injected");
+  }
+  fs.writeFileSync(path.join(dist, "index.html"), patched);
+}
 
 // Catalog content + assets (banner etc.) for the deployed mirror
 let copied = 0;
