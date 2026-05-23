@@ -42,46 +42,103 @@ for (const [src, dst] of topFiles) {
 }
 fs.chmodSync(path.join(dist, "install.sh"), 0o755);
 
-// web/index.html — copy and inject CollectionPage + ItemList JSON-LD from catalog.json
+// web/index.html — copy and inject Schema.org @graph from catalog.json.
 // The placeholder marker in web/index.html (<!-- SCHEMA:CATALOG_ITEMLIST -->) is
-// replaced with a <script type="application/ld+json"> block listing every catalog item.
-// Keeps schema in sync with the catalog without committing generated content to source.
+// replaced with a <script type="application/ld+json"> block containing a richer
+// entity graph: the publishing Organization (Accans), the author Person (Ric, by
+// @id reference to the homepage entity), the SoftwareSourceCode for the catalog
+// repo, and the CollectionPage + ItemList of every catalog item. Cross-referenced
+// via @id so Google can resolve "Accans" / "Ric" / "the catalog" as a single
+// entity graph instead of an isolated page listing.
 {
   const SITE = "https://accans.com/skills/";
+  const SITE_ROOT = "https://accans.com";
+  const REPO = "https://github.com/roodlicht/accans-sec-skills";
+
   const html = fs.readFileSync(path.join(root, "web/index.html"), "utf8");
   const catalog = JSON.parse(fs.readFileSync(path.join(root, "catalog.json"), "utf8"));
   const items = Array.isArray(catalog.items) ? catalog.items : [];
 
-  const schema = {
+  const graph = {
     "@context": "https://schema.org",
-    "@type": "CollectionPage",
-    "@id": SITE + "#collection",
-    "name": "Claude Code Security Skills Catalog",
-    "description": catalog?.meta?.description ?? "Security-focused skills, agents and commands for Claude Code.",
-    "url": SITE,
-    "inLanguage": "en",
-    "isPartOf": { "@type": "WebSite", "url": "https://accans.com", "name": "Accans" },
-    "about": [
-      { "@type": "Thing", "name": "Application Security" },
-      { "@type": "Thing", "name": "Penetration Testing" },
-      { "@type": "Thing", "name": "Blue Team Security" },
-      { "@type": "Thing", "name": "Governance Risk Compliance" },
-      { "@type": "Thing", "name": "Claude Code" }
-    ],
-    "mainEntity": {
-      "@type": "ItemList",
-      "numberOfItems": items.length,
-      "itemListElement": items.map((it, i) => ({
-        "@type": "ListItem",
-        "position": i + 1,
-        "name": it.name ?? it.id,
-        "url": `${SITE}#${it.id}`,
-        "description": it.desc ?? ""
-      }))
-    }
+    "@graph": [
+      // Person — already canonically defined on accans.com homepage as #ric.
+      // Re-listing the @id here signals to Google "this is the same entity";
+      // declared minimally so the cross-page graph resolves without duplicating
+      // the full Person record.
+      {
+        "@type": "Person",
+        "@id": SITE_ROOT + "/#ric",
+        "name": "Ric van Westhreenen",
+        "url": SITE_ROOT
+      },
+
+      // Organization — same @id pattern as the homepage ProfessionalService block.
+      {
+        "@type": "Organization",
+        "@id": SITE_ROOT + "/#org",
+        "name": "Accans",
+        "url": SITE_ROOT,
+        "logo": SITE_ROOT + "/apple-touch-icon.png",
+        "founder": { "@id": SITE_ROOT + "/#ric" },
+        "sameAs": [
+          "https://www.linkedin.com/in/westhreenen/",
+          "https://github.com/roodlicht"
+        ]
+      },
+
+      // SoftwareSourceCode — the catalog itself as a tangible code asset on GitHub.
+      // Helps Google connect this page to the open-source project (and vice versa
+      // when GitHub gets crawled).
+      {
+        "@type": "SoftwareSourceCode",
+        "@id": SITE + "#catalog",
+        "name": catalog?.meta?.name ?? "Accans Sec Skills",
+        "description": catalog?.meta?.description ?? "Security-focused skills, agents and commands for Claude Code.",
+        "url": SITE,
+        "codeRepository": REPO,
+        "programmingLanguage": "Markdown",
+        "license": REPO + "/blob/main/LICENSING.md",
+        "version": catalog?.meta?.version,
+        "author": { "@id": SITE_ROOT + "/#ric" },
+        "maintainer": { "@id": SITE_ROOT + "/#org" }
+      },
+
+      // CollectionPage — the page itself, linked to publisher + author + the
+      // SoftwareSourceCode it presents. mainEntity carries the ItemList.
+      {
+        "@type": "CollectionPage",
+        "@id": SITE + "#collection",
+        "name": "Claude Code Security Skills Catalog",
+        "description": catalog?.meta?.description ?? "Security-focused skills, agents and commands for Claude Code.",
+        "url": SITE,
+        "inLanguage": "en",
+        "isPartOf": { "@type": "WebSite", "url": SITE_ROOT, "name": "Accans" },
+        "publisher": { "@id": SITE_ROOT + "/#org" },
+        "author": { "@id": SITE_ROOT + "/#ric" },
+        "about": [
+          { "@type": "Thing", "name": "Application Security" },
+          { "@type": "Thing", "name": "Penetration Testing" },
+          { "@type": "Thing", "name": "Blue Team Security" },
+          { "@type": "Thing", "name": "Governance Risk Compliance" },
+          { "@type": "Thing", "name": "Claude Code" }
+        ],
+        "mainEntity": {
+          "@type": "ItemList",
+          "numberOfItems": items.length,
+          "itemListElement": items.map((it, i) => ({
+            "@type": "ListItem",
+            "position": i + 1,
+            "name": it.name ?? it.id,
+            "url": `${SITE}#${it.id}`,
+            "description": it.desc ?? ""
+          }))
+        }
+      }
+    ]
   };
 
-  const block = `<script type="application/ld+json">${JSON.stringify(schema)}</script>`;
+  const block = `<script type="application/ld+json">${JSON.stringify(graph)}</script>`;
   const patched = html.replace("<!-- SCHEMA:CATALOG_ITEMLIST -->", block);
 
   if (patched === html) {
